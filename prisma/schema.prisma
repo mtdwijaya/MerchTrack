@@ -1,0 +1,114 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  PETUGAS
+}
+
+model User {
+  id_user    Int @id @default(autoincrement())
+  id_stasiun Int
+
+  nama_user String @db.VarChar(100)
+  email     String @unique @db.VarChar(100)
+  password  String @db.VarChar(255)
+  role      Role
+
+  stasiun      Stasiun        @relation(fields: [id_stasiun], references: [id_stasiun])
+  barangMasuk  BarangMasuk[]
+  barangKeluar BarangKeluar[]
+
+  @@map("user")
+}
+
+model Stasiun {
+  id_stasiun   Int    @id @default(autoincrement())
+  kode_stasiun String @unique @db.VarChar(20)
+  nama_stasiun String @db.VarChar(100)
+  kontak       String @db.VarChar(50)
+
+  users        User[]
+  barangKeluar BarangKeluar[]
+
+  @@map("stasiun")
+}
+
+model Merchandise {
+  id_merch   Int     @id @default(autoincrement())
+  nama_merch String  @db.VarChar(100)
+  deskripsi  String? @db.VarChar(255)
+
+  stok         Stok[]
+  barangMasuk  BarangMasuk[]
+  barangKeluar BarangKeluar[]
+
+  @@map("merchandise")
+}
+
+model Stok {
+  id_stok  Int @id @default(autoincrement())
+  id_merch Int
+
+  jumlah_stok Int @default(0)
+
+  merchandise Merchandise @relation(fields: [id_merch], references: [id_merch])
+
+  @@map("stok")
+}
+
+model KategoriPenggunaan {
+  id_kategori   Int    @id @default(autoincrement())
+  nama_kategori String @db.VarChar(100)
+
+  barangKeluar BarangKeluar[]
+
+  @@map("kategori_penggunaan")
+}
+
+model BarangMasuk {
+  id_masuk Int @id @default(autoincrement())
+
+  id_merch Int
+  jumlah   Int
+
+  tanggal_masuk DateTime @default(now())
+
+  id_user Int
+
+  keterangan String? @db.VarChar(255)
+
+  merchandise Merchandise @relation(fields: [id_merch], references: [id_merch])
+  user        User        @relation(fields: [id_user], references: [id_user])
+
+  @@map("barang_masuk")
+}
+
+model BarangKeluar {
+  id_keluar Int @id @default(autoincrement())
+
+  id_merch    Int
+  id_stasiun  Int
+  id_kategori Int
+
+  jumlah Int
+
+  tanggal_keluar DateTime @default(now())
+
+  keterangan String? @db.VarChar(255)
+
+  id_user Int
+
+  merchandise Merchandise        @relation(fields: [id_merch], references: [id_merch])
+  stasiun     Stasiun            @relation(fields: [id_stasiun], references: [id_stasiun])
+  kategori    KategoriPenggunaan @relation(fields: [id_kategori], references: [id_kategori])
+  user        User               @relation(fields: [id_user], references: [id_user])
+
+  @@map("barang_keluar")
+}
