@@ -8,11 +8,14 @@ export async function POST(req: Request) {
   try {
     const { email, password } = await req.json();
 
-    // Validate input
     if (!email || !password) {
       return NextResponse.json(
-        { message: "Email dan password harus diisi" },
-        { status: 400 }
+        {
+          message: "Email dan password wajib diisi",
+        },
+        {
+          status: 400,
+        }
       );
     }
 
@@ -27,8 +30,12 @@ export async function POST(req: Request) {
 
     if (!user) {
       return NextResponse.json(
-        { message: "Email tidak ditemukan" },
-        { status: 401 }
+        {
+          message: "Email atau password salah",
+        },
+        {
+          status: 401,
+        }
       );
     }
 
@@ -39,18 +46,22 @@ export async function POST(req: Request) {
 
     if (!validPassword) {
       return NextResponse.json(
-        { message: "Password salah" },
-        { status: 401 }
+        {
+          message: "Email atau password salah",
+        },
+        {
+          status: 401,
+        }
       );
     }
 
     const token = jwt.sign(
       {
-        id: user.id_user,
+        id_user: user.id_user,
         email: user.email,
         role: user.role,
       },
-      process.env.JWT_SECRET!,
+      process.env.JWT_SECRET as string,
       {
         expiresIn: "1d",
       }
@@ -58,32 +69,36 @@ export async function POST(req: Request) {
 
     const cookieStore = await cookies();
 
-    cookieStore.set("token", token, {
+    cookieStore.set({
+      name: "token",
+      value: token,
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
+      secure: false,
+      sameSite: "lax",
       path: "/",
       maxAge: 60 * 60 * 24,
     });
 
     return NextResponse.json({
       success: true,
+      message: "Login berhasil",
       user: {
         id_user: user.id_user,
         nama_user: user.nama_user,
         email: user.email,
         role: user.role,
-        id_stasiun: user.id_stasiun,
       },
     });
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    console.error("Login error details:", {
-      message: errorMessage,
-      error: error,
-    });
+    console.error(error);
+
     return NextResponse.json(
-      { message: `Server Error: ${errorMessage}` },
-      { status: 500 }
+      {
+        message: "Terjadi kesalahan server",
+      },
+      {
+        status: 500,
+      }
     );
   }
 }

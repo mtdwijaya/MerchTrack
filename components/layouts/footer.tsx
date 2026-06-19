@@ -1,24 +1,40 @@
-// components/layout/footer.tsx
-
-import Image from "next/image";
-
 export default function Footer() {
   return (
-    <footer className="h-20 bg-white border-t border-[#EFEAE5] px-14 flex items-center">
-      <div className="flex items-center gap-6">
-        <Image
-          src="/layouts/MerchTrack.svg"
-          alt="MerchTrack"
-          width={170}
-          height={40}
-          priority
+    <footer
+      className="
+        mt-8
+        border-t
+        border-[#E5E7EB]
+        bg-white
+      "
+    >
+      <div
+        className="
+          h-14
+          px-8
+          flex
+          items-center
+          gap-5
+        "
+      >
+        <img
+          src="/logos/MerchTrack.svg"
+          alt="LRT Jabodebek"
+          width={100}
+          height={50}
         />
 
-        <div className="w-px h-6 bg-[#D9D9D9]" />
+        <div className="w-px h-5 bg-[#D1D5DB]" />
 
-        <p className="text-[15px] text-[#5C4A4A] font-medium">
-          © 2026 LRT Jabodebek - mtdwijaya
-        </p>
+        <span
+          className="
+            text-xs
+            text-[#6B7280]
+          "
+        >
+          © {new Date().getFullYear()} LRT
+          Jabodebek - mtdwidjaya
+        </span>
       </div>
     </footer>
   );

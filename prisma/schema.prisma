@@ -1,114 +1,121 @@
 generator client {
-  provider = "prisma-client-js"
+provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+provider = "postgresql"
+url      = env("DATABASE_URL")
 }
 
 enum Role {
-  ADMIN
-  PETUGAS
+ADMIN
+PETUGAS
 }
 
 model User {
-  id_user    Int @id @default(autoincrement())
-  id_stasiun Int
+id_user    Int @id @default(autoincrement())
+id_stasiun Int?
 
-  nama_user String @db.VarChar(100)
-  email     String @unique @db.VarChar(100)
-  password  String @db.VarChar(255)
-  role      Role
+nama_user String
+email     String @unique
+password  String
 
-  stasiun      Stasiun        @relation(fields: [id_stasiun], references: [id_stasiun])
-  barangMasuk  BarangMasuk[]
-  barangKeluar BarangKeluar[]
+role Role @default(PETUGAS)
 
-  @@map("user")
+created_at DateTime @default(now())
+updated_at DateTime @updatedAt
+
+stasiun Stasiun? @relation(fields: [id_stasiun], references: [id_stasiun])
+
+barangMasuk  BarangMasuk[]
+barangKeluar BarangKeluar[]
 }
 
 model Stasiun {
-  id_stasiun   Int    @id @default(autoincrement())
-  kode_stasiun String @unique @db.VarChar(20)
-  nama_stasiun String @db.VarChar(100)
-  kontak       String @db.VarChar(50)
+id_stasiun Int @id @default(autoincrement())
 
-  users        User[]
-  barangKeluar BarangKeluar[]
+kode_stasiun String @unique
+nama_stasiun String
 
-  @@map("stasiun")
+alamat String?
+kontak String?
+
+created_at DateTime @default(now())
+updated_at DateTime @updatedAt
+
+users        User[]
+barangKeluar BarangKeluar[]
 }
 
 model Merchandise {
-  id_merch   Int     @id @default(autoincrement())
-  nama_merch String  @db.VarChar(100)
-  deskripsi  String? @db.VarChar(255)
+id_merch Int @id @default(autoincrement())
 
-  stok         Stok[]
-  barangMasuk  BarangMasuk[]
-  barangKeluar BarangKeluar[]
+nama_merch String
+deskripsi  String?
 
-  @@map("merchandise")
+created_at DateTime @default(now())
+updated_at DateTime @updatedAt
+
+stok Stok?
+
+barangMasuk  BarangMasuk[]
+barangKeluar BarangKeluar[]
 }
 
 model Stok {
-  id_stok  Int @id @default(autoincrement())
-  id_merch Int
+id_stok Int @id @default(autoincrement())
 
-  jumlah_stok Int @default(0)
+id_merch Int @unique
 
-  merchandise Merchandise @relation(fields: [id_merch], references: [id_merch])
+jumlah_stok Int @default(0)
 
-  @@map("stok")
+merchandise Merchandise @relation(fields: [id_merch], references: [id_merch], onDelete: Cascade)
 }
 
 model KategoriPenggunaan {
-  id_kategori   Int    @id @default(autoincrement())
-  nama_kategori String @db.VarChar(100)
+id_kategori Int @id @default(autoincrement())
 
-  barangKeluar BarangKeluar[]
+nama_kategori String @unique
 
-  @@map("kategori_penggunaan")
+barangKeluar BarangKeluar[]
 }
 
 model BarangMasuk {
-  id_masuk Int @id @default(autoincrement())
+id_masuk Int @id @default(autoincrement())
 
-  id_merch Int
-  jumlah   Int
+id_merch Int
+id_user  Int
 
-  tanggal_masuk DateTime @default(now())
+jumlah Int
 
-  id_user Int
+tanggal_masuk DateTime @default(now())
 
-  keterangan String? @db.VarChar(255)
+keterangan String?
 
-  merchandise Merchandise @relation(fields: [id_merch], references: [id_merch])
-  user        User        @relation(fields: [id_user], references: [id_user])
+merchandise Merchandise @relation(fields: [id_merch], references: [id_merch])
 
-  @@map("barang_masuk")
+user User @relation(fields: [id_user], references: [id_user])
 }
 
 model BarangKeluar {
-  id_keluar Int @id @default(autoincrement())
+id_keluar Int @id @default(autoincrement())
 
-  id_merch    Int
-  id_stasiun  Int
-  id_kategori Int
+id_merch    Int
+id_stasiun  Int
+id_kategori Int
+id_user     Int
 
-  jumlah Int
+jumlah Int
 
-  tanggal_keluar DateTime @default(now())
+tanggal_keluar DateTime @default(now())
 
-  keterangan String? @db.VarChar(255)
+keterangan String?
 
-  id_user Int
+merchandise Merchandise @relation(fields: [id_merch], references: [id_merch])
 
-  merchandise Merchandise        @relation(fields: [id_merch], references: [id_merch])
-  stasiun     Stasiun            @relation(fields: [id_stasiun], references: [id_stasiun])
-  kategori    KategoriPenggunaan @relation(fields: [id_kategori], references: [id_kategori])
-  user        User               @relation(fields: [id_user], references: [id_user])
+stasiun Stasiun @relation(fields: [id_stasiun], references: [id_stasiun])
 
-  @@map("barang_keluar")
+kategori KategoriPenggunaan @relation(fields: [id_kategori], references: [id_kategori])
+
+user User @relation(fields: [id_user], references: [id_user])
 }

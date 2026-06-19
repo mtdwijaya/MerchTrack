@@ -1,104 +1,339 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
+import { sidebarMenus } from "@/constants/sidebar-menu";
 
-const menus = [
-  {
-    name: "Dashboard",
-    href: "/dashboard",
-  },
-  {
-    name: "Barang Keluar",
-    href: "/barang-keluar",
-  },
-  {
-    name: "Monitoring",
-    href: "/monitoring",
-  },
-  {
-    name: "History",
-    href: "/history",
-  },
-  {
-    name: "Manajemen Stasiun",
-    href: "/stasiun",
-  },
-  {
-    name: "Manajemen Merchandise",
-    href: "/merchandise",
-  },
-  {
-    name: "Manajemen Pengguna",
-    href: "/pengguna",
-  },
-];
+interface User {
+  id_user: number;
+  nama_user: string;
+  email: string;
+  role: "ADMIN" | "PETUGAS";
+}
 
-export default function Sidebar() {
+interface SidebarProps {
+  user: User | null;
+  collapsed: boolean;
+  setCollapsed: React.Dispatch<
+    React.SetStateAction<boolean>
+  >;
+}
+
+export default function Sidebar({
+  collapsed,
+  setCollapsed,
+}: SidebarProps) {
   const pathname = usePathname();
+
+  const [user, setUser] =
+    useState<User | null>(null);
+
+  useEffect(() => {
+    const getUser = async () => {
+      try {
+        const response = await fetch(
+          "/api/auth/me"
+        );
+
+        if (!response.ok) return;
+
+        const data =
+          await response.json();
+
+        setUser(data);
+      } catch (error) {
+        console.error(error);
+      }
+    };
+
+    getUser();
+  }, []);
+
+  if (!user) {
+    return (
+      <aside
+        className="
+          fixed
+          left-0
+          top-0
+          h-screen
+          w-75.5
+          bg-linear-to-b
+          from-[#D71920]
+          via-[#B1070E]
+          to-[#650000]
+        "
+      />
+    );
+  }
+
+  const menu =
+    sidebarMenus[user.role];
 
   return (
     <aside
-      className="
-      w-[280px]
-      min-h-screen
-      text-white
-      flex
-      flex-col
-      bg-gradient-to-br
-      from-[#D71920]
-      via-[#A5050A]
-      to-[#650004]
-    "
-    >
-      <div className="p-6">
-        <h1 className="text-3xl font-bold">
-          MerchTrack
-        </h1>
+      className={`
+        ${
+          collapsed
+            ? "w-16.5"
+            : "w-75.5"
+        }
 
-        <p className="mt-4 text-sm text-white/90">
-          Sistem Informasi Pengelolaan
-          Merchandise Berbasis Web
-        </p>
+        fixed
+        left-0
+        top-0
+        z-50
+
+        h-screen
+        overflow-y-auto
+
+        text-white
+
+        bg-linear-to-b
+        from-[#b91319]
+        via-[#B1070E]
+        to-[#650000]
+
+        flex
+        flex-col
+
+        px-3
+        py-4
+
+        transition-all
+        duration-300
+      `}
+    >
+      {/* Header */}
+      <div>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Image
+              src="/logos/lrt-bw.svg"
+              alt="LRT"
+              width={70}
+              height={70}
+            />
+
+            {!collapsed && (
+              <>
+                <div className="w-px h-5 bg-white/40" />
+
+                <Image
+                  src="/logos/MerchTrack-bw.svg"
+                  alt="MerchTrack"
+                  width={120}
+                  height={120}
+                />
+              </>
+            )}
+          </div>
+
+          <button
+            onClick={() =>
+              setCollapsed(
+                !collapsed
+              )
+            }
+            className="
+              text-xs
+              bg-white/10
+              hover:bg-white/20
+              rounded-md
+              px-2
+              py-1
+            "
+          >
+            {collapsed ? "→" : "←"}
+          </button>
+        </div>
+
+        {!collapsed && (
+          <div className="mt-4 text-[13px] leading-5 text-white/80">
+            <p>
+              Sistem Informasi
+              Pengelolaan
+            </p>
+            <p>Merchandise LRT</p>
+          </div>
+        )}
       </div>
 
-      <div className="px-4 flex-1">
-        <p className="text-xs font-semibold text-white/60 mb-3">
-          MAIN MENU
-        </p>
+      {/* Menu */}
+      <div className="mt-8 flex-1">
+        {!collapsed && (
+          <h3 className="text-[11px] font-semibold text-white/60 uppercase tracking-widest mb-3">
+            Main Menu
+          </h3>
+        )}
 
-        <nav className="space-y-2">
-          {menus.map((menu) => (
+        <div className="flex flex-col gap-2">
+          {menu.main.map((item) => (
             <Link
-              key={menu.href}
-              href={menu.href}
+              key={item.href}
+              href={item.href}
+              title={item.name}
               className={`
-                block
-                rounded-xl
-                px-4
-                py-3
-                transition
+                flex
+                items-center
+                gap-3
+                px-2.5
+                py-3.5
+                rounded-lg
+                transition-all
+
                 ${
-                  pathname === menu.href
-                    ? "bg-white/20"
+                  pathname ===
+                  item.href
+                    ? "bg-white/15 border-l-2 border-white"
                     : "hover:bg-white/10"
                 }
               `}
             >
-              {menu.name}
+              <Image
+                src={item.icon}
+                alt={item.name}
+                width={14}
+                height={14}
+              />
+
+              {!collapsed && (
+                <span className="text-[13px]">
+                  {item.name}
+                </span>
+              )}
             </Link>
           ))}
-        </nav>
+        </div>
+
+        {menu.master.length >
+          0 && (
+          <>
+            {!collapsed && (
+              <h3 className="mt-6 mb-3 text-[11px] font-semibold text-white/60 uppercase tracking-widest">
+                Master Data
+              </h3>
+            )}
+
+            <div className="flex flex-col gap-2">
+              {menu.master.map(
+                (item) => (
+                  <Link
+                    key={
+                      item.href
+                    }
+                    href={
+                      item.href
+                    }
+                    title={
+                      item.name
+                    }
+                    className={`
+                    flex
+                    items-center
+                    gap-3
+                    px-2.5
+                    py-3.5
+                    rounded-lg
+                    transition-all
+
+                    ${
+                      pathname ===
+                      item.href
+                        ? "bg-white/15 border-l-2 border-white"
+                        : "hover:bg-white/10"
+                    }
+                  `}
+                  >
+                    <Image
+                      src={
+                        item.icon
+                      }
+                      alt={
+                        item.name
+                      }
+                      width={14}
+                      height={14}
+                    />
+
+                    {!collapsed && (
+                      <span className="text-[13px]">
+                        {
+                          item.name
+                        }
+                      </span>
+                    )}
+                  </Link>
+                )
+              )}
+            </div>
+          </>
+        )}
       </div>
 
-      <div className="border-t border-white/20 p-5">
-        <div className="font-semibold">
-          Administrator
+      {/* User */}
+      <div className="border-t border-white/15 pt-4">
+        <div className="flex items-center gap-2">
+          <div
+            className="
+              w-8
+              h-8
+              rounded-full
+              bg-[#134B6F]
+              flex
+              items-center
+              justify-center
+              text-xs
+              font-semibold
+            "
+          >
+            {user.nama_user.charAt(
+              0
+            )}
+          </div>
+
+          {!collapsed && (
+            <div>
+              <p className="text-[11px] font-medium">
+                {user.nama_user}
+              </p>
+
+              <p className="text-[10px] text-white/60">
+                {user.role}
+              </p>
+            </div>
+          )}
         </div>
 
-        <div className="text-sm text-white/70">
-          Profil Pengguna
-        </div>
+        <button
+          className="
+            mt-3
+            w-full
+            bg-white/10
+            hover:bg-white/20
+            rounded-lg
+            py-1.5
+            text-[11px]
+            transition
+          "
+          onClick={async () => {
+            await fetch(
+              "/api/auth/logout",
+              {
+                method: "POST",
+              }
+            );
+
+            window.location.href =
+              "/login";
+          }}
+        >
+          {collapsed
+            ? "⎋"
+            : "Logout"}
+        </button>
       </div>
     </aside>
   );

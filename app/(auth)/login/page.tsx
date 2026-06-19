@@ -1,19 +1,24 @@
+
 "use client";
 
 import Image from "next/image";
-import { useState } from "react";
+import { useState, FormEvent } from "react";
 import { useRouter } from "next/navigation";
 
 export default function LoginPage() {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
-  const [isPending, setIsPending] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
   const router = useRouter();
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+
+  const [error, setError] = useState("");
+  const [isPending, setIsPending] = useState(false);
+
+  const [showPassword, setShowPassword] = useState(false);
+
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+
     setError("");
     setIsPending(true);
 
@@ -23,34 +28,35 @@ export default function LoginPage() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({
+          email,
+          password,
+        }),
       });
 
       const data = await response.json();
 
       if (!response.ok) {
-        setError(data.message || "Login gagal. Silakan coba lagi.");
+        setError(
+          data.message || "Login gagal. Silakan coba lagi."
+        );
         setIsPending(false);
         return;
       }
 
-      // Store user info in localStorage
-      if (data.user) {
-        localStorage.setItem("user", JSON.stringify(data.user));
-      }
-
-      // Clear form
       setEmail("");
       setPassword("");
       setError("");
 
-      // Redirect immediately
-      setTimeout(() => {
-        window.location.href = "/dashboard";
-      }, 100);
-    } catch (err) {
-      console.error("Login error:", err);
-      setError("Terjadi kesalahan. Silakan coba lagi.");
+      router.refresh();
+      router.push("/dashboard");
+    } catch (error) {
+      console.error(error);
+
+      setError(
+        "Terjadi kesalahan. Silakan coba lagi."
+      );
+
       setIsPending(false);
     }
   };
@@ -112,12 +118,11 @@ export default function LoginPage() {
           />
         </div>
 
-
         <p className="text-center text-[#7A7A7A] text-sm mb-8">
           Silakan login untuk mengakses sistem
         </p>
 
-        <form onSubmit={handleSubmit} suppressHydrationWarning>
+        <form onSubmit={handleSubmit}>
           {/* Email */}
           <div className="mb-4">
             <label className="block text-sm font-medium mb-2 text-[#333]">
@@ -131,7 +136,6 @@ export default function LoginPage() {
               onChange={(e) => setEmail(e.target.value)}
               disabled={isPending}
               required
-              suppressHydrationWarning
               className="
                 w-full
                 h-12
@@ -161,7 +165,6 @@ export default function LoginPage() {
                 onChange={(e) => setPassword(e.target.value)}
                 disabled={isPending}
                 required
-                suppressHydrationWarning
                 className="
                   w-full
                   h-12
@@ -176,19 +179,25 @@ export default function LoginPage() {
                   pr-12
                 "
               />
+
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
                 disabled={isPending}
-                suppressHydrationWarning
-                className="absolute right-4 top-3 text-gray-600 disabled:opacity-50"
+                className="
+                  absolute
+                  right-4
+                  top-3
+                  text-gray-600
+                  disabled:opacity-50
+                "
               >
                 {showPassword ? "🔓" : "🔒"}
               </button>
             </div>
           </div>
 
-          {/* Error Text */}
+          {/* Error Message */}
           {error && (
             <p className="text-xs text-[#D71920] mb-4">
               {error}
@@ -198,31 +207,34 @@ export default function LoginPage() {
           {/* Remember Me */}
           <div className="flex justify-between items-center mb-6 mt-4">
             <label className="flex items-center gap-2 text-sm text-[#666]">
-              <input type="checkbox" suppressHydrationWarning />
+              <input type="checkbox" />
               Remember me
             </label>
 
             <button
               type="button"
-              suppressHydrationWarning
-              className="text-sm text-[#0B66C3] font-medium hover:underline"
+              className="
+                text-sm
+                text-[#0B66C3]
+                font-medium
+                hover:underline
+              "
             >
               Forgot password?
             </button>
           </div>
 
-          {/* Button */}
+          {/* Submit */}
           <button
             type="submit"
             disabled={isPending}
-            suppressHydrationWarning
             className="
               w-full
               h-12
               rounded-lg
               text-white
               font-semibold
-              bg-gradient-to-r
+              bg-linear-to-r
               from-[#D71920]
               to-[#550101]
               hover:opacity-95
@@ -238,3 +250,4 @@ export default function LoginPage() {
     </div>
   );
 }
+
