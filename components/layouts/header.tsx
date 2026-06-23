@@ -20,9 +20,10 @@ const pageTitles: Record<string, string> = {
   "/barang-masuk": "Barang Masuk",
   "/monitoring": "Monitoring",
   "/history": "History",
-  "/manajemen-stasiun": "Manajemen Stasiun",
-  "/manajemen-merchandise": "Manajemen Merchandise",
-  "/manajemen-pengguna": "Manajemen Pengguna",
+  "/stasiun": "Manajemen Stasiun",
+  "/merchandise": "Manajemen Merchandise",
+  "/pengguna": "Manajemen Pengguna",
+  "/riwayat-transaksi": "Riwayat Transaksi",
 };
 
 export default function Header({
@@ -31,7 +32,9 @@ export default function Header({
   const pathname = usePathname();
 
   const currentPage =
-    pageTitles[pathname] || "Dashboard";
+    Object.entries(pageTitles).find(([path]) =>
+      pathname.startsWith(path)
+    )?.[1] || "Dashboard";
 
   const isDashboard =
     pathname === "/dashboard";

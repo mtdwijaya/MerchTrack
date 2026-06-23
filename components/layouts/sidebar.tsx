@@ -93,8 +93,8 @@ export default function Sidebar({
 
         bg-linear-to-b
         from-[#b91319]
-        via-[#B1070E]
-        to-[#650000]
+        via-[#830408]
+        to-[#350000]
 
         flex
         flex-col
@@ -185,8 +185,7 @@ export default function Sidebar({
                 transition-all
 
                 ${
-                  pathname ===
-                  item.href
+                  pathname.startsWith(item.href)
                     ? "bg-white/15 border-l-2 border-white"
                     : "hover:bg-white/10"
                 }
@@ -240,8 +239,7 @@ export default function Sidebar({
                     transition-all
 
                     ${
-                      pathname ===
-                      item.href
+                      pathname.startsWith(item.href)
                         ? "bg-white/15 border-l-2 border-white"
                         : "hover:bg-white/10"
                     }

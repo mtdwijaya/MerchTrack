@@ -1,12 +1,7 @@
 import { prisma } from "@/lib/prisma";
 
 export async function getDashboardData() {
-  const [
-    merchandiseCount,
-    stationCount,
-    stockRows,
-    barangKeluarRows,
-  ] = await Promise.all([
+  const [ merchandiseCount, stationCount,stockRows,barangKeluarRows, ] = await Promise.all([
     prisma.merchandise.count(),
 
     prisma.stasiun.count(),

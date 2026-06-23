@@ -25,3 +25,47 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+.input-field,
+.input,
+select.input-field,
+textarea.input-field {
+  width: 100%;
+  height: 2.75rem;
+  border-radius: 0.5rem;
+  border: 1px solid #e2e2e2;
+  background-color: #ffffff;
+  padding: 0 1rem;
+  font-size: 0.875rem;
+  color: #1a1c1c;
+}
+
+textarea.input-field,
+textarea.input {
+  height: auto;
+  min-height: 6rem;
+  padding: 0.75rem 1rem;
+  resize: vertical;
+}
+
+.input-field::placeholder,
+.input::placeholder,
+textarea.input-field::placeholder,
+textarea.input::placeholder {
+  color: #9ca3af;
+}
+
+.input-field:focus,
+.input:focus,
+select.input-field:focus,
+textarea.input-field:focus,
+textarea.input:focus {
+  outline: none;
+  border-color: #b1070e;
+}
+
+.input-field:disabled,
+.input:disabled {
+  background-color: #f3f4f6;
+  cursor: not-allowed;
+}

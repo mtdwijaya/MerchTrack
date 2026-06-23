@@ -143,6 +143,8 @@ export default function LoginPage() {
                 border
                 border-[#D9D9D9]
                 px-4
+                text-[#1A1C1C]
+                placeholder:text-[#9CA3AF]
                 outline-none
                 focus:border-[#D71920]
                 disabled:bg-gray-100
@@ -172,11 +174,13 @@ export default function LoginPage() {
                   border
                   border-[#D9D9D9]
                   px-4
+                  pr-12
+                  text-[#1A1C1C]
+                  placeholder:text-[#9CA3AF]
                   outline-none
                   focus:border-[#D71920]
                   disabled:bg-gray-100
                   disabled:cursor-not-allowed
-                  pr-12
                 "
               />
 

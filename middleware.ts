@@ -19,6 +19,7 @@ export function middleware(request: NextRequest) {
     "/barang-keluar",
     "/monitoring",
     "/merchandise",
+    "/pengguna",
     "/stasiun",
     "/riwayat-transaksi",
   ];
@@ -42,6 +43,7 @@ export const config = {
     "/barang-keluar/:path*",
     "/monitoring/:path*",
     "/merchandise/:path*",
+    "/pengguna/:path*",
     "/stasiun/:path*",
     "/riwayat-transaksi/:path*",
     "/login",

@@ -1,15 +1,14 @@
-import { cookies } from "next/headers";
-import jwt from "jsonwebtoken";
-import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
+
+import { prisma } from "@/lib/prisma";
+import { verifyToken } from "@/lib/auth";
 
 export async function GET() {
   try {
-    const cookieStore = await cookies();
+    const tokenData =
+      await verifyToken();
 
-    const token = cookieStore.get("token")?.value;
-
-    if (!token) {
+    if (!tokenData) {
       return NextResponse.json(
         {
           message: "Unauthorized",
@@ -20,29 +19,23 @@ export async function GET() {
       );
     }
 
-    const payload = jwt.verify(
-      token,
-      process.env.JWT_SECRET as string
-    ) as {
-      id_user: number;
-    };
+    const user =
+      await prisma.user.findUnique({
+        where: {
+          id_user:
+            tokenData.id_user,
+        },
 
-    const user = await prisma.user.findUnique({
-      where: {
-        id_user: payload.id_user,
-      },
-      select: {
-        id_user: true,
-        nama_user: true,
-        email: true,
-        role: true,
-      },
-    });
+        include: {
+          stasiun: true,
+        },
+      });
 
     if (!user) {
       return NextResponse.json(
         {
-          message: "User tidak ditemukan",
+          message:
+            "User tidak ditemukan",
         },
         {
           status: 404,
@@ -50,14 +43,27 @@ export async function GET() {
       );
     }
 
-    return NextResponse.json(user);
-  } catch {
+    return NextResponse.json({
+      id_user: user.id_user,
+
+      nama_user: user.nama_user,
+
+      email: user.email,
+
+      role: user.role,
+
+      stasiun: user.stasiun,
+    });
+  } catch (error) {
+    console.error(error);
+
     return NextResponse.json(
       {
-        message: "Unauthorized",
+        message:
+          "Terjadi kesalahan server",
       },
       {
-        status: 401,
+        status: 500,
       }
     );
   }

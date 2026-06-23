@@ -1,24 +1,17 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import {
-  Package,
-  Boxes,
-  ArrowUpRight,
-  TrainFront,
-  ShoppingBag,
-} from "lucide-react";
+import Image from "next/image";
+import { Package, ShoppingBag } from "lucide-react";
 
+import MerchandiseUsageChart from "@/components/charts/merchandise-usage-chart";
 import {
-  PieChart,
-  Pie,
-  Cell,
-  ResponsiveContainer,
-  Tooltip,
   BarChart,
   Bar,
   XAxis,
   YAxis,
+  ResponsiveContainer,
+  Tooltip,
 } from "recharts";
 
 interface DashboardData {
@@ -50,14 +43,6 @@ interface User {
   email: string;
   role: string;
 }
-
-const COLORS = [
-  "#D71920",
-  "#E24B4B",
-  "#EE7A7A",
-  "#F4A7A7",
-  "#F8CACA",
-];
 
 export default function DashboardPage() {
   const [user, setUser] =
@@ -145,11 +130,11 @@ export default function DashboardPage() {
         "
       >
         <SummaryCard
-          title="TOTAL MERCHANDISE"
+          title="JENIS MERCHANDISE"
           value={
             dashboard?.totalMerchandise ?? 0
           }
-          icon={<Package size={20} />}
+          iconSrc="/icons/icon-merchandise-merah.svg"
         />
 
         <SummaryCard
@@ -157,7 +142,7 @@ export default function DashboardPage() {
           value={
             dashboard?.totalStock ?? 0
           }
-          icon={<Boxes size={20} />}
+          iconSrc="/icons/icon-stok.svg"
         />
 
         <SummaryCard
@@ -166,9 +151,7 @@ export default function DashboardPage() {
             dashboard?.totalBarangKeluarBulanIni ??
             0
           }
-          icon={
-            <ArrowUpRight size={20} />
-          }
+          iconSrc="/icons/icon-barangkeluar-merah.svg"
         />
 
         <SummaryCard
@@ -176,9 +159,7 @@ export default function DashboardPage() {
           value={
             dashboard?.totalStasiun ?? 0
           }
-          icon={
-            <TrainFront size={20} />
-          }
+          iconSrc="/icons/icon-red-stasiun.svg"
         />
       </section>
 
@@ -200,44 +181,13 @@ export default function DashboardPage() {
             p-6
           "
         >
-          <h3 className="text-xl font-semibold text-[#1A1A1A] mb-4">
-            Merchandise Terbanyak
-            Digunakan
+          <h3 className="mb-6 text-xl font-semibold text-[#1A1A1A]">
+            Merchandise Terbanyak Digunakan
           </h3>
 
-          <div className="h-75">
-            <ResponsiveContainer>
-              <PieChart>
-                <Pie
-                  data={
-                    dashboard?.topMerchandise ??
-                    []
-                  }
-                  dataKey="total"
-                  nameKey="nama"
-                  innerRadius={70}
-                  outerRadius={100}
-                >
-                  {(
-                    dashboard?.topMerchandise ??
-                    []
-                  ).map((_, index) => (
-                    <Cell
-                      key={index}
-                      fill={
-                        COLORS[
-                          index %
-                            COLORS.length
-                        ]
-                      }
-                    />
-                  ))}
-                </Pie>
-
-                <Tooltip />
-              </PieChart>
-            </ResponsiveContainer>
-          </div>
+          <MerchandiseUsageChart
+            data={dashboard?.topMerchandise ?? []}
+          />
         </div>
 
         <div
@@ -269,7 +219,7 @@ export default function DashboardPage() {
 
                 <Bar
                   dataKey="total"
-                  fill="#D71920"
+                  fill="#C62828"
                   radius={[8, 8, 0, 0]}
                 />
               </BarChart>
@@ -346,11 +296,13 @@ export default function DashboardPage() {
 function SummaryCard({
   title,
   value,
+  iconSrc,
   icon,
 }: {
   title: string;
   value: number;
-  icon: React.ReactNode;
+  iconSrc?: string;
+  icon?: React.ReactNode;
 }) {
   return (
     <div
@@ -385,7 +337,11 @@ function SummaryCard({
             justify-center
           "
         >
-          {icon}
+          {iconSrc ? (
+            <Image src={iconSrc} alt="" width={22} height={22} />
+          ) : (
+            icon
+          )}
         </div>
       </div>
     </div>
