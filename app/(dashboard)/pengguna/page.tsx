@@ -112,10 +112,21 @@ export default function PenggunaPage() {
           ]}
         />
 
-        <FilterBar>
-          <FilterSearch value={search} onChange={setSearch} placeholder="Cari nama atau email pengguna..." className="lg:col-span-6" />
+        <FilterBar
+          onReset={() => {
+            setSearch("");
+            setRoleFilter("");
+            setSort("nama_user:asc");
+          }}
+        >
+          <FilterSearch
+            value={search}
+            onChange={setSearch}
+            placeholder="Cari nama atau email pengguna..."
+          />
           <FilterSelect
             id="filter-role"
+            label="Role"
             value={roleFilter}
             onChange={setRoleFilter}
             placeholder="Semua Role"
@@ -126,8 +137,10 @@ export default function PenggunaPage() {
           />
           <FilterSelect
             id="sort-pengguna"
+            label="Urutkan"
             value={sort}
             onChange={setSort}
+            placeholder="Pilih urutan..."
             options={[
               { value: "nama_user:asc", label: "Nama (A-Z)" },
               { value: "email:asc", label: "Email (A-Z)" },

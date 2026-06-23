@@ -160,10 +160,10 @@ export default function MonitoringPage() {
               </p>
             </div>
             <Link
-              href="/stasiun"
+              href="/barang-keluar"
               className="text-sm font-semibold text-[#B1070E] hover:underline"
             >
-              View All Stations
+              View All Transactions
             </Link>
           </div>
 

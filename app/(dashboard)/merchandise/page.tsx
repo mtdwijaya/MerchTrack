@@ -109,13 +109,23 @@ export default function MerchandisePage() {
           ]}
         />
 
-        <FilterBar>
-          <FilterSearch value={search} onChange={setSearch} placeholder="Cari nama atau deskripsi merchandise..." className="lg:col-span-8" />
+        <FilterBar
+          onReset={() => {
+            setSearch("");
+            setSort("nama_merch:asc");
+          }}
+        >
+          <FilterSearch
+            value={search}
+            onChange={setSearch}
+            placeholder="Cari nama atau deskripsi merchandise..."
+          />
           <FilterSelect
             id="sort-merchandise"
-            className="lg:col-span-4"
+            label="Urutkan"
             value={sort}
             onChange={setSort}
+            placeholder="Pilih urutan..."
             options={[
               { value: "nama_merch:asc", label: "Nama (A-Z)" },
               { value: "jumlah_stok:desc", label: "Stok (Tertinggi)" },

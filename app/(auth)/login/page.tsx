@@ -4,6 +4,7 @@
 import Image from "next/image";
 import { useState, FormEvent } from "react";
 import { useRouter } from "next/navigation";
+import { Eye, EyeOff } from "lucide-react";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -188,15 +189,23 @@ export default function LoginPage() {
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
                 disabled={isPending}
+                aria-label={showPassword ? "Sembunyikan password" : "Tampilkan password"}
                 className="
                   absolute
                   right-4
-                  top-3
-                  text-gray-600
+                  top-1/2
+                  -translate-y-1/2
+                  text-[#6B7280]
+                  hover:text-[#1A1C1C]
                   disabled:opacity-50
                 "
               >
-                {showPassword ? "🔓" : "🔒"}
+                {showPassword ? (
+                  
+                  <Eye size={20} />
+                ) : (
+                  <EyeOff size={20} />
+                )}
               </button>
             </div>
           </div>

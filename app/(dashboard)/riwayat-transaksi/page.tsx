@@ -144,20 +144,34 @@ export default function RiwayatTransaksiPage() {
 
       <RiwayatSummary {...summary} />
 
-      <FilterBar>
-        <FilterSearch value={search} onChange={setSearch} placeholder="ID Transaksi, Nama Barang..." className="lg:col-span-5" />
+      <FilterBar
+        onReset={() => {
+          setSearch("");
+          setKategoriFilter("");
+          setTanggal("");
+          setSort("tanggal_keluar:desc");
+        }}
+      >
+        <FilterSearch
+          value={search}
+          onChange={setSearch}
+          placeholder="ID transaksi, nama barang..."
+        />
         <FilterSelect
           id="filter-kategori-riwayat"
+          label="Kategori"
           value={kategoriFilter}
           onChange={setKategoriFilter}
-          placeholder="Semua Kategori"
+          placeholder="Pilih kategori..."
           options={kategoriList.map((item) => ({ value: String(item.id_kategori), label: item.nama_kategori }))}
         />
-        <FilterDateRange value={tanggal} onChange={setTanggal} className="lg:col-span-2" />
+        <FilterDateRange value={tanggal} onChange={setTanggal} label="Tanggal" />
         <FilterSelect
           id="sort-riwayat"
+          label="Urutkan"
           value={sort}
           onChange={setSort}
+          placeholder="Pilih urutan..."
           options={[
             { value: "tanggal_keluar:desc", label: "Tanggal (Terbaru)" },
             { value: "nama_merch:asc", label: "Nama Barang (A-Z)" },

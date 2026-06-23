@@ -169,18 +169,25 @@ export default function BarangKeluarPage() {
 
         <BarangKeluarSummary {...summary} />
 
-        <FilterBar>
+        <FilterBar
+          onReset={() => {
+            setSearch("");
+            setStasiunFilter("");
+            setKategoriFilter("");
+            setSort(DEFAULT_SORT);
+          }}
+        >
           <FilterSearch
             value={search}
             onChange={setSearch}
             placeholder="Cari merchandise, stasiun, atau kategori..."
-            className="lg:col-span-4"
           />
           <FilterSelect
             id="filter-stasiun-bk"
+            label="Stasiun"
             value={stasiunFilter}
             onChange={setStasiunFilter}
-            placeholder="Semua Stasiun"
+            placeholder="Pilih stasiun..."
             options={stasiunList.map((item) => ({
               value: String(item.id_stasiun),
               label: item.nama_stasiun ?? "",
@@ -188,9 +195,10 @@ export default function BarangKeluarPage() {
           />
           <FilterSelect
             id="filter-kategori-bk"
+            label="Kategori"
             value={kategoriFilter}
             onChange={setKategoriFilter}
-            placeholder="Semua Kategori"
+            placeholder="Pilih kategori..."
             options={kategoriList.map((item) => ({
               value: String(item.id_kategori),
               label: item.nama_kategori ?? "",
@@ -198,8 +206,10 @@ export default function BarangKeluarPage() {
           />
           <FilterSelect
             id="sort-bk"
+            label="Urutkan"
             value={sort}
             onChange={setSort}
+            placeholder="Pilih urutan..."
             options={SORT_OPTIONS}
           />
         </FilterBar>

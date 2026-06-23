@@ -117,13 +117,23 @@ export default function StasiunPage() {
           ]}
         />
 
-        <FilterBar>
-          <FilterSearch value={search} onChange={setSearch} placeholder="Cari stasiun berdasarkan nama atau kode..." className="lg:col-span-8" />
+        <FilterBar
+          onReset={() => {
+            setSearch("");
+            setSort(DEFAULT_SORT);
+          }}
+        >
+          <FilterSearch
+            value={search}
+            onChange={setSearch}
+            placeholder="Cari stasiun berdasarkan nama atau kode..."
+          />
           <FilterSelect
             id="sort-stasiun"
-            className="lg:col-span-4"
+            label="Urutkan"
             value={sort}
             onChange={setSort}
+            placeholder="Pilih urutan..."
             options={[
               { value: "nama_stasiun:asc", label: "Nama (A-Z)" },
               { value: "nama_stasiun:desc", label: "Nama (Z-A)" },
