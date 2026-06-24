@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 
 import MerchandiseForm from "@/components/merchandise/merchandise-form";
 import PageHeader from "@/components/ui/page-header";
+import { showError, showSuccessAndGo } from "@/lib/toast";
 
 export default function EditMerchandisePage() {
   const params = useParams();
@@ -29,7 +30,7 @@ export default function EditMerchandisePage() {
         });
       })
       .catch(() => {
-        alert("Gagal memuat data");
+        showError("Gagal memuat data");
         router.push("/merchandise");
       })
       .finally(() => setLoading(false));
@@ -49,10 +50,9 @@ export default function EditMerchandisePage() {
       });
       const result = await response.json();
       if (!response.ok) throw new Error(result.message);
-      alert("Merchandise berhasil diperbarui");
-      router.push("/merchandise");
+      showSuccessAndGo("Merchandise berhasil diperbarui", () => router.push("/merchandise"));
     } catch (error) {
-      alert(error instanceof Error ? error.message : "Terjadi kesalahan");
+      showError(error instanceof Error ? error.message : "Terjadi kesalahan");
     } finally {
       setSaving(false);
     }

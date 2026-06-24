@@ -1,4 +1,4 @@
-import Image from "next/image";
+import IconImage from "@/components/ui/icon-image";
 
 export interface SummaryCardItem {
   title: string;
@@ -72,7 +72,7 @@ function SummaryCard({
 
         {iconSrc && (
           <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#FFF2F2]">
-            <Image src={iconSrc} alt="" width={22} height={22} />
+            <IconImage src={iconSrc} size={22} />
           </div>
         )}
       </div>

@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 
 import BarangKeluarForm from "@/components/barang-keluar/barang-keluar-form";
+import { showError, showSuccess } from "@/lib/toast";
 
 export default function TambahBarangKeluarPage() {
   const router = useRouter();
@@ -40,15 +41,13 @@ export default function TambahBarangKeluarPage() {
         );
       }
 
-      alert(
-        "Barang keluar berhasil ditambahkan"
-      );
+      showSuccess("Barang keluar berhasil ditambahkan");
 
       router.push(
         "/barang-keluar"
       );
     } catch (error) {
-      alert(
+      showError(
         error instanceof Error
           ? error.message
           : "Terjadi kesalahan"

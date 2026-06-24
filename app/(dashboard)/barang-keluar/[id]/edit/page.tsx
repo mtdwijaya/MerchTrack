@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 
 import BarangKeluarForm from "@/components/barang-keluar/barang-keluar-form";
+import { showError, showSuccessAndGo } from "@/lib/toast";
 
 export default function EditBarangKeluarPage() {
   const params = useParams();
@@ -59,9 +60,7 @@ export default function EditBarangKeluarPage() {
     } catch (error) {
       console.error(error);
 
-      alert(
-        "Gagal memuat data"
-      );
+      showError("Gagal memuat data");
 
       router.push(
         "/barang-keluar"
@@ -102,15 +101,11 @@ export default function EditBarangKeluarPage() {
         );
       }
 
-      alert(
-        "Data berhasil diperbarui"
-      );
-
-      router.push(
-        "/barang-keluar"
+      showSuccessAndGo("Data berhasil diperbarui", () =>
+        router.push("/barang-keluar")
       );
     } catch (error) {
-      alert(
+      showError(
         error instanceof Error
           ? error.message
           : "Terjadi kesalahan"

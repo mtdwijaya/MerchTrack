@@ -34,11 +34,10 @@ export async function GET() {
     if (!user) {
       return NextResponse.json(
         {
-          message:
-            "User tidak ditemukan",
+          message: "User tidak ditemukan",
         },
         {
-          status: 404,
+          status: 401,
         }
       );
     }

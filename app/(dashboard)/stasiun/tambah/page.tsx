@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 
 import StasiunForm from "@/components/stasiun/stasiun-form";
+import { showError, showSuccess } from "@/lib/toast";
 
 export default function TambahStasiunPage() {
   const router = useRouter();
@@ -31,10 +32,10 @@ export default function TambahStasiunPage() {
         throw new Error(result.message);
       }
 
-      alert("Stasiun berhasil ditambahkan");
+      showSuccess("Stasiun berhasil ditambahkan");
       router.push("/stasiun");
     } catch (error) {
-      alert(error instanceof Error ? error.message : "Terjadi kesalahan");
+      showError(error instanceof Error ? error.message : "Terjadi kesalahan");
     } finally {
       setLoading(false);
     }

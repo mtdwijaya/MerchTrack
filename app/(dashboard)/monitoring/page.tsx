@@ -1,6 +1,6 @@
 "use client";
 
-import Image from "next/image";
+import IconImage from "@/components/ui/icon-image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
@@ -188,11 +188,9 @@ export default function MonitoringPage() {
                       </p>
                     </div>
                     <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#FFF2F2]">
-                      <Image
+                      <IconImage
                         src="/icons/icon-red-stasiun.svg"
-                        alt=""
-                        width={18}
-                        height={18}
+                        size={18}
                       />
                     </div>
                   </div>
@@ -317,12 +315,10 @@ function SummaryMetric({
             highlight ? "bg-white/20" : "bg-[#FFF2F2]"
           }`}
         >
-          <Image
+          <IconImage
             src={iconSrc}
-            alt=""
-            width={22}
-            height={22}
-            className={highlight ? "brightness-0 invert" : undefined}
+            size={22}
+            className={highlight ? "brightness-0 invert" : ""}
           />
         </div>
       </div>

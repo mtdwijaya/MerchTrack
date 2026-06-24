@@ -5,6 +5,7 @@ import { useState } from "react";
 
 import MerchandiseForm from "@/components/merchandise/merchandise-form";
 import PageHeader from "@/components/ui/page-header";
+import { showError, showSuccess } from "@/lib/toast";
 
 export default function TambahMerchandisePage() {
   const router = useRouter();
@@ -24,10 +25,10 @@ export default function TambahMerchandisePage() {
       });
       const result = await response.json();
       if (!response.ok) throw new Error(result.message);
-      alert("Merchandise berhasil ditambahkan");
+      showSuccess("Merchandise berhasil ditambahkan");
       router.push("/merchandise");
     } catch (error) {
-      alert(error instanceof Error ? error.message : "Terjadi kesalahan");
+      showError(error instanceof Error ? error.message : "Terjadi kesalahan");
     } finally {
       setLoading(false);
     }

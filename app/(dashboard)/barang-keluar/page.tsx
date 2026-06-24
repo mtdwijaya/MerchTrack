@@ -20,6 +20,7 @@ import Pagination from "@/components/ui/pagination";
 import { DeleteAction, EditAction } from "@/components/ui/table-actions";
 import { useDebounce } from "@/hooks/use-debounce";
 import { parseSortValue, toggleSortValue } from "@/lib/sort";
+import { showError, showSuccess } from "@/lib/toast";
 
 interface BarangKeluar {
   id_keluar: number;
@@ -142,9 +143,10 @@ export default function BarangKeluarPage() {
       if (!response.ok) throw new Error();
 
       setDeleteId(null);
+      showSuccess("Data berhasil dihapus");
       await getData();
     } catch {
-      alert("Gagal menghapus data");
+      showError("Gagal menghapus data");
     }
   }
 

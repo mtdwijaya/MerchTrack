@@ -20,6 +20,7 @@ import SummaryCards from "@/components/ui/summary-cards";
 import { DeleteAction, EditAction } from "@/components/ui/table-actions";
 import { useDebounce } from "@/hooks/use-debounce";
 import { parseSortValue, toggleSortValue } from "@/lib/sort";
+import { showError, showSuccess } from "@/lib/toast";
 
 interface MerchandiseItem {
   id_merch: number;
@@ -84,9 +85,10 @@ export default function MerchandisePage() {
       const result = await response.json();
       if (!response.ok) throw new Error(result.message);
       setDeleteId(null);
+      showSuccess("Merchandise berhasil dihapus");
       await getData();
     } catch (error) {
-      alert(error instanceof Error ? error.message : "Gagal menghapus merchandise");
+      showError(error instanceof Error ? error.message : "Gagal menghapus merchandise");
     }
   }
 

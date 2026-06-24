@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import Sidebar from "@/components/layouts/sidebar";
 import Header from "@/components/layouts/header";
 import Footer from "@/components/layouts/footer";
@@ -17,6 +18,7 @@ export default function DashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
+  const router = useRouter();
   const [user, setUser] =
     useState<User | null>(null);
 
@@ -30,7 +32,13 @@ export default function DashboardLayout({
           "/api/auth/me"
         );
 
-        if (!response.ok) return;
+        if (!response.ok) {
+          await fetch("/api/auth/logout", {
+            method: "POST",
+          });
+          router.replace("/login");
+          return;
+        }
 
         const data =
           await response.json();
@@ -38,11 +46,12 @@ export default function DashboardLayout({
         setUser(data);
       } catch (error) {
         console.error(error);
+        router.replace("/login");
       }
     };
 
     getUser();
-  }, []);
+  }, [router]);
 
   return (
     <div className="min-h-screen bg-[#F6F7FB]">

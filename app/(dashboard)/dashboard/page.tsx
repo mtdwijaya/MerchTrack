@@ -1,18 +1,21 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Image from "next/image";
+import dynamic from "next/dynamic";
 import { Package, ShoppingBag } from "lucide-react";
 
 import MerchandiseUsageChart from "@/components/charts/merchandise-usage-chart";
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  ResponsiveContainer,
-  Tooltip,
-} from "recharts";
+import IconImage from "@/components/ui/icon-image";
+
+const StationDistributionChart = dynamic(
+  () => import("@/components/charts/station-distribution-chart"),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="h-[300px] w-full animate-pulse rounded-lg bg-[#F3F4F6]" />
+    ),
+  }
+);
 
 interface DashboardData {
   totalMerchandise: number;
@@ -203,27 +206,10 @@ export default function DashboardPage() {
             Distribusi per Stasiun
           </h3>
 
-          <div className="h-75">
-            <ResponsiveContainer>
-              <BarChart
-                data={
-                  dashboard?.distribusiPerStasiun ??
-                  []
-                }
-              >
-                <XAxis dataKey="nama" />
-
-                <YAxis />
-
-                <Tooltip />
-
-                <Bar
-                  dataKey="total"
-                  fill="#C62828"
-                  radius={[8, 8, 0, 0]}
-                />
-              </BarChart>
-            </ResponsiveContainer>
+          <div className="w-full min-w-0">
+            <StationDistributionChart
+              data={dashboard?.distribusiPerStasiun ?? []}
+            />
           </div>
         </div>
       </section>
@@ -338,7 +324,7 @@ function SummaryCard({
           "
         >
           {iconSrc ? (
-            <Image src={iconSrc} alt="" width={22} height={22} />
+            <IconImage src={iconSrc} size={22} />
           ) : (
             icon
           )}

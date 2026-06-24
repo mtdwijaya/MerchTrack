@@ -20,6 +20,7 @@ import Pagination from "@/components/ui/pagination";
 import { useDebounce } from "@/hooks/use-debounce";
 import { formatTransaksiDate, formatTransaksiId } from "@/lib/format-transaksi";
 import { parseSortValue, toggleSortValue } from "@/lib/sort";
+import { showError } from "@/lib/toast";
 
 interface RiwayatItem {
   id_keluar: number;
@@ -119,7 +120,7 @@ export default function RiwayatTransaksiPage() {
       link.click();
       URL.revokeObjectURL(url);
     } catch {
-      alert("Gagal mengekspor data");
+      showError("Gagal mengekspor data");
     } finally {
       setExporting(false);
     }

@@ -5,6 +5,7 @@ import { useState } from "react";
 
 import PenggunaForm from "@/components/pengguna/pengguna-form";
 import PageHeader from "@/components/ui/page-header";
+import { showError, showSuccess } from "@/lib/toast";
 
 export default function TambahPenggunaPage() {
   const router = useRouter();
@@ -26,10 +27,10 @@ export default function TambahPenggunaPage() {
       });
       const result = await response.json();
       if (!response.ok) throw new Error(result.message);
-      alert("Pengguna berhasil ditambahkan");
+      showSuccess("Pengguna berhasil ditambahkan");
       router.push("/pengguna");
     } catch (error) {
-      alert(error instanceof Error ? error.message : "Terjadi kesalahan");
+      showError(error instanceof Error ? error.message : "Terjadi kesalahan");
     } finally {
       setLoading(false);
     }

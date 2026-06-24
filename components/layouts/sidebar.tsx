@@ -1,10 +1,9 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { sidebarMenus } from "@/constants/sidebar-menu";
+import IconImage from "@/components/ui/icon-image";
 
 interface User {
   id_user: number;
@@ -22,34 +21,11 @@ interface SidebarProps {
 }
 
 export default function Sidebar({
+  user,
   collapsed,
   setCollapsed,
 }: SidebarProps) {
   const pathname = usePathname();
-
-  const [user, setUser] =
-    useState<User | null>(null);
-
-  useEffect(() => {
-    const getUser = async () => {
-      try {
-        const response = await fetch(
-          "/api/auth/me"
-        );
-
-        if (!response.ok) return;
-
-        const data =
-          await response.json();
-
-        setUser(data);
-      } catch (error) {
-        console.error(error);
-      }
-    };
-
-    getUser();
-  }, []);
 
   if (!user) {
     return (
@@ -108,24 +84,42 @@ export default function Sidebar({
     >
       {/* Header */}
       <div>
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Image
+        <div
+          className={
+            collapsed
+              ? "flex flex-col items-center gap-3"
+              : "flex items-center justify-between"
+          }
+        >
+          <div
+            className={
+              collapsed
+                ? "flex justify-center"
+                : "flex items-center gap-2"
+            }
+          >
+            <img
               src="/logos/lrt-bw.svg"
               alt="LRT"
-              width={70}
-              height={70}
+              width={73}
+              height={33}
+              className={
+                collapsed
+                  ? "h-6 w-auto shrink-0"
+                  : "h-7 w-auto shrink-0"
+              }
             />
 
             {!collapsed && (
               <>
                 <div className="w-px h-5 bg-white/40" />
 
-                <Image
+                <img
                   src="/logos/MerchTrack-bw.svg"
                   alt="MerchTrack"
-                  width={120}
-                  height={120}
+                  width={152}
+                  height={19}
+                  className="h-4 w-auto shrink-0"
                 />
               </>
             )}
@@ -144,6 +138,7 @@ export default function Sidebar({
               rounded-md
               px-2
               py-1
+              shrink-0
             "
           >
             {collapsed ? "→" : "←"}
@@ -191,12 +186,7 @@ export default function Sidebar({
                 }
               `}
             >
-              <Image
-                src={item.icon}
-                alt={item.name}
-                width={14}
-                height={14}
-              />
+              <IconImage src={item.icon} alt={item.name} size={14} />
 
               {!collapsed && (
                 <span className="text-[13px]">
@@ -245,15 +235,10 @@ export default function Sidebar({
                     }
                   `}
                   >
-                    <Image
-                      src={
-                        item.icon
-                      }
-                      alt={
-                        item.name
-                      }
-                      width={14}
-                      height={14}
+                    <IconImage
+                      src={item.icon}
+                      alt={item.name}
+                      size={14}
                     />
 
                     {!collapsed && (

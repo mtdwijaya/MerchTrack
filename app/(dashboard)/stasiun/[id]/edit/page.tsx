@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 
 import StasiunForm from "@/components/stasiun/stasiun-form";
+import { showError, showSuccessAndGo } from "@/lib/toast";
 
 export default function EditStasiunPage() {
   const params = useParams();
@@ -40,7 +41,7 @@ export default function EditStasiunPage() {
       });
     } catch (error) {
       console.error(error);
-      alert("Gagal memuat data stasiun");
+      showError("Gagal memuat data stasiun");
       router.push("/stasiun");
     } finally {
       setLoading(false);
@@ -68,10 +69,9 @@ export default function EditStasiunPage() {
         throw new Error(result.message);
       }
 
-      alert("Stasiun berhasil diperbarui");
-      router.push("/stasiun");
+      showSuccessAndGo("Stasiun berhasil diperbarui", () => router.push("/stasiun"));
     } catch (error) {
-      alert(error instanceof Error ? error.message : "Terjadi kesalahan");
+      showError(error instanceof Error ? error.message : "Terjadi kesalahan");
     } finally {
       setSaving(false);
     }

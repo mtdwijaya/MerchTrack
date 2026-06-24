@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 
 import PenggunaForm from "@/components/pengguna/pengguna-form";
 import PageHeader from "@/components/ui/page-header";
+import { showError, showSuccessAndGo } from "@/lib/toast";
 
 export default function EditPenggunaPage() {
   const params = useParams();
@@ -31,7 +32,7 @@ export default function EditPenggunaPage() {
         });
       })
       .catch(() => {
-        alert("Gagal memuat data");
+        showError("Gagal memuat data");
         router.push("/pengguna");
       })
       .finally(() => setLoading(false));
@@ -53,10 +54,9 @@ export default function EditPenggunaPage() {
       });
       const result = await response.json();
       if (!response.ok) throw new Error(result.message);
-      alert("Pengguna berhasil diperbarui");
-      router.push("/pengguna");
+      showSuccessAndGo("Pengguna berhasil diperbarui", () => router.push("/pengguna"));
     } catch (error) {
-      alert(error instanceof Error ? error.message : "Terjadi kesalahan");
+      showError(error instanceof Error ? error.message : "Terjadi kesalahan");
     } finally {
       setSaving(false);
     }

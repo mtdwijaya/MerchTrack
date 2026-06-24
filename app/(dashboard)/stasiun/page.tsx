@@ -20,6 +20,7 @@ import SummaryCards from "@/components/ui/summary-cards";
 import { DeleteAction, EditAction } from "@/components/ui/table-actions";
 import { useDebounce } from "@/hooks/use-debounce";
 import { parseSortValue, toggleSortValue } from "@/lib/sort";
+import { showError, showSuccess } from "@/lib/toast";
 
 interface Stasiun {
   id_stasiun: number;
@@ -92,9 +93,10 @@ export default function StasiunPage() {
       const result = await response.json();
       if (!response.ok) throw new Error(result.message);
       setDeleteId(null);
+      showSuccess("Stasiun berhasil dihapus");
       await getData();
     } catch (error) {
-      alert(error instanceof Error ? error.message : "Gagal menghapus stasiun");
+      showError(error instanceof Error ? error.message : "Gagal menghapus stasiun");
     }
   }
 

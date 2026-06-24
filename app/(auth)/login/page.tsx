@@ -4,7 +4,8 @@
 import Image from "next/image";
 import { useState, FormEvent } from "react";
 import { useRouter } from "next/navigation";
-import { Eye, EyeOff } from "lucide-react";
+import { CircleAlert, Eye, EyeOff } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -212,9 +213,10 @@ export default function LoginPage() {
 
           {/* Error Message */}
           {error && (
-            <p className="text-xs text-[#D71920] mb-4">
-              {error}
-            </p>
+            <Alert variant="destructive" className="mb-4">
+              <CircleAlert />
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
           )}
 
           {/* Remember Me */}
