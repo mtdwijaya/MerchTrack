@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useState } from "react";
 
 import Field from "@/components/ui/field";
 import FormActions from "@/components/ui/form-actions";
@@ -14,10 +14,12 @@ interface MerchandiseFormProps {
   onSubmit: (data: {
     nama_merch: string;
     deskripsi: string;
-    jumlah_stok: number;
+    jumlah_stok?: number;
   }) => Promise<void>;
   loading?: boolean;
   cancelHref?: string;
+  onCancel?: () => void;
+  isEdit?: boolean;
 }
 
 export default function MerchandiseForm({
@@ -25,6 +27,8 @@ export default function MerchandiseForm({
   onSubmit,
   loading,
   cancelHref = "/merchandise",
+  onCancel,
+  isEdit,
 }: MerchandiseFormProps) {
   const [form, setForm] = useState({
     nama_merch: initialData?.nama_merch ?? "",
@@ -36,11 +40,19 @@ export default function MerchandiseForm({
     <form
       onSubmit={(e) => {
         e.preventDefault();
+        if (isEdit) {
+          onSubmit({
+            nama_merch: form.nama_merch,
+            deskripsi: form.deskripsi,
+          });
+          return;
+        }
+
         onSubmit(form);
       }}
       className="space-y-5"
     >
-      <div className="grid gap-5 md:grid-cols-2">
+      <div className={isEdit ? "space-y-5" : "grid gap-5 md:grid-cols-2"}>
         <Field label="Nama Merchandise">
           <input
             required
@@ -52,18 +64,20 @@ export default function MerchandiseForm({
           />
         </Field>
 
-        <Field label="Stok Awal">
-          <input
-            required
-            min={0}
-            type="number"
-            value={form.jumlah_stok}
-            onChange={(e) =>
-              setForm({ ...form, jumlah_stok: Number(e.target.value) })
-            }
-            className="input-field"
-          />
-        </Field>
+        {!isEdit && (
+          <Field label="Stok Awal">
+            <input
+              required
+              min={0}
+              type="number"
+              value={form.jumlah_stok}
+              onChange={(e) =>
+                setForm({ ...form, jumlah_stok: Number(e.target.value) })
+              }
+              className="input-field"
+            />
+          </Field>
+        )}
       </div>
 
       <Field label="Deskripsi">
@@ -76,7 +90,11 @@ export default function MerchandiseForm({
         />
       </Field>
 
-      <FormActions loading={loading} cancelHref={cancelHref} />
+      <FormActions
+        loading={loading}
+        cancelHref={cancelHref}
+        onCancel={onCancel}
+      />
     </form>
   );
 }

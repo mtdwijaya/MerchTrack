@@ -7,6 +7,7 @@ import { useEffect, useState } from "react";
 interface Merchandise {
   id_merch: number;
   nama_merch: string;
+  jumlah_stok: number;
 }
 
 interface Stasiun {
@@ -38,6 +39,10 @@ interface BarangKeluarFormProps {
   }) => Promise<void>;
   loading?: boolean;
   cancelHref?: string;
+  onCancel?: () => void;
+  merchandiseList?: Merchandise[];
+  stasiunList?: Stasiun[];
+  kategoriList?: Kategori[];
 }
 
 export default function BarangKeluarForm({
@@ -45,10 +50,18 @@ export default function BarangKeluarForm({
   onSubmit,
   loading,
   cancelHref = "/barang-keluar",
+  onCancel,
+  merchandiseList: merchandiseProp,
+  stasiunList: stasiunProp,
+  kategoriList: kategoriProp,
 }: BarangKeluarFormProps) {
-  const [merchandise, setMerchandise] = useState<Merchandise[]>([]);
-  const [stasiun, setStasiun] = useState<Stasiun[]>([]);
-  const [kategori, setKategori] = useState<Kategori[]>([]);
+  const [merchandiseFetched, setMerchandise] = useState<Merchandise[]>([]);
+  const [stasiunFetched, setStasiun] = useState<Stasiun[]>([]);
+  const [kategoriFetched, setKategori] = useState<Kategori[]>([]);
+
+  const merchandise = merchandiseProp ?? merchandiseFetched;
+  const stasiun = stasiunProp ?? stasiunFetched;
+  const kategori = kategoriProp ?? kategoriFetched;
 
   const [form, setForm] = useState({
     id_merch: initialData?.id_merch || 0,
@@ -60,18 +73,30 @@ export default function BarangKeluarForm({
   });
 
   useEffect(() => {
+    if (merchandiseProp && stasiunProp && kategoriProp) return;
+
+    // fallback fetch api jika form dipakai tanpa props dari server page
     Promise.all([
       fetch("/api/merchandise"),
       fetch("/api/stasiun"),
       fetch("/api/kategori"),
     ])
       .then(async ([merchRes, stasiunRes, kategoriRes]) => {
-        if (merchRes.ok) setMerchandise(await merchRes.json());
-        if (stasiunRes.ok) setStasiun(await stasiunRes.json());
-        if (kategoriRes.ok) setKategori(await kategoriRes.json());
+        if (!merchandiseProp && merchRes.ok)
+          setMerchandise(await merchRes.json());
+        if (!stasiunProp && stasiunRes.ok)
+          setStasiun(await stasiunRes.json());
+        if (!kategoriProp && kategoriRes.ok)
+          setKategori(await kategoriRes.json());
       })
       .catch(console.error);
-  }, []);
+  }, [merchandiseProp, stasiunProp, kategoriProp]);
+
+  // tampilkan stok dari daftar merchandise yang sudah di-load server
+  const stokSaatIni =
+    form.id_merch > 0
+      ? merchandise.find((item) => item.id_merch === form.id_merch)?.jumlah_stok
+      : undefined;
 
   return (
     <form
@@ -147,6 +172,19 @@ export default function BarangKeluarForm({
             }
             className="input-field"
           />
+          {stokSaatIni !== undefined && (
+            <p className="mt-1.5 text-sm text-[#6B7280]">
+              Stok saat ini:{" "}
+              <span
+                className={`font-semibold ${
+                  stokSaatIni === 0 ? "text-[#B1070E]" : "text-[#1A1C1C]"
+                }`}
+              >
+                {stokSaatIni.toLocaleString("id-ID")}
+              </span>{" "}
+              pcs
+            </p>
+          )}
         </Field>
 
         <Field label="Tanggal Keluar">
@@ -174,7 +212,11 @@ export default function BarangKeluarForm({
         />
       </Field>
 
-      <FormActions loading={loading} cancelHref={cancelHref} />
+      <FormActions
+        loading={loading}
+        cancelHref={cancelHref}
+        onCancel={onCancel}
+      />
     </form>
   );
 }

@@ -192,6 +192,7 @@ export async function createBarangKeluar(
     );
   }
 
+  // cek stok gudang sebelum transaksi dicatat
   if (
     stok.jumlah_stok < data.jumlah
   ) {
@@ -218,6 +219,7 @@ export async function createBarangKeluar(
       },
     });
 
+  // kurangi stok gudang setelah transaksi berhasil dibuat
   await prisma.stok.update({
     where: {
       id_merch: data.id_merch,
@@ -258,6 +260,7 @@ export async function updateBarangKeluar(
     );
   }
 
+  // kembalikan dulu stok dari transaksi lama sebelum hitung ulang
   await prisma.stok.update({
     where: {
       id_merch:
@@ -289,6 +292,7 @@ export async function updateBarangKeluar(
     );
   }
 
+  // kurangi stok sesuai jumlah transaksi yang baru
   await prisma.stok.update({
     where: {
       id_merch: data.id_merch,
@@ -338,6 +342,7 @@ export async function deleteBarangKeluar(
     );
   }
 
+  // hapus transaksi → stok dikembalikan ke gudang
   await prisma.stok.update({
     where: {
       id_merch:
@@ -357,4 +362,18 @@ export async function deleteBarangKeluar(
       id_keluar: id,
     },
   });
+}
+
+export async function getBarangKeluarSummary() {
+  const [totalTransaksi, totalBarangKeluar, stasiunAktif] = await Promise.all([
+    prisma.barangKeluar.count(),
+    prisma.barangKeluar.aggregate({ _sum: { jumlah: true } }),
+    prisma.barangKeluar.groupBy({ by: ["id_stasiun"] }),
+  ]);
+
+  return {
+    totalTransaksi,
+    totalBarangKeluar: totalBarangKeluar._sum.jumlah ?? 0,
+    totalStasiun: stasiunAktif.length,
+  };
 }

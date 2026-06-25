@@ -1,14 +1,17 @@
 import { NextResponse } from "next/server";
 
+import { isAuthError, requireAuth } from "@/lib/api-auth";
 import {
   createBarangKeluar,
   getBarangKeluarPaginated,
   parseBarangKeluarSort,
 } from "@/lib/barang-keluar";
-import { verifyToken } from "@/lib/auth";
 
 export async function GET(request: Request) {
   try {
+    const auth = await requireAuth();
+    if (isAuthError(auth)) return auth;
+
     const { searchParams } = new URL(request.url);
 
     const page = Number(searchParams.get("page") || 1);
@@ -45,11 +48,8 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
-    const tokenData = await verifyToken();
-
-    if (!tokenData) {
-      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-    }
+    const auth = await requireAuth();
+    if (isAuthError(auth)) return auth;
 
     const body = await request.json();
 
@@ -57,7 +57,7 @@ export async function POST(request: Request) {
       id_merch: Number(body.id_merch),
       id_stasiun: Number(body.id_stasiun),
       id_kategori: Number(body.id_kategori),
-      id_user: tokenData.id_user,
+      id_user: auth.id_user,
       jumlah: Number(body.jumlah),
       tanggal_keluar: body.tanggal_keluar
         ? new Date(body.tanggal_keluar)

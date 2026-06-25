@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { Role } from "@prisma/client";
 
+import { isAuthError, requireAdmin } from "@/lib/api-auth";
 import {
   createPengguna,
   getPenggunaPaginated,
@@ -9,6 +10,9 @@ import {
 
 export async function GET(request: Request) {
   try {
+    const auth = await requireAdmin();
+    if (isAuthError(auth)) return auth;
+
     const { searchParams } = new URL(request.url);
 
     const page = Number(searchParams.get("page") || 1);
@@ -27,7 +31,8 @@ export async function GET(request: Request) {
       search,
       sortBy,
       sortOrder,
-      role: roleParam === "ADMIN" || roleParam === "PETUGAS" ? roleParam : undefined,
+      role:
+        roleParam === "ADMIN" || roleParam === "PETUGAS" ? roleParam : undefined,
     });
 
     return NextResponse.json(result);
@@ -43,6 +48,9 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
+    const auth = await requireAdmin();
+    if (isAuthError(auth)) return auth;
+
     const body = await request.json();
 
     if (!body.nama_user?.trim() || !body.email?.trim() || !body.password?.trim()) {

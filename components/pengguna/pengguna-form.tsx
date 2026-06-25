@@ -27,6 +27,8 @@ interface PenggunaFormProps {
   loading?: boolean;
   isEdit?: boolean;
   cancelHref?: string;
+  onCancel?: () => void;
+  stasiunList?: StasiunOption[];
 }
 
 export default function PenggunaForm({
@@ -35,8 +37,11 @@ export default function PenggunaForm({
   loading,
   isEdit,
   cancelHref = "/pengguna",
+  onCancel,
+  stasiunList: stasiunListProp,
 }: PenggunaFormProps) {
-  const [stasiunList, setStasiunList] = useState<StasiunOption[]>([]);
+  const [stasiunListFetched, setStasiunListFetched] = useState<StasiunOption[]>([]);
+  const stasiunList = stasiunListProp ?? stasiunListFetched;
   const [form, setForm] = useState({
     nama_user: initialData?.nama_user ?? "",
     email: initialData?.email ?? "",
@@ -46,13 +51,15 @@ export default function PenggunaForm({
   });
 
   useEffect(() => {
+    if (stasiunListProp) return;
+
     fetch("/api/stasiun")
       .then((res) => res.json())
       .then((data) => {
-        if (Array.isArray(data)) setStasiunList(data);
+        if (Array.isArray(data)) setStasiunListFetched(data);
       })
       .catch(console.error);
-  }, []);
+  }, [stasiunListProp]);
 
   return (
     <form
@@ -133,7 +140,11 @@ export default function PenggunaForm({
         </Field>
       </div>
 
-      <FormActions loading={loading} cancelHref={cancelHref} />
+      <FormActions
+        loading={loading}
+        cancelHref={cancelHref}
+        onCancel={onCancel}
+      />
     </form>
   );
 }

@@ -95,6 +95,7 @@ function buildSearchWhere(search?: string): Prisma.BarangKeluarWhereInput {
   return { OR: orFilters };
 }
 
+// riwayat transaksi = daftar barang keluar dengan filter kategori & tanggal
 export async function getRiwayatTransaksiPaginated({
   page,
   limit,

@@ -125,12 +125,16 @@ export default function Sidebar({
             )}
           </div>
 
-          <button
-            onClick={() =>
-              setCollapsed(
-                !collapsed
-              )
-            }
+          <div
+            role="button"
+            tabIndex={0}
+            onClick={() => setCollapsed(!collapsed)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                setCollapsed(!collapsed);
+              }
+            }}
             className="
               text-xs
               bg-white/10
@@ -139,10 +143,11 @@ export default function Sidebar({
               px-2
               py-1
               shrink-0
+              cursor-pointer
             "
           >
             {collapsed ? "→" : "←"}
-          </button>
+          </div>
         </div>
 
         {!collapsed && (
@@ -169,6 +174,7 @@ export default function Sidebar({
             <Link
               key={item.href}
               href={item.href}
+              prefetch
               title={item.name}
               className={`
                 flex
@@ -216,6 +222,7 @@ export default function Sidebar({
                     href={
                       item.href
                     }
+                    prefetch
                     title={
                       item.name
                     }
@@ -290,7 +297,9 @@ export default function Sidebar({
           )}
         </div>
 
-        <button
+        <div
+          role="button"
+          tabIndex={0}
           className="
             mt-3
             w-full
@@ -300,6 +309,8 @@ export default function Sidebar({
             py-1.5
             text-[11px]
             transition
+            cursor-pointer
+            text-center
           "
           onClick={async () => {
             await fetch(
@@ -312,11 +323,17 @@ export default function Sidebar({
             window.location.href =
               "/login";
           }}
+          onKeyDown={async (e) => {
+            if (e.key !== "Enter" && e.key !== " ") return;
+            e.preventDefault();
+            await fetch("/api/auth/logout", { method: "POST" });
+            window.location.href = "/login";
+          }}
         >
           {collapsed
             ? "⎋"
             : "Logout"}
-        </button>
+        </div>
       </div>
     </aside>
   );

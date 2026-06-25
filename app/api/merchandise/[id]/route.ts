@@ -1,8 +1,10 @@
 import { NextResponse } from "next/server";
 
+import { isAuthError, requireAuth } from "@/lib/api-auth";
 import {
   deleteMerchandise,
   getMerchandiseById,
+  revalidateMerchandiseListCache,
   updateMerchandise,
 } from "@/lib/merchandise";
 
@@ -11,6 +13,9 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const auth = await requireAuth();
+    if (isAuthError(auth)) return auth;
+
     const { id } = await params;
     const data = await getMerchandiseById(Number(id));
 
@@ -33,6 +38,9 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const auth = await requireAuth();
+    if (isAuthError(auth)) return auth;
+
     const { id } = await params;
     const body = await req.json();
 
@@ -46,8 +54,9 @@ export async function PUT(
     const data = await updateMerchandise(Number(id), {
       nama_merch: body.nama_merch.trim(),
       deskripsi: body.deskripsi?.trim() || undefined,
-      jumlah_stok: Number(body.jumlah_stok),
     });
+
+    revalidateMerchandiseListCache();
 
     return NextResponse.json(data);
   } catch (error) {
@@ -68,8 +77,13 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const auth = await requireAuth();
+    if (isAuthError(auth)) return auth;
+
     const { id } = await params;
     await deleteMerchandise(Number(id));
+
+    revalidateMerchandiseListCache();
 
     return NextResponse.json({ message: "Merchandise berhasil dihapus" });
   } catch (error) {

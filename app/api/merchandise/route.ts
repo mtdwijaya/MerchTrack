@@ -1,14 +1,19 @@
 import { NextResponse } from "next/server";
 
+import { isAuthError, requireAuth } from "@/lib/api-auth";
 import {
   createMerchandise,
-  getAllMerchandiseWithStok,
+  getAllMerchandiseNames,
   getMerchandisePaginated,
   parseMerchandiseSort,
+  revalidateMerchandiseListCache,
 } from "@/lib/merchandise";
 
 export async function GET(request: Request) {
   try {
+    const auth = await requireAuth();
+    if (isAuthError(auth)) return auth;
+
     const { searchParams } = new URL(request.url);
     const pageParam = searchParams.get("page");
 
@@ -33,7 +38,7 @@ export async function GET(request: Request) {
       return NextResponse.json(result);
     }
 
-    const data = await getAllMerchandiseWithStok();
+    const data = await getAllMerchandiseNames();
     return NextResponse.json(data);
   } catch (error) {
     console.error(error);
@@ -47,6 +52,9 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
+    const auth = await requireAuth();
+    if (isAuthError(auth)) return auth;
+
     const body = await request.json();
 
     if (!body.nama_merch?.trim()) {
@@ -61,6 +69,8 @@ export async function POST(request: Request) {
       deskripsi: body.deskripsi?.trim() || undefined,
       jumlah_stok: Number(body.jumlah_stok) || 0,
     });
+
+    revalidateMerchandiseListCache();
 
     return NextResponse.json(data, { status: 201 });
   } catch (error) {

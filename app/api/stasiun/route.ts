@@ -1,14 +1,19 @@
 import { NextResponse } from "next/server";
 
+import { isAuthError, requireAuth } from "@/lib/api-auth";
 import {
   createStasiun,
   getAllStasiun,
   getStasiunPaginated,
   parseStasiunSort,
+  revalidateStasiunCache,
 } from "@/lib/stasiun";
 
 export async function GET(request: Request) {
   try {
+    const auth = await requireAuth();
+    if (isAuthError(auth)) return auth;
+
     const { searchParams } = new URL(request.url);
     const pageParam = searchParams.get("page");
 
@@ -46,6 +51,9 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
+    const auth = await requireAuth();
+    if (isAuthError(auth)) return auth;
+
     const body = await request.json();
 
     if (!body.kode_stasiun?.trim() || !body.nama_stasiun?.trim()) {
@@ -62,6 +70,8 @@ export async function POST(request: Request) {
       kontak: body.kontak?.trim() || undefined,
     });
 
+    revalidateStasiunCache();
+
     return NextResponse.json(data, { status: 201 });
   } catch (error) {
     console.error(error);
@@ -69,9 +79,7 @@ export async function POST(request: Request) {
     return NextResponse.json(
       {
         message:
-          error instanceof Error
-            ? error.message
-            : "Gagal menambahkan stasiun",
+          error instanceof Error ? error.message : "Gagal menambahkan stasiun",
       },
       { status: 400 }
     );

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { Role } from "@prisma/client";
 
+import { isAuthError, requireAdmin } from "@/lib/api-auth";
 import {
   deletePengguna,
   getPenggunaById,
@@ -12,6 +13,9 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const auth = await requireAdmin();
+    if (isAuthError(auth)) return auth;
+
     const { id } = await params;
     const data = await getPenggunaById(Number(id));
 
@@ -34,6 +38,9 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const auth = await requireAdmin();
+    if (isAuthError(auth)) return auth;
+
     const { id } = await params;
     const body = await req.json();
 
@@ -71,6 +78,9 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const auth = await requireAdmin();
+    if (isAuthError(auth)) return auth;
+
     const { id } = await params;
     await deletePengguna(Number(id));
 

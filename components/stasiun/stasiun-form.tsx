@@ -19,6 +19,7 @@ interface StasiunFormProps {
   }) => Promise<void>;
   loading?: boolean;
   cancelHref?: string;
+  onCancel?: () => void;
 }
 
 export default function StasiunForm({
@@ -26,6 +27,7 @@ export default function StasiunForm({
   onSubmit,
   loading,
   cancelHref = "/stasiun",
+  onCancel,
 }: StasiunFormProps) {
   const [form, setForm] = useState({
     kode_stasiun: initialData?.kode_stasiun ?? "",
@@ -90,7 +92,11 @@ export default function StasiunForm({
         />
       </Field>
 
-      <FormActions loading={loading} cancelHref={cancelHref} />
+      <FormActions
+        loading={loading}
+        cancelHref={cancelHref}
+        onCancel={onCancel}
+      />
     </form>
   );
 }

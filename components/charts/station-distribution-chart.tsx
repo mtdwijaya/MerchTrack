@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import {
   Bar,
   BarChart,
@@ -21,6 +22,12 @@ export default function StationDistributionChart({
 }: {
   data: StationDistributionItem[];
 }) {
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   if (data.length === 0) {
     return (
       <p className="py-10 text-center text-sm text-[#6B7280]">
@@ -29,24 +36,23 @@ export default function StationDistributionChart({
     );
   }
 
+  if (!mounted) {
+    return (
+      <div
+        className="w-full min-w-0 animate-pulse rounded-lg bg-[#F3F4F6]"
+        style={{ height: CHART_HEIGHT }}
+      />
+    );
+  }
+
   return (
-    <div
-      className="w-full min-w-0"
-      style={{ height: CHART_HEIGHT }}
-    >
-      <ResponsiveContainer
-        width="100%"
-        height={CHART_HEIGHT}
-      >
+    <div className="w-full min-w-0" style={{ height: CHART_HEIGHT }}>
+      <ResponsiveContainer width="100%" height={CHART_HEIGHT}>
         <BarChart data={data}>
           <XAxis dataKey="nama" />
           <YAxis />
           <Tooltip />
-          <Bar
-            dataKey="total"
-            fill="#C62828"
-            radius={[8, 8, 0, 0]}
-          />
+          <Bar dataKey="total" fill="#C62828" radius={[8, 8, 0, 0]} />
         </BarChart>
       </ResponsiveContainer>
     </div>

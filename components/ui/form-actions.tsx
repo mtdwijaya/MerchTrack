@@ -6,6 +6,7 @@ interface FormActionsProps {
   loading?: boolean;
   submitLabel?: string;
   cancelHref?: string;
+  onCancel?: () => void;
   loadingLabel?: string;
 }
 
@@ -13,6 +14,7 @@ export default function FormActions({
   loading,
   submitLabel = "Simpan",
   cancelHref,
+  onCancel,
   loadingLabel = "Menyimpan...",
 }: FormActionsProps) {
   const router = useRouter();
@@ -21,9 +23,11 @@ export default function FormActions({
     <div className="flex justify-end gap-3 pt-2">
       <button
         type="button"
-        onClick={() =>
-          cancelHref ? router.push(cancelHref) : router.back()
-        }
+        onClick={() => {
+          if (onCancel) onCancel();
+          else if (cancelHref) router.push(cancelHref);
+          else router.back();
+        }}
         className="
           rounded-xl border border-[#E2E2E2]
           px-6 py-3 text-sm font-medium text-[#1A1C1C]

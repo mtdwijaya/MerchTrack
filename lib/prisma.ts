@@ -1,13 +1,12 @@
 import { PrismaClient } from "@prisma/client";
 
-const globalForPrisma = global as unknown as {
-  prisma: PrismaClient;
+// singleton prisma agar koneksi db tidak dibuat ulang tiap request (penting di dev/hot reload)
+const globalForPrisma = globalThis as typeof globalThis & {
+  __prisma?: PrismaClient;
 };
 
-export const prisma =
-  globalForPrisma.prisma ||
-  new PrismaClient();
+export const prisma = globalForPrisma.__prisma ?? new PrismaClient();
 
 if (process.env.NODE_ENV !== "production") {
-  globalForPrisma.prisma = prisma;
+  globalForPrisma.__prisma = prisma;
 }

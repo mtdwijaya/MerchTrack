@@ -1,6 +1,8 @@
- import { prisma } from "@/lib/prisma";
+import { revalidateTag, unstable_cache } from "next/cache";
+import { prisma } from "@/lib/prisma";
 import { Prisma } from "@prisma/client";
 
+export const STASIUN_CACHE_TAG = "stasiun";
 export type StasiunSortField =
   | "kode_stasiun"
   | "nama_stasiun";
@@ -84,14 +86,24 @@ export async function getStasiunPaginated({
   };
 }
 
-export async function getAllStasiun() {
+async function fetchAllStasiun() {
   return prisma.stasiun.findMany({
     orderBy: { nama_stasiun: "asc" },
   });
 }
 
-export async function getStasiunById(id: number) {
-  return prisma.stasiun.findUnique({
+// daftar stasiun untuk dropdown — di-cache, invalidasi lewat revalidateStasiunCache()
+export const getAllStasiun = unstable_cache(
+  fetchAllStasiun,
+  ["all-stasiun"],
+  { tags: [STASIUN_CACHE_TAG] }
+);
+
+export function revalidateStasiunCache() {
+  revalidateTag(STASIUN_CACHE_TAG, "max");
+}
+
+export async function getStasiunById(id: number) {  return prisma.stasiun.findUnique({
     where: { id_stasiun: id },
   });
 }

@@ -45,7 +45,7 @@ export default function MerchandiseUsageChart({
               </span>
             </div>
             <span className="shrink-0 text-sm font-semibold text-[#1A1C1C]">
-              {item.total.toLocaleString("id-ID")} pcs
+              {item.total} pcs
             </span>
           </div>
 

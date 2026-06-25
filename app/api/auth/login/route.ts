@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { getAuthCookieOptions } from "@/lib/auth";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import { cookies } from "next/headers";
@@ -57,9 +58,12 @@ export async function POST(req: Request) {
 
     const token = jwt.sign(
       {
+        // simpan data user di jwt supaya getCurrentUser tidak perlu query db tiap navigasi
         id_user: user.id_user,
         email: user.email,
         role: user.role,
+        nama_user: user.nama_user,
+        id_stasiun: user.id_stasiun,
       },
       process.env.JWT_SECRET as string,
       {
@@ -72,11 +76,7 @@ export async function POST(req: Request) {
     cookieStore.set({
       name: "token",
       value: token,
-      httpOnly: true,
-      secure: false,
-      sameSite: "lax",
-      path: "/",
-      maxAge: 60 * 60 * 24,
+      ...getAuthCookieOptions(60 * 60 * 24),
     });
 
     return NextResponse.json({

@@ -2,7 +2,7 @@
 "use client";
 
 import Image from "next/image";
-import { useState, FormEvent } from "react";
+import { useState, FormEvent, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { CircleAlert, Eye, EyeOff } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -17,6 +17,12 @@ export default function LoginPage() {
   const [isPending, setIsPending] = useState(false);
 
   const [showPassword, setShowPassword] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  // form dirender setelah mount agar tidak bentrok dengan ekstensi browser (hydration error)
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -124,7 +130,14 @@ export default function LoginPage() {
           Silakan login untuk mengakses sistem
         </p>
 
-        <form onSubmit={handleSubmit}>
+        {!mounted ? (
+          <div className="space-y-4 animate-pulse">
+            <div className="h-[76px] rounded-lg bg-[#F3F4F6]" />
+            <div className="h-[76px] rounded-lg bg-[#F3F4F6]" />
+            <div className="mt-6 h-12 rounded-lg bg-[#F3F4F6]" />
+          </div>
+        ) : (
+        <form onSubmit={handleSubmit} autoComplete="on">
           {/* Email */}
           <div className="mb-4">
             <label className="block text-sm font-medium mb-2 text-[#333]">
@@ -133,6 +146,8 @@ export default function LoginPage() {
 
             <input
               type="email"
+              name="email"
+              autoComplete="email"
               placeholder="admin@lrt.co.id"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
@@ -164,6 +179,8 @@ export default function LoginPage() {
             <div className="relative">
               <input
                 type={showPassword ? "text" : "password"}
+                name="password"
+                autoComplete="current-password"
                 placeholder="password123"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
@@ -186,10 +203,16 @@ export default function LoginPage() {
                 "
               />
 
-              <button
-                type="button"
+              <div
+                role="button"
+                tabIndex={0}
                 onClick={() => setShowPassword(!showPassword)}
-                disabled={isPending}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    setShowPassword(!showPassword);
+                  }
+                }}
                 aria-label={showPassword ? "Sembunyikan password" : "Tampilkan password"}
                 className="
                   absolute
@@ -198,16 +221,16 @@ export default function LoginPage() {
                   -translate-y-1/2
                   text-[#6B7280]
                   hover:text-[#1A1C1C]
-                  disabled:opacity-50
+                  cursor-pointer
+                  select-none
                 "
               >
                 {showPassword ? (
-                  
                   <Eye size={20} />
                 ) : (
                   <EyeOff size={20} />
                 )}
-              </button>
+              </div>
             </div>
           </div>
 
@@ -226,17 +249,19 @@ export default function LoginPage() {
               Remember me
             </label>
 
-            <button
-              type="button"
+            <span
+              role="button"
+              tabIndex={0}
               className="
                 text-sm
                 text-[#0B66C3]
                 font-medium
                 hover:underline
+                cursor-pointer
               "
             >
               Forgot password?
-            </button>
+            </span>
           </div>
 
           {/* Submit */}
@@ -261,6 +286,7 @@ export default function LoginPage() {
             {isPending ? "Signing In..." : "Sign In"}
           </button>
         </form>
+        )}
       </div>
     </div>
   );

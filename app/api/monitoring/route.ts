@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { isAuthError, requireAuth } from "@/lib/api-auth";
 import {
   getMonitoringPaginated,
   parseMonitoringSort,
@@ -8,6 +9,9 @@ import {
 
 export async function GET(request: Request) {
   try {
+    const auth = await requireAuth();
+    if (isAuthError(auth)) return auth;
+
     const { searchParams } = new URL(request.url);
 
     const page = Number(searchParams.get("page") || 1);

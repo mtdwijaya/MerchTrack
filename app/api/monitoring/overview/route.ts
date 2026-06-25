@@ -1,10 +1,17 @@
 import { NextResponse } from "next/server";
 
+import { getCurrentUser } from "@/lib/auth";
 import { getMonitoringOverview } from "@/lib/monitoring-overview";
 
 export async function GET() {
   try {
-    const data = await getMonitoringOverview();
+    const user = await getCurrentUser();
+    if (!user) {
+      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+    }
+
+    const data = await getMonitoringOverview(user);
+
     return NextResponse.json(data);
   } catch (error) {
     console.error(error);

@@ -1,8 +1,10 @@
 import { NextResponse } from "next/server";
 
+import { isAuthError, requireAuth } from "@/lib/api-auth";
 import {
   deleteStasiun,
   getStasiunById,
+  revalidateStasiunCache,
   updateStasiun,
 } from "@/lib/stasiun";
 
@@ -11,6 +13,9 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const auth = await requireAuth();
+    if (isAuthError(auth)) return auth;
+
     const { id } = await params;
 
     const data = await getStasiunById(Number(id));
@@ -26,10 +31,7 @@ export async function GET(
   } catch (error) {
     console.error(error);
 
-    return NextResponse.json(
-      { message: "Terjadi kesalahan" },
-      { status: 500 }
-    );
+    return NextResponse.json({ message: "Terjadi kesalahan" }, { status: 500 });
   }
 }
 
@@ -38,6 +40,9 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const auth = await requireAuth();
+    if (isAuthError(auth)) return auth;
+
     const { id } = await params;
     const body = await req.json();
 
@@ -55,6 +60,8 @@ export async function PUT(
       kontak: body.kontak?.trim() || undefined,
     });
 
+    revalidateStasiunCache();
+
     return NextResponse.json(data);
   } catch (error) {
     console.error(error);
@@ -62,9 +69,7 @@ export async function PUT(
     return NextResponse.json(
       {
         message:
-          error instanceof Error
-            ? error.message
-            : "Terjadi kesalahan",
+          error instanceof Error ? error.message : "Terjadi kesalahan",
       },
       { status: 400 }
     );
@@ -76,9 +81,14 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const auth = await requireAuth();
+    if (isAuthError(auth)) return auth;
+
     const { id } = await params;
 
     await deleteStasiun(Number(id));
+
+    revalidateStasiunCache();
 
     return NextResponse.json({
       message: "Stasiun berhasil dihapus",
@@ -89,9 +99,7 @@ export async function DELETE(
     return NextResponse.json(
       {
         message:
-          error instanceof Error
-            ? error.message
-            : "Terjadi kesalahan",
+          error instanceof Error ? error.message : "Terjadi kesalahan",
       },
       { status: 400 }
     );

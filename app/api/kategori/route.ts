@@ -1,29 +1,22 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
+
+import { isAuthError, requireAuth } from "@/lib/api-auth";
+import { getAllKategori } from "@/lib/kategori";
 
 export async function GET() {
   try {
-    const data =
-      await prisma.kategoriPenggunaan.findMany(
-        {
-          orderBy: {
-            nama_kategori: "asc",
-          },
-        }
-      );
+    const auth = await requireAuth();
+    if (isAuthError(auth)) return auth;
+
+    const data = await getAllKategori();
 
     return NextResponse.json(data);
   } catch (error) {
     console.error(error);
 
     return NextResponse.json(
-      {
-        message:
-          "Gagal mengambil data kategori",
-      },
-      {
-        status: 500,
-      }
+      { message: "Gagal mengambil data kategori" },
+      { status: 500 }
     );
   }
 }

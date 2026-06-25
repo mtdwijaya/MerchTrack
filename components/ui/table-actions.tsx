@@ -1,15 +1,61 @@
 import Link from "next/link";
 
-export function EditAction({ href }: { href: string }) {
+export function EditAction({
+  href,
+  onClick,
+}: {
+  href?: string;
+  onClick?: () => void;
+}) {
+  const className =
+    "flex h-8 w-8 items-center justify-center rounded-lg border border-[#E2E2E2] text-[#2563EB] hover:border-[#2563EB] hover:bg-blue-50";
+
+  const icon = (
+    <svg
+      className="h-4 w-4"
+      fill="none"
+      viewBox="0 0 24 24"
+      stroke="currentColor"
+      strokeWidth={2}
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+      />
+    </svg>
+  );
+
+  if (onClick) {
+    return (
+      <button type="button" onClick={onClick} className={className} title="Edit">
+        {icon}
+      </button>
+    );
+  }
+
   return (
-    <Link
-      href={href}
+    <Link href={href!} className={className} title="Edit">
+      {icon}
+    </Link>
+  );
+}
+
+export function RestockAction({
+  onClick,
+}: {
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
       className="
         flex h-8 w-8 items-center justify-center
         rounded-lg border border-[#E2E2E2]
-        text-[#2563EB] hover:border-[#2563EB] hover:bg-blue-50
+        text-[#059669] hover:border-[#059669] hover:bg-emerald-50
       "
-      title="Edit"
+      title="Restock"
     >
       <svg
         className="h-4 w-4"
@@ -21,10 +67,10 @@ export function EditAction({ href }: { href: string }) {
         <path
           strokeLinecap="round"
           strokeLinejoin="round"
-          d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+          d="M12 4v16m8-8H4"
         />
       </svg>
-    </Link>
+    </button>
   );
 }
 
