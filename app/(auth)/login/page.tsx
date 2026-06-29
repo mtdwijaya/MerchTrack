@@ -2,72 +2,19 @@
 "use client";
 
 import Image from "next/image";
-import { useState, FormEvent, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useActionState, useState } from "react";
 import { CircleAlert, Eye, EyeOff } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
+import { loginAction, type LoginFormState } from "./actions";
+
 export default function LoginPage() {
-  const router = useRouter();
-
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-
-  const [error, setError] = useState("");
-  const [isPending, setIsPending] = useState(false);
+  const [state, formAction, isPending] = useActionState<
+    LoginFormState,
+    FormData
+  >(loginAction, {});
 
   const [showPassword, setShowPassword] = useState(false);
-  const [mounted, setMounted] = useState(false);
-
-  // form dirender setelah mount agar tidak bentrok dengan ekstensi browser (hydration error)
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-
-    setError("");
-    setIsPending(true);
-
-    try {
-      const response = await fetch("/api/auth/login", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          email,
-          password,
-        }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        setError(
-          data.message || "Login gagal. Silakan coba lagi."
-        );
-        setIsPending(false);
-        return;
-      }
-
-      setEmail("");
-      setPassword("");
-      setError("");
-
-      router.refresh();
-      router.push("/dashboard");
-    } catch (error) {
-      console.error(error);
-
-      setError(
-        "Terjadi kesalahan. Silakan coba lagi."
-      );
-
-      setIsPending(false);
-    }
-  };
 
   return (
     <div
@@ -130,14 +77,7 @@ export default function LoginPage() {
           Silakan login untuk mengakses sistem
         </p>
 
-        {!mounted ? (
-          <div className="space-y-4 animate-pulse">
-            <div className="h-[76px] rounded-lg bg-[#F3F4F6]" />
-            <div className="h-[76px] rounded-lg bg-[#F3F4F6]" />
-            <div className="mt-6 h-12 rounded-lg bg-[#F3F4F6]" />
-          </div>
-        ) : (
-        <form onSubmit={handleSubmit} autoComplete="on">
+        <form action={formAction} autoComplete="on" suppressHydrationWarning>
           {/* Email */}
           <div className="mb-4">
             <label className="block text-sm font-medium mb-2 text-[#333]">
@@ -149,8 +89,6 @@ export default function LoginPage() {
               name="email"
               autoComplete="email"
               placeholder="admin@lrt.co.id"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
               disabled={isPending}
               required
               className="
@@ -182,8 +120,6 @@ export default function LoginPage() {
                 name="password"
                 autoComplete="current-password"
                 placeholder="password123"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
                 disabled={isPending}
                 required
                 className="
@@ -213,7 +149,9 @@ export default function LoginPage() {
                     setShowPassword(!showPassword);
                   }
                 }}
-                aria-label={showPassword ? "Sembunyikan password" : "Tampilkan password"}
+                aria-label={
+                  showPassword ? "Sembunyikan password" : "Tampilkan password"
+                }
                 className="
                   absolute
                   right-4
@@ -225,20 +163,15 @@ export default function LoginPage() {
                   select-none
                 "
               >
-                {showPassword ? (
-                  <Eye size={20} />
-                ) : (
-                  <EyeOff size={20} />
-                )}
+                {showPassword ? <Eye size={20} /> : <EyeOff size={20} />}
               </div>
             </div>
           </div>
 
-          {/* Error Message */}
-          {error && (
+          {state.error && (
             <Alert variant="destructive" className="mb-4">
               <CircleAlert />
-              <AlertDescription>{error}</AlertDescription>
+              <AlertDescription>{state.error}</AlertDescription>
             </Alert>
           )}
 
@@ -264,7 +197,6 @@ export default function LoginPage() {
             </span>
           </div>
 
-          {/* Submit */}
           <button
             type="submit"
             disabled={isPending}
@@ -286,9 +218,7 @@ export default function LoginPage() {
             {isPending ? "Signing In..." : "Sign In"}
           </button>
         </form>
-        )}
       </div>
     </div>
   );
 }
-

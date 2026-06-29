@@ -1,8 +1,7 @@
-import { redirect } from "next/navigation";
 import { Suspense } from "react";
 
 import PenggunaPageClient from "./pengguna-page-client";
-import { getCurrentUser } from "@/lib/auth";
+import { requireAdminPage } from "@/lib/auth";
 import { getPageParam, getParam, type SearchParams } from "@/lib/list-params";
 import {
   getPenggunaPaginated,
@@ -21,10 +20,7 @@ export default async function PenggunaPage({
 }: {
   searchParams: Promise<SearchParams>;
 }) {
-  const user = await getCurrentUser();
-  if (!user) redirect("/login");
-  // halaman kelola pengguna hanya bisa diakses admin
-  if (user.role !== "ADMIN") redirect("/dashboard");
+  await requireAdminPage();
 
   const params = await searchParams;
   const page = getPageParam(params);

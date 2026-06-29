@@ -3,10 +3,9 @@
 // server actions: dipanggil dari form client, jalan di server (aman untuk db & auth)
 import { revalidatePath } from "next/cache";
 
+import { requireActionUser } from "@/lib/auth";
 import { revalidateAnalyticsPages } from "@/lib/revalidate-analytics";
 import { revalidateMerchandiseListCache } from "@/lib/merchandise";
-
-import { verifyToken } from "@/lib/auth";
 import {
   createBarangKeluar,
   deleteBarangKeluar,
@@ -19,6 +18,9 @@ type ActionResult =
   | { ok: false; message: string };
 
 export async function getBarangKeluarFormData(id: number) {
+  const auth = await requireActionUser();
+  if (!auth.ok) return null;
+
   const data = await getBarangKeluarById(id);
   if (!data) return null;
 
@@ -41,16 +43,14 @@ export async function createBarangKeluarAction(data: {
   keterangan: string;
 }): Promise<ActionResult> {
   try {
-    const tokenData = await verifyToken();
-    if (!tokenData) {
-      return { ok: false, message: "Unauthorized" };
-    }
+    const auth = await requireActionUser();
+    if (!auth.ok) return auth;
 
     await createBarangKeluar({
       id_merch: data.id_merch,
       id_stasiun: data.id_stasiun,
       id_kategori: data.id_kategori,
-      id_user: tokenData.id_user,
+      id_user: auth.user.id_user,
       jumlah: data.jumlah,
       tanggal_keluar: data.tanggal_keluar
         ? new Date(data.tanggal_keluar)
@@ -58,7 +58,6 @@ export async function createBarangKeluarAction(data: {
       keterangan: data.keterangan,
     });
 
-    // refresh halaman terkait + cache dropdown stok + dashboard/monitoring
     revalidatePath("/barang-keluar");
     revalidatePath("/riwayat-transaksi");
     revalidateMerchandiseListCache();
@@ -84,6 +83,9 @@ export async function updateBarangKeluarAction(
   }
 ): Promise<ActionResult> {
   try {
+    const auth = await requireActionUser();
+    if (!auth.ok) return auth;
+
     await updateBarangKeluar(id, {
       id_merch: data.id_merch,
       id_stasiun: data.id_stasiun,
@@ -93,7 +95,6 @@ export async function updateBarangKeluarAction(
       keterangan: data.keterangan,
     });
 
-    // refresh halaman terkait + cache dropdown stok + dashboard/monitoring
     revalidatePath("/barang-keluar");
     revalidatePath("/riwayat-transaksi");
     revalidateMerchandiseListCache();
@@ -109,8 +110,10 @@ export async function updateBarangKeluarAction(
 
 export async function deleteBarangKeluarAction(id: number): Promise<ActionResult> {
   try {
+    const auth = await requireActionUser();
+    if (!auth.ok) return auth;
+
     await deleteBarangKeluar(id);
-    // kembalikan stok + refresh semua halaman terkait
     revalidatePath("/barang-keluar");
     revalidatePath("/riwayat-transaksi");
     revalidateMerchandiseListCache();

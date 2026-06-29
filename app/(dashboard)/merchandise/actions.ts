@@ -2,7 +2,7 @@
 
 import { revalidatePath, updateTag } from "next/cache";
 
-import { verifyToken } from "@/lib/auth";
+import { requireActionAdmin } from "@/lib/auth";
 import { revalidateAnalyticsPages } from "@/lib/revalidate-analytics";
 import {
   createMerchandise,
@@ -18,7 +18,6 @@ type ActionResult =
   | { ok: false; message: string };
 
 function revalidateMerchandisePages() {
-  // invalidasi cache dropdown merchandise + halaman yang pakai data stok
   updateTag(MERCHANDISE_LIST_CACHE_TAG);
   revalidatePath("/merchandise");
   revalidatePath("/barang-keluar");
@@ -26,6 +25,9 @@ function revalidateMerchandisePages() {
 }
 
 export async function getMerchandiseFormData(id: number) {
+  const auth = await requireActionAdmin();
+  if (!auth.ok) return null;
+
   const data = await getMerchandiseById(id);
   if (!data) return null;
 
@@ -36,6 +38,9 @@ export async function getMerchandiseFormData(id: number) {
 }
 
 export async function getMerchandiseRestockData(id: number) {
+  const auth = await requireActionAdmin();
+  if (!auth.ok) return null;
+
   const data = await getMerchandiseById(id);
   if (!data) return null;
 
@@ -51,6 +56,9 @@ export async function createMerchandiseAction(data: {
   jumlah_stok: number;
 }): Promise<ActionResult> {
   try {
+    const auth = await requireActionAdmin();
+    if (!auth.ok) return auth;
+
     await createMerchandise(data);
     revalidateMerchandisePages();
     return { ok: true };
@@ -70,6 +78,9 @@ export async function updateMerchandiseAction(
   }
 ): Promise<ActionResult> {
   try {
+    const auth = await requireActionAdmin();
+    if (!auth.ok) return auth;
+
     await updateMerchandise(id, data);
     revalidateMerchandisePages();
     return { ok: true };
@@ -89,12 +100,10 @@ export async function restockMerchandiseAction(
   }
 ): Promise<ActionResult> {
   try {
-    const tokenData = await verifyToken();
-    if (!tokenData) {
-      return { ok: false, message: "Unauthorized" };
-    }
+    const auth = await requireActionAdmin();
+    if (!auth.ok) return auth;
 
-    await restockMerchandise(id, tokenData.id_user, data);
+    await restockMerchandise(id, auth.user.id_user, data);
     revalidateMerchandisePages();
     return { ok: true };
   } catch (error) {
@@ -107,6 +116,9 @@ export async function restockMerchandiseAction(
 
 export async function deleteMerchandiseAction(id: number): Promise<ActionResult> {
   try {
+    const auth = await requireActionAdmin();
+    if (!auth.ok) return auth;
+
     await deleteMerchandise(id);
     revalidateMerchandisePages();
     return { ok: true };

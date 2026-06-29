@@ -1,6 +1,7 @@
 import { Suspense } from "react";
 
 import MerchandisePageClient from "./merchandise-page-client";
+import { requireAdminPage } from "@/lib/auth";
 import { getPageParam, getParam, type SearchParams } from "@/lib/list-params";
 import {
   getMerchandisePaginated,
@@ -17,6 +18,8 @@ export default async function MerchandisePage({
 }: {
   searchParams: Promise<SearchParams>;
 }) {
+  await requireAdminPage();
+
   const params = await searchParams;
   const page = getPageParam(params);
   const search = getParam(params, "search");

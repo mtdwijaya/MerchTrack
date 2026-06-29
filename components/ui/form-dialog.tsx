@@ -24,7 +24,7 @@ export default function FormDialog({
   onOpenChange,
   title,
   description,
-  loading,
+  loading, 
   contentClassName,
   children,
 }: FormDialogProps) {

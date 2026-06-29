@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 
+import { requireActionAdmin } from "@/lib/auth";
 import {
   createPengguna,
   deletePengguna,
@@ -14,6 +15,9 @@ type ActionResult =
   | { ok: false; message: string };
 
 export async function getPenggunaFormData(id: number) {
+  const auth = await requireActionAdmin();
+  if (!auth.ok) return null;
+
   const data = await getPenggunaById(id);
   if (!data) return null;
 
@@ -33,6 +37,9 @@ export async function createPenggunaAction(data: {
   id_stasiun?: number | null;
 }): Promise<ActionResult> {
   try {
+    const auth = await requireActionAdmin();
+    if (!auth.ok) return auth;
+
     await createPengguna({
       ...data,
       id_stasiun: data.id_stasiun ?? undefined,
@@ -58,6 +65,9 @@ export async function updatePenggunaAction(
   }
 ): Promise<ActionResult> {
   try {
+    const auth = await requireActionAdmin();
+    if (!auth.ok) return auth;
+
     await updatePengguna(id, {
       ...data,
       id_stasiun: data.id_stasiun ?? undefined,
@@ -74,6 +84,9 @@ export async function updatePenggunaAction(
 
 export async function deletePenggunaAction(id: number): Promise<ActionResult> {
   try {
+    const auth = await requireActionAdmin();
+    if (!auth.ok) return auth;
+
     await deletePengguna(id);
     revalidatePath("/pengguna");
     return { ok: true };

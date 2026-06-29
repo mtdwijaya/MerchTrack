@@ -1,6 +1,7 @@
 import { Suspense } from "react";
 
 import StasiunPageClient from "./stasiun-page-client";
+import { requireAdminPage } from "@/lib/auth";
 import { getPageParam, getParam, type SearchParams } from "@/lib/list-params";
 import { parseSortValue } from "@/lib/sort";
 import {
@@ -17,6 +18,8 @@ export default async function StasiunPage({
 }: {
   searchParams: Promise<SearchParams>;
 }) {
+  await requireAdminPage();
+
   const params = await searchParams;
   const page = getPageParam(params);
   const search = getParam(params, "search");

@@ -2,8 +2,8 @@
 
 import { revalidatePath, updateTag } from "next/cache";
 
+import { requireActionAdmin } from "@/lib/auth";
 import { revalidateAnalyticsPages } from "@/lib/revalidate-analytics";
-
 import {
   createStasiun,
   deleteStasiun,
@@ -25,6 +25,9 @@ function revalidateStasiunPages() {
 }
 
 export async function getStasiunFormData(id: number) {
+  const auth = await requireActionAdmin();
+  if (!auth.ok) return null;
+
   const data = await getStasiunById(id);
   if (!data) return null;
 
@@ -43,6 +46,9 @@ export async function createStasiunAction(data: {
   kontak: string;
 }): Promise<ActionResult> {
   try {
+    const auth = await requireActionAdmin();
+    if (!auth.ok) return auth;
+
     await createStasiun(data);
     revalidateStasiunPages();
     return { ok: true };
@@ -64,6 +70,9 @@ export async function updateStasiunAction(
   }
 ): Promise<ActionResult> {
   try {
+    const auth = await requireActionAdmin();
+    if (!auth.ok) return auth;
+
     await updateStasiun(id, data);
     revalidateStasiunPages();
     return { ok: true };
@@ -77,9 +86,12 @@ export async function updateStasiunAction(
 
 export async function deleteStasiunAction(id: number): Promise<ActionResult> {
   try {
+    const auth = await requireActionAdmin();
+    if (!auth.ok) return auth;
+
     await deleteStasiun(id);
     revalidateStasiunPages();
-     return { ok: true };
+    return { ok: true };
   } catch (error) {
     return {
       ok: false,

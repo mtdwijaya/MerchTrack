@@ -1,5 +1,6 @@
 "use server";
 
+import { requireActionUser } from "@/lib/auth";
 import {
   getRiwayatTransaksiPaginated,
   parseRiwayatSort,
@@ -12,6 +13,9 @@ export async function exportRiwayatData(params: {
   id_kategori?: number;
   tanggal?: string;
 }) {
+  const auth = await requireActionUser();
+  if (!auth.ok) return [];
+
   const { sortBy, sortOrder } = parseSortValue(
     params.sort,
     "tanggal_keluar",
