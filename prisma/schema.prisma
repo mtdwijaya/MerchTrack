@@ -95,6 +95,9 @@ keterangan String?
 merchandise Merchandise @relation(fields: [id_merch], references: [id_merch])
 
 user User @relation(fields: [id_user], references: [id_user])
+
+@@index([tanggal_masuk])
+@@index([id_merch])
 }
 
 model BarangKeluar {
@@ -118,4 +121,9 @@ stasiun Stasiun @relation(fields: [id_stasiun], references: [id_stasiun])
 kategori KategoriPenggunaan @relation(fields: [id_kategori], references: [id_kategori])
 
 user User @relation(fields: [id_user], references: [id_user])
+
+@@index([tanggal_keluar])
+@@index([id_merch])
+@@index([id_stasiun])
+@@index([id_kategori])
 }

@@ -20,17 +20,16 @@ import { getAllStasiun } from "@/lib/stasiun";
 const PAGE_SIZE = 10;
 const DEFAULT_SORT = "tanggal_keluar:desc";
 
-export default async function BarangKeluarPage({
+async function BarangKeluarContent({
   searchParams,
 }: {
-  searchParams: Promise<SearchParams>;
+  searchParams: SearchParams;
 }) {
-  const params = await searchParams;
-  const page = getPageParam(params);
-  const search = getParam(params, "search");
-  const sort = getParam(params, "sort", DEFAULT_SORT);
-  const idStasiun = getOptionalNumberParam(params, "id_stasiun");
-  const idKategori = getOptionalNumberParam(params, "id_kategori");
+  const page = getPageParam(searchParams);
+  const search = getParam(searchParams, "search");
+  const sort = getParam(searchParams, "sort", DEFAULT_SORT);
+  const idStasiun = getOptionalNumberParam(searchParams, "id_stasiun");
+  const idKategori = getOptionalNumberParam(searchParams, "id_kategori");
   const { sortBy, sortOrder } = parseSortValue(sort, "tanggal_keluar", "desc");
   const parsed = parseBarangKeluarSort(sortBy, sortOrder);
 
@@ -52,6 +51,27 @@ export default async function BarangKeluarPage({
     ]);
 
   return (
+    <BarangKeluarPageClient
+      list={list}
+      summary={summary}
+      merchandiseList={merchandiseList}
+      stasiunList={stasiunList}
+      kategoriList={kategoriList}
+      pageSize={PAGE_SIZE}
+      defaultSort={DEFAULT_SORT}
+      openModal={getParam(searchParams, "modal") === "tambah"}
+    />
+  );
+}
+
+export default async function BarangKeluarPage({
+  searchParams,
+}: {
+  searchParams: Promise<SearchParams>;
+}) {
+  const params = await searchParams;
+
+  return (
     <Suspense
       fallback={
         <div className="py-20 text-center text-sm text-gray-500">
@@ -59,16 +79,7 @@ export default async function BarangKeluarPage({
         </div>
       }
     >
-      <BarangKeluarPageClient
-        list={list}
-        summary={summary}
-        merchandiseList={merchandiseList}
-        stasiunList={stasiunList}
-        kategoriList={kategoriList}
-        pageSize={PAGE_SIZE}
-        defaultSort={DEFAULT_SORT}
-        openModal={getParam(params, "modal") === "tambah"}
-      />
+      <BarangKeluarContent searchParams={params} />
     </Suspense>
   );
 }

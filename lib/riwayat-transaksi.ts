@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { riwayatListInclude } from "@/lib/prisma-selects";
 import { Prisma } from "@prisma/client";
 
 export type RiwayatSortField =
@@ -133,12 +134,7 @@ export async function getRiwayatTransaksiPaginated({
   const [data, total] = await Promise.all([
     prisma.barangKeluar.findMany({
       where,
-      include: {
-        merchandise: true,
-        kategori: true,
-        stasiun: true,
-        user: true,
-      },
+      include: riwayatListInclude,
       orderBy: buildOrderBy(sortBy, sortOrder),
       skip,
       take: limit,

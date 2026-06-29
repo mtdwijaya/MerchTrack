@@ -7,9 +7,13 @@ import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 
 import PageHeader from "@/components/ui/page-header";
-import type { MonitoringOverview } from "@/lib/monitoring-overview";
+import { RelativeTime } from "@/components/ui/relative-time";
+import type {
+  MonitoringOverview,
+  RecentActivity,
+} from "@/lib/monitoring-overview";
 
-const REFRESH_INTERVAL_MS = 60_000;
+const REFRESH_INTERVAL_MS = 15_000;
 
 // warna label aktivitas di feed monitoring
 const ACTIVITY_TONE: Record<string, string> = {
@@ -21,10 +25,15 @@ const ACTIVITY_TONE: Record<string, string> = {
 
 interface Props {
   data: MonitoringOverview;
+  recentActivity: RecentActivity;
   role: Role;
 }
 
-export default function MonitoringPageClient({ data, role }: Props) {
+export default function MonitoringPageClient({
+  data,
+  recentActivity,
+  role,
+}: Props) {
   const router = useRouter();
 
   useEffect(() => {
@@ -42,8 +51,8 @@ export default function MonitoringPageClient({ data, role }: Props) {
         title="Monitoring"
         description={
           role === "ADMIN"
-            ? "Ringkasan stok, distribusi, dan seluruh aktivitas sistem. Data diperbarui otomatis setiap menit."
-            : "Ringkasan stok dan aktivitas terbaru. Data diperbarui otomatis setiap menit."
+            ? "Ringkasan stok, distribusi, dan seluruh aktivitas sistem. Aktivitas diperbarui otomatis setiap 15 detik."
+            : "Ringkasan stok dan aktivitas terbaru. Aktivitas diperbarui otomatis setiap 15 detik."
         }
       />
 
@@ -183,17 +192,21 @@ export default function MonitoringPageClient({ data, role }: Props) {
         </div>
 
         <div className="mt-5 divide-y divide-[#F3F4F6]">
-          {data.recentActivity.length === 0 ? (
+          {recentActivity.length === 0 ? (
             <p className="py-4 text-sm text-[#6B7280]">Belum ada aktivitas</p>
           ) : (
-            data.recentActivity.map((item) => (
+            recentActivity.map((item) => (
               <div
                 key={item.id}
                 className="flex flex-col gap-1 py-4 sm:flex-row sm:items-center sm:justify-between"
               >
                 <p className="text-sm text-[#1A1C1C]">{item.message}</p>
                 <p className="shrink-0 text-xs text-[#6B7280]">
-                  {item.time}
+                  {item.occurredAt ? (
+                    <RelativeTime iso={item.occurredAt} />
+                  ) : (
+                    "Peringatan sistem"
+                  )}
                   {" • "}
                   <span className={ACTIVITY_TONE[item.tone] ?? "text-[#6B7280]"}>
                     {item.type}

@@ -13,17 +13,16 @@ import { parseSortValue } from "@/lib/sort";
 const PAGE_SIZE = 5;
 const DEFAULT_SORT = "nama_merch:asc";
 
-export default async function MerchandisePage({
+async function MerchandiseContent({
   searchParams,
 }: {
-  searchParams: Promise<SearchParams>;
+  searchParams: SearchParams;
 }) {
   await requireAdminPage();
 
-  const params = await searchParams;
-  const page = getPageParam(params);
-  const search = getParam(params, "search");
-  const sort = getParam(params, "sort", DEFAULT_SORT);
+  const page = getPageParam(searchParams);
+  const search = getParam(searchParams, "search");
+  const sort = getParam(searchParams, "sort", DEFAULT_SORT);
   const { sortBy, sortOrder } = parseSortValue(sort, "nama_merch");
   const parsed = parseMerchandiseSort(sortBy, sortOrder);
 
@@ -39,6 +38,23 @@ export default async function MerchandisePage({
   ]);
 
   return (
+    <MerchandisePageClient
+      list={list}
+      summary={summary}
+      pageSize={PAGE_SIZE}
+      defaultSort={DEFAULT_SORT}
+    />
+  );
+}
+
+export default async function MerchandisePage({
+  searchParams,
+}: {
+  searchParams: Promise<SearchParams>;
+}) {
+  const params = await searchParams;
+
+  return (
     <Suspense
       fallback={
         <div className="py-20 text-center text-sm text-gray-500">
@@ -46,12 +62,7 @@ export default async function MerchandisePage({
         </div>
       }
     >
-      <MerchandisePageClient
-        list={list}
-        summary={summary}
-        pageSize={PAGE_SIZE}
-        defaultSort={DEFAULT_SORT}
-      />
+      <MerchandiseContent searchParams={params} />
     </Suspense>
   );
 }

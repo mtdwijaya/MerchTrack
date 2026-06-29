@@ -21,7 +21,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={cn("font-sans", geist.variable)}>
+    <html lang="id" className={cn("font-sans", geist.variable)}>
       <body className={montserrat.className}>
         <AppProviders>{children}</AppProviders>
       </body>

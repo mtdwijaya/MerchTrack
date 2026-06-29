@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 import Field from "@/components/ui/field";
 import FormActions from "@/components/ui/form-actions";
@@ -28,7 +28,7 @@ interface PenggunaFormProps {
   isEdit?: boolean;
   cancelHref?: string;
   onCancel?: () => void;
-  stasiunList?: StasiunOption[];
+  stasiunList: StasiunOption[];
 }
 
 export default function PenggunaForm({
@@ -38,10 +38,8 @@ export default function PenggunaForm({
   isEdit,
   cancelHref = "/pengguna",
   onCancel,
-  stasiunList: stasiunListProp,
+  stasiunList,
 }: PenggunaFormProps) {
-  const [stasiunListFetched, setStasiunListFetched] = useState<StasiunOption[]>([]);
-  const stasiunList = stasiunListProp ?? stasiunListFetched;
   const [form, setForm] = useState({
     nama_user: initialData?.nama_user ?? "",
     email: initialData?.email ?? "",
@@ -49,17 +47,6 @@ export default function PenggunaForm({
     role: initialData?.role ?? "PETUGAS",
     id_stasiun: initialData?.id_stasiun ?? "",
   });
-
-  useEffect(() => {
-    if (stasiunListProp) return;
-
-    fetch("/api/stasiun")
-      .then((res) => res.json())
-      .then((data) => {
-        if (Array.isArray(data)) setStasiunListFetched(data);
-      })
-      .catch(console.error);
-  }, [stasiunListProp]);
 
   return (
     <form

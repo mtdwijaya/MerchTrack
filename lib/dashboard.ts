@@ -1,3 +1,6 @@
+import { unstable_cache } from "next/cache";
+
+import { ANALYTICS_CACHE_TAG } from "@/lib/revalidate-analytics";
 import { prisma } from "@/lib/prisma";
 
 function monthRange() {
@@ -14,10 +17,9 @@ function monthRange() {
   return { start, end };
 }
 
-export async function getDashboardData() {
+async function fetchDashboardData() {
   const thisMonth = monthRange();
 
-  // pakai aggregate & groupBy supaya tidak load semua baris transaksi
   const [
     merchandiseCount,
     stationCount,
@@ -97,5 +99,12 @@ export async function getDashboardData() {
     })),
   };
 }
+
+// cache data statistik — invalidasi lewat revalidateAnalyticsPages(), bukan export revalidate di page
+export const getDashboardData = unstable_cache(
+  fetchDashboardData,
+  ["dashboard-data"],
+  { tags: [ANALYTICS_CACHE_TAG], revalidate: 60 }
+);
 
 export type DashboardData = Awaited<ReturnType<typeof getDashboardData>>;

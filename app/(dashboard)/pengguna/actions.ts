@@ -9,6 +9,12 @@ import {
   getPenggunaById,
   updatePengguna,
 } from "@/lib/pengguna";
+import {
+  idParamSchema,
+  parseSchema,
+  penggunaCreateSchema,
+  penggunaUpdateSchema,
+} from "@/lib/validations";
 
 type ActionResult =
   | { ok: true }
@@ -18,7 +24,10 @@ export async function getPenggunaFormData(id: number) {
   const auth = await requireActionAdmin();
   if (!auth.ok) return null;
 
-  const data = await getPenggunaById(id);
+  const idParsed = parseSchema(idParamSchema, id);
+  if (!idParsed.ok) return null;
+
+  const data = await getPenggunaById(idParsed.data);
   if (!data) return null;
 
   return {
@@ -40,9 +49,12 @@ export async function createPenggunaAction(data: {
     const auth = await requireActionAdmin();
     if (!auth.ok) return auth;
 
+    const parsed = parseSchema(penggunaCreateSchema, data);
+    if (!parsed.ok) return parsed;
+
     await createPengguna({
-      ...data,
-      id_stasiun: data.id_stasiun ?? undefined,
+      ...parsed.data,
+      id_stasiun: parsed.data.id_stasiun ?? undefined,
     });
     revalidatePath("/pengguna");
     return { ok: true };
@@ -68,9 +80,18 @@ export async function updatePenggunaAction(
     const auth = await requireActionAdmin();
     if (!auth.ok) return auth;
 
-    await updatePengguna(id, {
-      ...data,
-      id_stasiun: data.id_stasiun ?? undefined,
+    const idParsed = parseSchema(idParamSchema, id);
+    if (!idParsed.ok) return idParsed;
+
+    const parsed = parseSchema(penggunaUpdateSchema, data);
+    if (!parsed.ok) return parsed;
+
+    const { password, ...rest } = parsed.data;
+
+    await updatePengguna(idParsed.data, {
+      ...rest,
+      id_stasiun: rest.id_stasiun ?? undefined,
+      ...(password?.trim() ? { password } : {}),
     });
     revalidatePath("/pengguna");
     return { ok: true };
@@ -87,7 +108,10 @@ export async function deletePenggunaAction(id: number): Promise<ActionResult> {
     const auth = await requireActionAdmin();
     if (!auth.ok) return auth;
 
-    await deletePengguna(id);
+    const idParsed = parseSchema(idParamSchema, id);
+    if (!idParsed.ok) return idParsed;
+
+    await deletePengguna(idParsed.data);
     revalidatePath("/pengguna");
     return { ok: true };
   } catch (error) {

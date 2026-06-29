@@ -5,6 +5,7 @@ import jwt from "jsonwebtoken";
 import type { Role } from "@prisma/client";
 
 import { prisma } from "@/lib/prisma";
+import { env } from "@/lib/env";
 
 export interface JwtPayload {
   id_user: number;
@@ -34,10 +35,7 @@ export async function verifyToken() {
     }
 
     // verifikasi jwt dari cookie httpOnly "token"
-    return jwt.verify(
-      token,
-      process.env.JWT_SECRET!
-    ) as JwtPayload;
+    return jwt.verify(token, env.JWT_SECRET) as JwtPayload;
   } catch {
     return null;
   }
@@ -73,23 +71,21 @@ export const getCurrentUser = cache(async (): Promise<CurrentUser | null> => {
   return user;
 });
 
-const freshUserSelect = {
-  id_user: true,
-  id_stasiun: true,
-  nama_user: true,
-  email: true,
-  role: true,
-} as const;
-
-// baca role terbaru dari db — jwt tidak ikut berubah kalau admin edit role user
-async function getFreshUserFromDb(
-  id_user: number
-): Promise<CurrentUser | null> {
-  return prisma.user.findUnique({
-    where: { id_user },
-    select: freshUserSelect,
-  });
-}
+// baca role terbaru dari db — untuk guard admin (jwt role bisa basi setelah diubah admin lain)
+export const getFreshUserFromDb = cache(
+  async (id_user: number): Promise<CurrentUser | null> => {
+    return prisma.user.findUnique({
+      where: { id_user },
+      select: {
+        id_user: true,
+        id_stasiun: true,
+        nama_user: true,
+        email: true,
+        role: true,
+      },
+    });
+  }
+);
 
 export function getAuthCookieOptions(maxAge?: number) {
   return {
@@ -101,12 +97,22 @@ export function getAuthCookieOptions(maxAge?: number) {
   };
 }
 
+export async function clearAuthCookie() {
+  const cookieStore = await cookies();
+  cookieStore.set({
+    name: "token",
+    value: "",
+    ...getAuthCookieOptions(),
+    maxAge: 0,
+  });
+}
+
 // hasil cek auth untuk server action (selaras dengan { ok, message } di actions)
 export type ActionAuthResult =
   | { ok: true; user: CurrentUser }
   | { ok: false; message: string };
 
-// wajib dipanggil di awal server action — middleware tidak melindungi action
+// wajib dipanggil di awal server action — proxy tidak melindungi action
 export async function requireActionUser(): Promise<ActionAuthResult> {
   const user = await getCurrentUser();
   if (!user) {

@@ -1,4 +1,7 @@
 import { prisma } from "@/lib/prisma";
+import {
+  barangKeluarListInclude,
+} from "@/lib/prisma-selects";
 import { Prisma } from "@prisma/client";
 import { SortOrder } from "@/lib/sort";
 
@@ -115,12 +118,7 @@ export async function getBarangKeluarPaginated({
   const [data, total] = await Promise.all([
     prisma.barangKeluar.findMany({
       where,
-      include: {
-        merchandise: true,
-        stasiun: true,
-        kategori: true,
-        user: true,
-      },
+      include: barangKeluarListInclude,
       orderBy: buildOrderBy(sortBy, sortOrder),
       skip,
       take: limit,
@@ -138,102 +136,65 @@ export async function getBarangKeluarPaginated({
 
 export async function getBarangKeluar() {
   return prisma.barangKeluar.findMany({
-    include: {
-      merchandise: true,
-      stasiun: true,
-      kategori: true,
-      user: true,
-    },
-
+    include: barangKeluarListInclude,
     orderBy: {
       tanggal_keluar: "desc",
     },
   });
 }
 
-export async function getBarangKeluarById(
-  id: number
-) {
+export async function getBarangKeluarById(id: number) {
   return prisma.barangKeluar.findUnique({
     where: {
       id_keluar: id,
     },
-
-    include: {
-      merchandise: true,
-      stasiun: true,
-      kategori: true,
-      user: true,
-    },
+    include: barangKeluarListInclude,
   });
 }
 
-export async function createBarangKeluar(
-  data: {
-    id_merch: number;
-    id_stasiun: number;
-    id_kategori: number;
-    id_user: number;
-    jumlah: number;
-    tanggal_keluar?: Date;
-    keterangan?: string;
-  }
-) {
-  const stok =
-    await prisma.stok.findUnique({
-      where: {
-        id_merch: data.id_merch,
-      },
+export async function createBarangKeluar(data: {
+  id_merch: number;
+  id_stasiun: number;
+  id_kategori: number;
+  id_user: number;
+  jumlah: number;
+  tanggal_keluar?: Date;
+  keterangan?: string;
+}) {
+  return prisma.$transaction(async (tx) => {
+    const stok = await tx.stok.findUnique({
+      where: { id_merch: data.id_merch },
     });
 
-  if (!stok) {
-    throw new Error(
-      "Data stok tidak ditemukan"
-    );
-  }
+    if (!stok) {
+      throw new Error("Data stok tidak ditemukan");
+    }
 
-  // cek stok gudang sebelum transaksi dicatat
-  if (
-    stok.jumlah_stok < data.jumlah
-  ) {
-    throw new Error(
-      "Stok tidak mencukupi"
-    );
-  }
+    if (stok.jumlah_stok < data.jumlah) {
+      throw new Error("Stok tidak mencukupi");
+    }
 
-  const transaksi =
-    await prisma.barangKeluar.create({
+    const transaksi = await tx.barangKeluar.create({
       data: {
         id_merch: data.id_merch,
-        id_stasiun:
-          data.id_stasiun,
-        id_kategori:
-          data.id_kategori,
+        id_stasiun: data.id_stasiun,
+        id_kategori: data.id_kategori,
         id_user: data.id_user,
         jumlah: data.jumlah,
-        tanggal_keluar:
-          data.tanggal_keluar ??
-          new Date(),
-        keterangan:
-          data.keterangan,
+        tanggal_keluar: data.tanggal_keluar ?? new Date(),
+        keterangan: data.keterangan,
       },
     });
 
-  // kurangi stok gudang setelah transaksi berhasil dibuat
-  await prisma.stok.update({
-    where: {
-      id_merch: data.id_merch,
-    },
-
-    data: {
-      jumlah_stok: {
-        decrement:
-          data.jumlah,
+    await tx.stok.update({
+      where: { id_merch: data.id_merch },
+      data: {
+        jumlah_stok: { decrement: data.jumlah },
       },
-    },
-  });
+    });
 
-  return transaksi;
+    return transaksi;
+  });
 }
 
 export async function updateBarangKeluar(
@@ -247,120 +208,71 @@ export async function updateBarangKeluar(
     keterangan?: string;
   }
 ) {
-  const transaksiLama =
-    await prisma.barangKeluar.findUnique({
-      where: {
-        id_keluar: id,
+  return prisma.$transaction(async (tx) => {
+    const transaksiLama = await tx.barangKeluar.findUnique({
+      where: { id_keluar: id },
+    });
+
+    if (!transaksiLama) {
+      throw new Error("Transaksi tidak ditemukan");
+    }
+
+    await tx.stok.update({
+      where: { id_merch: transaksiLama.id_merch },
+      data: {
+        jumlah_stok: { increment: transaksiLama.jumlah },
       },
     });
 
-  if (!transaksiLama) {
-    throw new Error(
-      "Transaksi tidak ditemukan"
-    );
-  }
+    const stokBaru = await tx.stok.findUnique({
+      where: { id_merch: data.id_merch },
+    });
 
-  // kembalikan dulu stok dari transaksi lama sebelum hitung ulang
-  await prisma.stok.update({
-    where: {
-      id_merch:
-        transaksiLama.id_merch,
-    },
+    if (!stokBaru || stokBaru.jumlah_stok < data.jumlah) {
+      throw new Error("Stok tidak mencukupi");
+    }
 
-    data: {
-      jumlah_stok: {
-        increment:
-          transaksiLama.jumlah,
+    await tx.stok.update({
+      where: { id_merch: data.id_merch },
+      data: {
+        jumlah_stok: { decrement: data.jumlah },
       },
-    },
-  });
+    });
 
-  const stokBaru =
-    await prisma.stok.findUnique({
-      where: {
+    return tx.barangKeluar.update({
+      where: { id_keluar: id },
+      data: {
         id_merch: data.id_merch,
+        id_stasiun: data.id_stasiun,
+        id_kategori: data.id_kategori,
+        jumlah: data.jumlah,
+        tanggal_keluar: data.tanggal_keluar,
+        keterangan: data.keterangan,
       },
     });
-
-  if (
-    !stokBaru ||
-    stokBaru.jumlah_stok <
-      data.jumlah
-  ) {
-    throw new Error(
-      "Stok tidak mencukupi"
-    );
-  }
-
-  // kurangi stok sesuai jumlah transaksi yang baru
-  await prisma.stok.update({
-    where: {
-      id_merch: data.id_merch,
-    },
-
-    data: {
-      jumlah_stok: {
-        decrement:
-          data.jumlah,
-      },
-    },
-  });
-
-  return prisma.barangKeluar.update({
-    where: {
-      id_keluar: id,
-    },
-
-    data: {
-      id_merch: data.id_merch,
-      id_stasiun:
-        data.id_stasiun,
-      id_kategori:
-        data.id_kategori,
-      jumlah: data.jumlah,
-      tanggal_keluar:
-        data.tanggal_keluar,
-      keterangan:
-        data.keterangan,
-    },
   });
 }
 
-export async function deleteBarangKeluar(
-  id: number
-) {
-  const transaksi =
-    await prisma.barangKeluar.findUnique({
-      where: {
-        id_keluar: id,
+export async function deleteBarangKeluar(id: number) {
+  return prisma.$transaction(async (tx) => {
+    const transaksi = await tx.barangKeluar.findUnique({
+      where: { id_keluar: id },
+    });
+
+    if (!transaksi) {
+      throw new Error("Transaksi tidak ditemukan");
+    }
+
+    await tx.stok.update({
+      where: { id_merch: transaksi.id_merch },
+      data: {
+        jumlah_stok: { increment: transaksi.jumlah },
       },
     });
 
-  if (!transaksi) {
-    throw new Error(
-      "Transaksi tidak ditemukan"
-    );
-  }
-
-  // hapus transaksi → stok dikembalikan ke gudang
-  await prisma.stok.update({
-    where: {
-      id_merch:
-        transaksi.id_merch,
-    },
-
-    data: {
-      jumlah_stok: {
-        increment:
-          transaksi.jumlah,
-      },
-    },
-  });
-
-  return prisma.barangKeluar.delete({
-    where: {
-      id_keluar: id,
-    },
+    return tx.barangKeluar.delete({
+      where: { id_keluar: id },
+    });
   });
 }
 

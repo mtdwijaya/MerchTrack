@@ -1,16 +1,21 @@
 import type { Role } from "@prisma/client";
+import { unstable_cache } from "next/cache";
 
-// logika data halaman monitoring: ringkasan stok, distribusi, aktivitas terbaru
-import { prisma } from "@/lib/prisma";
+import { ANALYTICS_CACHE_TAG } from "@/lib/revalidate-analytics";
 import { formatStasiunId } from "@/lib/format-stasiun";
 import { getStockStatus } from "@/lib/monitoring";
+import {
+  recentBarangKeluarInclude,
+  recentBarangMasukInclude,
+} from "@/lib/prisma-selects";
+import { prisma } from "@/lib/prisma";
 
 export type ActivityAudience = "all" | "admin";
 
 export type RecentActivityItem = {
   id: string;
   message: string;
-  time: string;
+  occurredAt: string | null;
   type: string;
   tone: "urgent" | "processing" | "alert" | "verified";
   audience: ActivityAudience;
@@ -29,26 +34,6 @@ function monthRange(offset = 0) {
   return { start, end };
 }
 
-function formatRelativeTime(date: Date): string {
-  const diffMs = Date.now() - date.getTime();
-  const minutes = Math.max(1, Math.round(diffMs / 60_000));
-
-  if (minutes < 60) return `${minutes} menit lalu`;
-
-  const hours = Math.round(minutes / 60);
-  if (hours < 24) return `${hours} jam lalu`;
-
-  const days = Math.round(hours / 24);
-  if (days < 7) return `${days} hari lalu`;
-
-  return date.toLocaleDateString("id-ID", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-  });
-}
-
-// gabungkan transaksi keluar, restock (admin), dan peringatan stok lalu urutkan terbaru
 function buildRecentActivity(
   user: MonitoringUser,
   recentBarangKeluar: {
@@ -76,20 +61,19 @@ function buildRecentActivity(
     (item) => ({
       id: `bk-${item.id_keluar}`,
       message: `${item.user.nama_user} mencatat barang keluar ${item.jumlah} unit ${item.merchandise.nama_merch} ke ${item.stasiun.nama_stasiun}.`,
-      time: formatRelativeTime(new Date(item.tanggal_keluar)),
+      occurredAt: new Date(item.tanggal_keluar).toISOString(),
       type: item.jumlah >= 50 ? "Mendesak" : "Barang Keluar",
       tone: item.jumlah >= 50 ? "urgent" : "processing",
       audience: "all",
     })
   );
 
-  // restock hanya tampil untuk admin, petugas tidak melihat barang masuk
   const activityFromMasuk: RecentActivityItem[] =
     user.role === "ADMIN"
       ? recentBarangMasuk.map((item) => ({
           id: `bm-${item.id_masuk}`,
           message: `${item.user.nama_user} restock ${item.jumlah} unit ${item.merchandise.nama_merch}.`,
-          time: formatRelativeTime(new Date(item.tanggal_masuk)),
+          occurredAt: new Date(item.tanggal_masuk).toISOString(),
           type: "Restock",
           tone: "verified",
           audience: "admin",
@@ -99,7 +83,7 @@ function buildRecentActivity(
   const activityFromStock: RecentActivityItem[] = stokRendah.slice(0, 5).map((item) => ({
     id: `stok-${item.id_stok}`,
     message: `${item.merchandise.nama_merch} mendekati batas stok rendah (${item.jumlah_stok} pcs tersisa).`,
-    time: "Peringatan sistem",
+    occurredAt: null,
     type: "Peringatan",
     tone: "alert",
     audience: "all",
@@ -108,31 +92,28 @@ function buildRecentActivity(
   const keluarTimes = new Map(
     recentBarangKeluar.map((item) => [
       `bk-${item.id_keluar}`,
-      new Date(item.tanggal_keluar).getTime(),
+      item.id_keluar,
     ])
   );
   const masukTimes = new Map(
     recentBarangMasuk.map((item) => [
       `bm-${item.id_masuk}`,
-      new Date(item.tanggal_masuk).getTime(),
+      item.id_masuk,
     ])
   );
 
   return [...activityFromKeluar, ...activityFromMasuk, ...activityFromStock]
     .sort((a, b) => {
-      const timeA =
-        keluarTimes.get(a.id) ?? masukTimes.get(a.id) ?? (a.tone === "alert" ? 0 : 0);
-      const timeB =
-        keluarTimes.get(b.id) ?? masukTimes.get(b.id) ?? (b.tone === "alert" ? 0 : 0);
+      const timeA = keluarTimes.get(a.id) ?? masukTimes.get(a.id) ?? 0;
+      const timeB = keluarTimes.get(b.id) ?? masukTimes.get(b.id) ?? 0;
       return timeB - timeA;
     })
     .slice(0, 8);
 }
 
-export async function getMonitoringOverview(user: MonitoringUser) {
+async function fetchMonitoringOverview(role: Role) {
   const thisMonth = monthRange(0);
   const lastMonth = monthRange(-1);
-  const isAdmin = user.role === "ADMIN";
 
   // semua query dijalankan paralel untuk mempercepat load halaman monitoring
   const [
@@ -143,8 +124,6 @@ export async function getMonitoringOverview(user: MonitoringUser) {
     merchGroupThisMonth,
     merchGroupLastMonth,
     distribusiPerStasiun,
-    recentBarangKeluar,
-    recentBarangMasuk,
     stokRendah,
   ] = await Promise.all([
     prisma.stok.aggregate({ _sum: { jumlah_stok: true } }),
@@ -171,25 +150,6 @@ export async function getMonitoringOverview(user: MonitoringUser) {
       orderBy: { _sum: { jumlah: "desc" } },
       take: 4,
     }),
-    prisma.barangKeluar.findMany({
-      take: 8,
-      orderBy: { tanggal_keluar: "desc" },
-      include: {
-        merchandise: true,
-        stasiun: true,
-        user: true,
-      },
-    }),
-    isAdmin
-      ? prisma.barangMasuk.findMany({
-          take: 8,
-          orderBy: { tanggal_masuk: "desc" },
-          include: {
-            merchandise: true,
-            user: true,
-          },
-        })
-      : Promise.resolve([]),
     prisma.stok.findMany({
       where: { jumlah_stok: { gt: 0, lte: 50 } },
       include: { merchandise: true },
@@ -244,13 +204,6 @@ export async function getMonitoringOverview(user: MonitoringUser) {
     };
   });
 
-  const recentActivity = buildRecentActivity(
-    user,
-    recentBarangKeluar,
-    recentBarangMasuk,
-    stokRendah
-  );
-
   return {
     summary: {
       totalStokAktif: totalStokAktifAgg._sum.jumlah_stok ?? 0,
@@ -260,7 +213,6 @@ export async function getMonitoringOverview(user: MonitoringUser) {
     },
     topMerchandise,
     stasiunDistribution,
-    recentActivity,
     lowStockItems: stokRendah.map((item) => ({
       id_merch: item.id_merch,
       nama: item.merchandise.nama_merch,
@@ -270,4 +222,44 @@ export async function getMonitoringOverview(user: MonitoringUser) {
   };
 }
 
+const getCachedMonitoringOverview = unstable_cache(
+  fetchMonitoringOverview,
+  ["monitoring-overview"],
+  { tags: [ANALYTICS_CACHE_TAG], revalidate: 30 }
+);
+
+export async function getMonitoringOverview(user: MonitoringUser) {
+  return getCachedMonitoringOverview(user.role);
+}
+
+// aktivitas terbaru tidak di-cache supaya waktu & urutan selalu fresh
+export async function getRecentActivity(user: MonitoringUser) {
+  const isAdmin = user.role === "ADMIN";
+
+  const [recentBarangKeluar, recentBarangMasuk, stokRendah] =
+    await Promise.all([
+      prisma.barangKeluar.findMany({
+        take: 8,
+        orderBy: { id_keluar: "desc" },
+        include: recentBarangKeluarInclude,
+      }),
+      isAdmin
+        ? prisma.barangMasuk.findMany({
+            take: 8,
+            orderBy: { id_masuk: "desc" },
+            include: recentBarangMasukInclude,
+          })
+        : Promise.resolve([]),
+      prisma.stok.findMany({
+        where: { jumlah_stok: { gt: 0, lte: 50 } },
+        include: { merchandise: true },
+        orderBy: { jumlah_stok: "asc" },
+        take: 10,
+      }),
+    ]);
+
+  return buildRecentActivity(user, recentBarangKeluar, recentBarangMasuk, stokRendah);
+}
+
 export type MonitoringOverview = Awaited<ReturnType<typeof getMonitoringOverview>>;
+export type RecentActivity = Awaited<ReturnType<typeof getRecentActivity>>;

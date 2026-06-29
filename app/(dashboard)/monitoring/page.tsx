@@ -2,19 +2,32 @@ import { redirect } from "next/navigation";
 import { Suspense } from "react";
 
 import { getCurrentUser } from "@/lib/auth";
-import { getMonitoringOverview } from "@/lib/monitoring-overview";
+import {
+  getMonitoringOverview,
+  getRecentActivity,
+} from "@/lib/monitoring-overview";
 
 import MonitoringPageClient from "./monitoring-page-client";
 
-export const revalidate = 30;
-
-// server component: fetch data monitoring lalu kirim ke client untuk tampilan & auto-refresh
-export default async function MonitoringPage() {
+async function MonitoringContent() {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
 
-  const data = await getMonitoringOverview(user);
+  const [data, recentActivity] = await Promise.all([
+    getMonitoringOverview(user),
+    getRecentActivity(user),
+  ]);
 
+  return (
+    <MonitoringPageClient
+      data={data}
+      recentActivity={recentActivity}
+      role={user.role}
+    />
+  );
+}
+
+export default function MonitoringPage() {
   return (
     <Suspense
       fallback={
@@ -23,7 +36,7 @@ export default async function MonitoringPage() {
         </div>
       }
     >
-      <MonitoringPageClient data={data} role={user.role} />
+      <MonitoringContent />
     </Suspense>
   );
 }

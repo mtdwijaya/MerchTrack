@@ -12,6 +12,13 @@ import {
   restockMerchandise,
   updateMerchandise,
 } from "@/lib/merchandise";
+import {
+  idParamSchema,
+  merchandiseCreateSchema,
+  merchandiseRestockSchema,
+  merchandiseUpdateSchema,
+  parseSchema,
+} from "@/lib/validations";
 
 type ActionResult =
   | { ok: true }
@@ -28,7 +35,10 @@ export async function getMerchandiseFormData(id: number) {
   const auth = await requireActionAdmin();
   if (!auth.ok) return null;
 
-  const data = await getMerchandiseById(id);
+  const idParsed = parseSchema(idParamSchema, id);
+  if (!idParsed.ok) return null;
+
+  const data = await getMerchandiseById(idParsed.data);
   if (!data) return null;
 
   return {
@@ -41,7 +51,10 @@ export async function getMerchandiseRestockData(id: number) {
   const auth = await requireActionAdmin();
   if (!auth.ok) return null;
 
-  const data = await getMerchandiseById(id);
+  const idParsed = parseSchema(idParamSchema, id);
+  if (!idParsed.ok) return null;
+
+  const data = await getMerchandiseById(idParsed.data);
   if (!data) return null;
 
   return {
@@ -59,7 +72,10 @@ export async function createMerchandiseAction(data: {
     const auth = await requireActionAdmin();
     if (!auth.ok) return auth;
 
-    await createMerchandise(data);
+    const parsed = parseSchema(merchandiseCreateSchema, data);
+    if (!parsed.ok) return parsed;
+
+    await createMerchandise(parsed.data);
     revalidateMerchandisePages();
     return { ok: true };
   } catch (error) {
@@ -81,7 +97,13 @@ export async function updateMerchandiseAction(
     const auth = await requireActionAdmin();
     if (!auth.ok) return auth;
 
-    await updateMerchandise(id, data);
+    const idParsed = parseSchema(idParamSchema, id);
+    if (!idParsed.ok) return idParsed;
+
+    const parsed = parseSchema(merchandiseUpdateSchema, data);
+    if (!parsed.ok) return parsed;
+
+    await updateMerchandise(idParsed.data, parsed.data);
     revalidateMerchandisePages();
     return { ok: true };
   } catch (error) {
@@ -103,7 +125,13 @@ export async function restockMerchandiseAction(
     const auth = await requireActionAdmin();
     if (!auth.ok) return auth;
 
-    await restockMerchandise(id, auth.user.id_user, data);
+    const idParsed = parseSchema(idParamSchema, id);
+    if (!idParsed.ok) return idParsed;
+
+    const parsed = parseSchema(merchandiseRestockSchema, data);
+    if (!parsed.ok) return parsed;
+
+    await restockMerchandise(idParsed.data, auth.user.id_user, parsed.data);
     revalidateMerchandisePages();
     return { ok: true };
   } catch (error) {
@@ -119,7 +147,10 @@ export async function deleteMerchandiseAction(id: number): Promise<ActionResult>
     const auth = await requireActionAdmin();
     if (!auth.ok) return auth;
 
-    await deleteMerchandise(id);
+    const idParsed = parseSchema(idParamSchema, id);
+    if (!idParsed.ok) return idParsed;
+
+    await deleteMerchandise(idParsed.data);
     revalidateMerchandisePages();
     return { ok: true };
   } catch (error) {

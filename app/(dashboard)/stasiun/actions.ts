@@ -11,6 +11,7 @@ import {
   STASIUN_CACHE_TAG,
   updateStasiun,
 } from "@/lib/stasiun";
+import { idParamSchema, parseSchema, stasiunSchema } from "@/lib/validations";
 
 type ActionResult =
   | { ok: true }
@@ -28,7 +29,10 @@ export async function getStasiunFormData(id: number) {
   const auth = await requireActionAdmin();
   if (!auth.ok) return null;
 
-  const data = await getStasiunById(id);
+  const idParsed = parseSchema(idParamSchema, id);
+  if (!idParsed.ok) return null;
+
+  const data = await getStasiunById(idParsed.data);
   if (!data) return null;
 
   return {
@@ -49,7 +53,10 @@ export async function createStasiunAction(data: {
     const auth = await requireActionAdmin();
     if (!auth.ok) return auth;
 
-    await createStasiun(data);
+    const parsed = parseSchema(stasiunSchema, data);
+    if (!parsed.ok) return parsed;
+
+    await createStasiun(parsed.data);
     revalidateStasiunPages();
     return { ok: true };
   } catch (error) {
@@ -73,7 +80,13 @@ export async function updateStasiunAction(
     const auth = await requireActionAdmin();
     if (!auth.ok) return auth;
 
-    await updateStasiun(id, data);
+    const idParsed = parseSchema(idParamSchema, id);
+    if (!idParsed.ok) return idParsed;
+
+    const parsed = parseSchema(stasiunSchema, data);
+    if (!parsed.ok) return parsed;
+
+    await updateStasiun(idParsed.data, parsed.data);
     revalidateStasiunPages();
     return { ok: true };
   } catch (error) {
@@ -89,7 +102,10 @@ export async function deleteStasiunAction(id: number): Promise<ActionResult> {
     const auth = await requireActionAdmin();
     if (!auth.ok) return auth;
 
-    await deleteStasiun(id);
+    const idParsed = parseSchema(idParamSchema, id);
+    if (!idParsed.ok) return idParsed;
+
+    await deleteStasiun(idParsed.data);
     revalidateStasiunPages();
     return { ok: true };
   } catch (error) {

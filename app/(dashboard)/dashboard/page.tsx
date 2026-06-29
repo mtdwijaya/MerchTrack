@@ -1,14 +1,15 @@
 import { Suspense } from "react";
+
 import { getDashboardData } from "@/lib/dashboard";
 
 import DashboardPageClient from "./dashboard-page-client";
 
-export const revalidate = 60;
+async function DashboardContent() {  const dashboard = await getDashboardData();
 
-// server component: ambil statistik dashboard lalu render chart di client
-export default async function DashboardPage() {
-  const dashboard = await getDashboardData();
+  return <DashboardPageClient dashboard={dashboard} />;
+}
 
+export default function DashboardPage() {
   return (
     <Suspense
       fallback={
@@ -17,8 +18,7 @@ export default async function DashboardPage() {
         </div>
       }
     >
-      <DashboardPageClient dashboard={dashboard} />
+      <DashboardContent />
     </Suspense>
   );
 }
- 

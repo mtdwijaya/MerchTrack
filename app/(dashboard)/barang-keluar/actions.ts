@@ -1,7 +1,8 @@
 "use server";
 
-// server actions: dipanggil dari form client, jalan di server (aman untuk db & auth)
 import { revalidatePath } from "next/cache";
+
+import { parseFormDateWithNowTime } from "@/lib/relative-time";
 
 import { requireActionUser } from "@/lib/auth";
 import { revalidateAnalyticsPages } from "@/lib/revalidate-analytics";
@@ -12,6 +13,11 @@ import {
   getBarangKeluarById,
   updateBarangKeluar,
 } from "@/lib/barang-keluar";
+import {
+  barangKeluarSchema,
+  idParamSchema,
+  parseSchema,
+} from "@/lib/validations";
 
 type ActionResult =
   | { ok: true }
@@ -21,7 +27,10 @@ export async function getBarangKeluarFormData(id: number) {
   const auth = await requireActionUser();
   if (!auth.ok) return null;
 
-  const data = await getBarangKeluarById(id);
+  const idParsed = parseSchema(idParamSchema, id);
+  if (!idParsed.ok) return null;
+
+  const data = await getBarangKeluarById(idParsed.data);
   if (!data) return null;
 
   return {
@@ -46,16 +55,19 @@ export async function createBarangKeluarAction(data: {
     const auth = await requireActionUser();
     if (!auth.ok) return auth;
 
+    const parsed = parseSchema(barangKeluarSchema, data);
+    if (!parsed.ok) return parsed;
+
     await createBarangKeluar({
-      id_merch: data.id_merch,
-      id_stasiun: data.id_stasiun,
-      id_kategori: data.id_kategori,
+      id_merch: parsed.data.id_merch,
+      id_stasiun: parsed.data.id_stasiun,
+      id_kategori: parsed.data.id_kategori,
       id_user: auth.user.id_user,
-      jumlah: data.jumlah,
-      tanggal_keluar: data.tanggal_keluar
-        ? new Date(data.tanggal_keluar)
+      jumlah: parsed.data.jumlah,
+      tanggal_keluar: parsed.data.tanggal_keluar
+        ? parseFormDateWithNowTime(parsed.data.tanggal_keluar)
         : undefined,
-      keterangan: data.keterangan,
+      keterangan: parsed.data.keterangan,
     });
 
     revalidatePath("/barang-keluar");
@@ -86,13 +98,23 @@ export async function updateBarangKeluarAction(
     const auth = await requireActionUser();
     if (!auth.ok) return auth;
 
-    await updateBarangKeluar(id, {
-      id_merch: data.id_merch,
-      id_stasiun: data.id_stasiun,
-      id_kategori: data.id_kategori,
-      jumlah: data.jumlah,
-      tanggal_keluar: new Date(data.tanggal_keluar),
-      keterangan: data.keterangan,
+    const idParsed = parseSchema(idParamSchema, id);
+    if (!idParsed.ok) return idParsed;
+
+    const parsed = parseSchema(barangKeluarSchema, data);
+    if (!parsed.ok) return parsed;
+
+    if (!parsed.data.tanggal_keluar) {
+      return { ok: false, message: "Tanggal keluar wajib diisi" };
+    }
+
+    await updateBarangKeluar(idParsed.data, {
+      id_merch: parsed.data.id_merch,
+      id_stasiun: parsed.data.id_stasiun,
+      id_kategori: parsed.data.id_kategori,
+      jumlah: parsed.data.jumlah,
+      tanggal_keluar: parseFormDateWithNowTime(parsed.data.tanggal_keluar),
+      keterangan: parsed.data.keterangan,
     });
 
     revalidatePath("/barang-keluar");
@@ -113,7 +135,10 @@ export async function deleteBarangKeluarAction(id: number): Promise<ActionResult
     const auth = await requireActionUser();
     if (!auth.ok) return auth;
 
-    await deleteBarangKeluar(id);
+    const idParsed = parseSchema(idParamSchema, id);
+    if (!idParsed.ok) return idParsed;
+
+    await deleteBarangKeluar(idParsed.data);
     revalidatePath("/barang-keluar");
     revalidatePath("/riwayat-transaksi");
     revalidateMerchandiseListCache();

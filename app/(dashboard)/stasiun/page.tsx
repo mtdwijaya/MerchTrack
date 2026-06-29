@@ -13,17 +13,16 @@ import {
 const PAGE_SIZE = 5;
 const DEFAULT_SORT = "nama_stasiun:asc";
 
-export default async function StasiunPage({
+async function StasiunContent({
   searchParams,
 }: {
-  searchParams: Promise<SearchParams>;
+  searchParams: SearchParams;
 }) {
   await requireAdminPage();
 
-  const params = await searchParams;
-  const page = getPageParam(params);
-  const search = getParam(params, "search");
-  const sort = getParam(params, "sort", DEFAULT_SORT);
+  const page = getPageParam(searchParams);
+  const search = getParam(searchParams, "search");
+  const sort = getParam(searchParams, "sort", DEFAULT_SORT);
   const { sortBy, sortOrder } = parseSortValue(sort, "nama_stasiun");
   const parsed = parseStasiunSort(sortBy, sortOrder);
 
@@ -39,6 +38,23 @@ export default async function StasiunPage({
   ]);
 
   return (
+    <StasiunPageClient
+      list={list}
+      summary={summary}
+      pageSize={PAGE_SIZE}
+      defaultSort={DEFAULT_SORT}
+    />
+  );
+}
+
+export default async function StasiunPage({
+  searchParams,
+}: {
+  searchParams: Promise<SearchParams>;
+}) {
+  const params = await searchParams;
+
+  return (
     <Suspense
       fallback={
         <div className="py-20 text-center text-sm text-gray-500">
@@ -46,12 +62,7 @@ export default async function StasiunPage({
         </div>
       }
     >
-      <StasiunPageClient
-        list={list}
-        summary={summary}
-        pageSize={PAGE_SIZE}
-        defaultSort={DEFAULT_SORT}
-      />
+      <StasiunContent searchParams={params} />
     </Suspense>
   );
 }

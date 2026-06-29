@@ -2,7 +2,7 @@
 
 import Field from "@/components/ui/field";
 import FormActions from "@/components/ui/form-actions";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 interface Merchandise {
   id_merch: number;
@@ -40,9 +40,9 @@ interface BarangKeluarFormProps {
   loading?: boolean;
   cancelHref?: string;
   onCancel?: () => void;
-  merchandiseList?: Merchandise[];
-  stasiunList?: Stasiun[];
-  kategoriList?: Kategori[];
+  merchandiseList: Merchandise[];
+  stasiunList: Stasiun[];
+  kategoriList: Kategori[];
 }
 
 export default function BarangKeluarForm({
@@ -51,18 +51,10 @@ export default function BarangKeluarForm({
   loading,
   cancelHref = "/barang-keluar",
   onCancel,
-  merchandiseList: merchandiseProp,
-  stasiunList: stasiunProp,
-  kategoriList: kategoriProp,
+  merchandiseList,
+  stasiunList,
+  kategoriList,
 }: BarangKeluarFormProps) {
-  const [merchandiseFetched, setMerchandise] = useState<Merchandise[]>([]);
-  const [stasiunFetched, setStasiun] = useState<Stasiun[]>([]);
-  const [kategoriFetched, setKategori] = useState<Kategori[]>([]);
-
-  const merchandise = merchandiseProp ?? merchandiseFetched;
-  const stasiun = stasiunProp ?? stasiunFetched;
-  const kategori = kategoriProp ?? kategoriFetched;
-
   const [form, setForm] = useState({
     id_merch: initialData?.id_merch || 0,
     id_stasiun: initialData?.id_stasiun || 0,
@@ -72,30 +64,10 @@ export default function BarangKeluarForm({
     keterangan: initialData?.keterangan || "",
   });
 
-  useEffect(() => {
-    if (merchandiseProp && stasiunProp && kategoriProp) return;
-
-    // fallback fetch api jika form dipakai tanpa props dari server page
-    Promise.all([
-      fetch("/api/merchandise"),
-      fetch("/api/stasiun"),
-      fetch("/api/kategori"),
-    ])
-      .then(async ([merchRes, stasiunRes, kategoriRes]) => {
-        if (!merchandiseProp && merchRes.ok)
-          setMerchandise(await merchRes.json());
-        if (!stasiunProp && stasiunRes.ok)
-          setStasiun(await stasiunRes.json());
-        if (!kategoriProp && kategoriRes.ok)
-          setKategori(await kategoriRes.json());
-      })
-      .catch(console.error);
-  }, [merchandiseProp, stasiunProp, kategoriProp]);
-
-  // tampilkan stok dari daftar merchandise yang sudah di-load server
   const stokSaatIni =
     form.id_merch > 0
-      ? merchandise.find((item) => item.id_merch === form.id_merch)?.jumlah_stok
+      ? merchandiseList.find((item) => item.id_merch === form.id_merch)
+          ?.jumlah_stok
       : undefined;
 
   return (
@@ -117,7 +89,7 @@ export default function BarangKeluarForm({
             className="input-field"
           >
             <option value="">Pilih Merchandise</option>
-            {merchandise.map((item) => (
+            {merchandiseList.map((item) => (
               <option key={item.id_merch} value={item.id_merch}>
                 {item.nama_merch}
               </option>
@@ -135,7 +107,7 @@ export default function BarangKeluarForm({
             className="input-field"
           >
             <option value="">Pilih Stasiun</option>
-            {stasiun.map((item) => (
+            {stasiunList.map((item) => (
               <option key={item.id_stasiun} value={item.id_stasiun}>
                 {item.nama_stasiun}
               </option>
@@ -153,7 +125,7 @@ export default function BarangKeluarForm({
             className="input-field"
           >
             <option value="">Pilih Kategori</option>
-            {kategori.map((item) => (
+            {kategoriList.map((item) => (
               <option key={item.id_kategori} value={item.id_kategori}>
                 {item.nama_kategori}
               </option>

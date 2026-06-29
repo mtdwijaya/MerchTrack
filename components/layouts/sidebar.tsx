@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { sidebarMenus } from "@/constants/sidebar-menu";
 import IconImage from "@/components/ui/icon-image";
+import { logoutAction } from "@/app/(dashboard)/actions";
 
 interface User {
   id_user: number;
@@ -312,22 +313,11 @@ export default function Sidebar({
             cursor-pointer
             text-center
           "
-          onClick={async () => {
-            await fetch(
-              "/api/auth/logout",
-              {
-                method: "POST",
-              }
-            );
-
-            window.location.href =
-              "/login";
-          }}
-          onKeyDown={async (e) => {
+          onClick={() => logoutAction()}
+          onKeyDown={(e) => {
             if (e.key !== "Enter" && e.key !== " ") return;
             e.preventDefault();
-            await fetch("/api/auth/logout", { method: "POST" });
-            window.location.href = "/login";
+            logoutAction();
           }}
         >
           {collapsed
