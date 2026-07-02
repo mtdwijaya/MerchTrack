@@ -33,7 +33,7 @@ export default function Footer() {
           "
         >
           © {new Date().getFullYear()} LRT
-          Jabodebek - mtdwidjaya
+          Jabodebek - mtdwijaya
         </span>
       </div>
     </footer>
