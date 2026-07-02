@@ -31,17 +31,17 @@ export const sidebarMenus = {
 
     master: [
       {
-        name: "Manajemen Stasiun",
+        name: "Stasiun",
         href: "/stasiun",
         icon: "/icons/icon-stasiun.svg",
       },
       {
-        name: "Manajemen Merchandise",
+        name: "Merchandise",
         href: "/merchandise",
         icon: "/icons/icon-merchandise.svg",
       },
       {
-        name: "Manajemen Pengguna",
+        name: "Pengguna",
         href: "/pengguna",
         icon: "/icons/icon-kelolapengguna.svg",
       },

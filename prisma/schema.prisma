@@ -51,7 +51,9 @@ model Merchandise {
 id_merch Int @id @default(autoincrement())
 
 nama_merch String
-deskripsi  String?
+// versi ternormalisasi (lowercase + rapikan spasi) untuk cegah duplikat nama
+nama_normalized String @unique
+deskripsi       String?
 
 created_at DateTime @default(now())
 updated_at DateTime @updatedAt

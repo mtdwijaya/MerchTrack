@@ -36,6 +36,24 @@ export function formatMerchandiseId(id: number) {
   return `MRC-${String(id).padStart(3, "0")}`;
 }
 
+// samakan aturan dengan backfill di migration: lowercase + trim + spasi tunggal
+export function normalizeNamaMerch(nama: string) {
+  return nama.trim().toLowerCase().replace(/\s+/g, " ");
+}
+
+// cek apakah nama sudah dipakai merchandise lain (case-insensitive)
+async function isNamaMerchTaken(namaNormalized: string, excludeId?: number) {
+  const existing = await prisma.merchandise.findFirst({
+    where: {
+      nama_normalized: namaNormalized,
+      ...(excludeId ? { id_merch: { not: excludeId } } : {}),
+    },
+    select: { id_merch: true },
+  });
+
+  return existing !== null;
+}
+
 function buildOrderBy(
   sortBy: MerchandiseSortField,
   sortOrder: SortOrder
@@ -161,18 +179,37 @@ export async function createMerchandise(data: {
   deskripsi?: string;
   jumlah_stok?: number;
 }) {
-  return prisma.merchandise.create({
-    data: {
-      nama_merch: data.nama_merch,
-      deskripsi: data.deskripsi,
-      stok: {
-        create: {
-          jumlah_stok: data.jumlah_stok ?? 0,
+  const nama_merch = data.nama_merch.trim();
+  const nama_normalized = normalizeNamaMerch(nama_merch);
+
+  if (await isNamaMerchTaken(nama_normalized)) {
+    throw new Error("Merchandise dengan nama ini sudah ada");
+  }
+
+  try {
+    return await prisma.merchandise.create({
+      data: {
+        nama_merch,
+        nama_normalized,
+        deskripsi: data.deskripsi,
+        stok: {
+          create: {
+            jumlah_stok: data.jumlah_stok ?? 0,
+          },
         },
       },
-    },
-    include: { stok: true },
-  });
+      include: { stok: true },
+    });
+  } catch (error) {
+    // jaga-jaga bila lolos pengecekan karena request bersamaan (race condition)
+    if (
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === "P2002"
+    ) {
+      throw new Error("Merchandise dengan nama ini sudah ada");
+    }
+    throw error;
+  }
 }
 
 export async function updateMerchandise(
@@ -191,14 +228,32 @@ export async function updateMerchandise(
     throw new Error("Merchandise tidak ditemukan");
   }
 
-  return prisma.merchandise.update({
-    where: { id_merch: id },
-    data: {
-      nama_merch: data.nama_merch,
-      deskripsi: data.deskripsi,
-    },
-    include: { stok: true },
-  });
+  const nama_merch = data.nama_merch.trim();
+  const nama_normalized = normalizeNamaMerch(nama_merch);
+
+  if (await isNamaMerchTaken(nama_normalized, id)) {
+    throw new Error("Merchandise dengan nama ini sudah ada");
+  }
+
+  try {
+    return await prisma.merchandise.update({
+      where: { id_merch: id },
+      data: {
+        nama_merch,
+        nama_normalized,
+        deskripsi: data.deskripsi,
+      },
+      include: { stok: true },
+    });
+  } catch (error) {
+    if (
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === "P2002"
+    ) {
+      throw new Error("Merchandise dengan nama ini sudah ada");
+    }
+    throw error;
+  }
 }
 
 export async function restockMerchandise(

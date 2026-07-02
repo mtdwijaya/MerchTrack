@@ -1,0 +1,14 @@
+$kind: http-request
+url: "{{baseUrl}}/api/merchandise"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: text
+  content: |-
+    {
+      "nama_merch": "Topi LRT",
+      "deskripsi": "Topi katun resmi",
+      "jumlah_stok": 100
+    }
+order: 3000

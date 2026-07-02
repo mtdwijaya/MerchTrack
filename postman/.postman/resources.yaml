@@ -1,0 +1,7 @@
+# Use this workspace to collaborate
+workspace:
+  id: 94001a65-da77-4d11-83f1-bd58dc067d03
+
+localResources:
+  collections:
+    - ../MerchTrack.postman_collection.json

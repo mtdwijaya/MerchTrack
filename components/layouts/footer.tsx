@@ -20,8 +20,9 @@ export default function Footer() {
         <img
           src="/logos/MerchTrack.svg"
           alt="LRT Jabodebek"
-          width={100}
-          height={50}
+          width={243}
+          height={30}
+          className="h-5 w-auto"
         />
 
         <div className="w-px h-5 bg-[#D1D5DB]" />
@@ -33,7 +34,7 @@ export default function Footer() {
           "
         >
           © {new Date().getFullYear()} LRT
-          Jabodebek - mtdwijaya
+          Jabodebek - Universitas Sriwijaya - mtdwijaya
         </span>
       </div>
     </footer>

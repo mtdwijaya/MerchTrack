@@ -134,6 +134,8 @@ async function main() {
       create: {
         nama_merch:
           "Tumbler Stainless LRT",
+        nama_normalized:
+          "tumbler stainless lrt",
         deskripsi:
           "Tumbler official LRT Jabodebek",
       },
@@ -148,6 +150,8 @@ async function main() {
       create: {
         nama_merch:
           "Bantal Leher LRT",
+        nama_normalized:
+          "bantal leher lrt",
         deskripsi:
           "Bantal perjalanan penumpang",
       },
@@ -162,6 +166,8 @@ async function main() {
       create: {
         nama_merch:
           "Totebag Kanvas LRT",
+        nama_normalized:
+          "totebag kanvas lrt",
         deskripsi:
           "Totebag resmi LRT",
       },

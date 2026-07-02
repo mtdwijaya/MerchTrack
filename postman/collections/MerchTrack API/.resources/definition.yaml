@@ -1,0 +1,11 @@
+$kind: collection
+description: REST API MerchTrack (PostgreSQL + Prisma). Jalankan request 'Auth > Login' dulu — token otomatis tersimpan ke variabel {{token}}.
+variables:
+  baseUrl: http://localhost:3000
+  token: ""
+auth:
+  - id: 6f8884e9-a2e6-4fda-b775-229f6be89297
+    type: bearer
+    name: bearer auth
+    credentials:
+      token: "{{token}}"

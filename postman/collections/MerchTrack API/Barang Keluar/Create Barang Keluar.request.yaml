@@ -1,0 +1,17 @@
+$kind: http-request
+url: "{{baseUrl}}/api/barang-keluar"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: text
+  content: |-
+    {
+      "id_merch": 1,
+      "id_stasiun": 1,
+      "id_kategori": 1,
+      "jumlah": 5,
+      "tanggal_keluar": "2026-07-02",
+      "keterangan": "Dibagikan saat event"
+    }
+order: 3000

@@ -1,0 +1,480 @@
+{
+  "info": {
+    "name": "MerchTrack API",
+    "description": "REST API MerchTrack (PostgreSQL + Prisma). Jalankan request 'Auth > Login' dulu — token otomatis tersimpan ke variabel {{token}}.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:3000" },
+    { "key": "token", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res && res.success && res.data && res.data.token) {",
+                  "  pm.collectionVariables.set('token', res.data.token);",
+                  "  console.log('Token tersimpan ke {{token}}');",
+                  "}",
+                  "pm.test('login sukses', function () {",
+                  "  pm.expect(pm.response.code).to.eql(200);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@lrt.co.id\",\n  \"password\": \"password123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "login"]
+            }
+          }
+        },
+        {
+          "name": "Me",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/me",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "me"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Dashboard & Monitoring",
+      "item": [
+        {
+          "name": "Dashboard",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/dashboard",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "dashboard"]
+            }
+          }
+        },
+        {
+          "name": "Monitoring Stok",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/monitoring?page=1&limit=10&status=rendah",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "monitoring"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "10" },
+                { "key": "search", "value": "", "disabled": true },
+                { "key": "sort", "value": "jumlah_stok:asc", "disabled": true },
+                { "key": "status", "value": "rendah" }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Kategori",
+      "item": [
+        {
+          "name": "List Kategori",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/kategori",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "kategori"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Merchandise",
+      "item": [
+        {
+          "name": "List Merchandise",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/merchandise?page=1&limit=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "merchandise"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "10" },
+                { "key": "search", "value": "", "disabled": true },
+                { "key": "sort", "value": "nama_merch:asc", "disabled": true }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Detail Merchandise",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/merchandise/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "merchandise", "1"]
+            }
+          }
+        },
+        {
+          "name": "Create Merchandise (Admin)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nama_merch\": \"Topi LRT\",\n  \"deskripsi\": \"Topi katun resmi\",\n  \"jumlah_stok\": 100\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/merchandise",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "merchandise"]
+            }
+          }
+        },
+        {
+          "name": "Update Merchandise (Admin)",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nama_merch\": \"Topi LRT Premium\",\n  \"deskripsi\": \"Bahan premium\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/merchandise/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "merchandise", "1"]
+            }
+          }
+        },
+        {
+          "name": "Restock Merchandise (Admin)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"jumlah\": 50,\n  \"keterangan\": \"Restock gudang pusat\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/merchandise/1/restock",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "merchandise", "1", "restock"]
+            }
+          }
+        },
+        {
+          "name": "Delete Merchandise (Admin)",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/merchandise/99",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "merchandise", "99"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Stasiun",
+      "item": [
+        {
+          "name": "List Stasiun",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/stasiun?page=1&limit=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "stasiun"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "10" },
+                { "key": "search", "value": "", "disabled": true },
+                { "key": "sort", "value": "nama_stasiun:asc", "disabled": true }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Detail Stasiun",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/stasiun/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "stasiun", "1"]
+            }
+          }
+        },
+        {
+          "name": "Create Stasiun (Admin)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"kode_stasiun\": \"STN-100\",\n  \"nama_stasiun\": \"Stasiun Uji\",\n  \"alamat\": \"Jakarta\",\n  \"kontak\": \"08123456789\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/stasiun",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "stasiun"]
+            }
+          }
+        },
+        {
+          "name": "Update Stasiun (Admin)",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"kode_stasiun\": \"STN-100\",\n  \"nama_stasiun\": \"Stasiun Uji Update\",\n  \"alamat\": \"Bekasi\",\n  \"kontak\": \"08987654321\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/stasiun/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "stasiun", "1"]
+            }
+          }
+        },
+        {
+          "name": "Delete Stasiun (Admin)",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/stasiun/99",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "stasiun", "99"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Pengguna (Admin)",
+      "item": [
+        {
+          "name": "List Pengguna",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/pengguna?page=1&limit=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "pengguna"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "10" },
+                { "key": "search", "value": "", "disabled": true },
+                { "key": "role", "value": "PETUGAS", "disabled": true }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Detail Pengguna",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/pengguna/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "pengguna", "1"]
+            }
+          }
+        },
+        {
+          "name": "Create Pengguna",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nama_user\": \"Budi\",\n  \"email\": \"budi@lrt.co.id\",\n  \"password\": \"rahasia123\",\n  \"role\": \"PETUGAS\",\n  \"id_stasiun\": 1\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/pengguna",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "pengguna"]
+            }
+          }
+        },
+        {
+          "name": "Update Pengguna",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nama_user\": \"Budi Santoso\",\n  \"email\": \"budi@lrt.co.id\",\n  \"password\": \"\",\n  \"role\": \"PETUGAS\",\n  \"id_stasiun\": 2\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/pengguna/3",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "pengguna", "3"]
+            }
+          }
+        },
+        {
+          "name": "Delete Pengguna",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/pengguna/99",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "pengguna", "99"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Barang Keluar",
+      "item": [
+        {
+          "name": "List Barang Keluar",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/barang-keluar?page=1&limit=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "barang-keluar"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "10" },
+                { "key": "search", "value": "", "disabled": true },
+                { "key": "sort", "value": "tanggal_keluar:desc", "disabled": true },
+                { "key": "id_stasiun", "value": "1", "disabled": true },
+                { "key": "id_kategori", "value": "1", "disabled": true }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Detail Barang Keluar",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/barang-keluar/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "barang-keluar", "1"]
+            }
+          }
+        },
+        {
+          "name": "Create Barang Keluar",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id_merch\": 1,\n  \"id_stasiun\": 1,\n  \"id_kategori\": 1,\n  \"jumlah\": 5,\n  \"tanggal_keluar\": \"2026-07-02\",\n  \"keterangan\": \"Dibagikan saat event\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/barang-keluar",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "barang-keluar"]
+            }
+          }
+        },
+        {
+          "name": "Update Barang Keluar",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id_merch\": 1,\n  \"id_stasiun\": 2,\n  \"id_kategori\": 1,\n  \"jumlah\": 3,\n  \"tanggal_keluar\": \"2026-07-02\",\n  \"keterangan\": \"Koreksi jumlah\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/barang-keluar/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "barang-keluar", "1"]
+            }
+          }
+        },
+        {
+          "name": "Delete Barang Keluar",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/barang-keluar/99",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "barang-keluar", "99"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Riwayat Transaksi",
+      "item": [
+        {
+          "name": "List Riwayat",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/riwayat-transaksi?page=1&limit=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "riwayat-transaksi"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "10" },
+                { "key": "search", "value": "", "disabled": true },
+                { "key": "id_kategori", "value": "1", "disabled": true },
+                { "key": "tanggal", "value": "2026-07-02", "disabled": true }
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

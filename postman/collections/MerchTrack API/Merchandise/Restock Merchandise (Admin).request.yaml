@@ -1,0 +1,13 @@
+$kind: http-request
+url: "{{baseUrl}}/api/merchandise/1/restock"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: text
+  content: |-
+    {
+      "jumlah": 50,
+      "keterangan": "Restock gudang pusat"
+    }
+order: 5000

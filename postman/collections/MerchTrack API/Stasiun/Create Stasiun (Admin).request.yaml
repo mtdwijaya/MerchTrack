@@ -1,0 +1,15 @@
+$kind: http-request
+url: "{{baseUrl}}/api/stasiun"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: text
+  content: |-
+    {
+      "kode_stasiun": "STN-100",
+      "nama_stasiun": "Stasiun Uji",
+      "alamat": "Jakarta",
+      "kontak": "08123456789"
+    }
+order: 3000

@@ -1,0 +1,4 @@
+$kind: http-request
+url: "{{baseUrl}}/api/stasiun/99"
+method: DELETE
+order: 5000

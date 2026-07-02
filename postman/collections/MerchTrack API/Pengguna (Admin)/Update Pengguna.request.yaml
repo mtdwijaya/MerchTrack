@@ -1,0 +1,16 @@
+$kind: http-request
+url: "{{baseUrl}}/api/pengguna/3"
+method: PUT
+headers:
+  Content-Type: application/json
+body:
+  type: text
+  content: |-
+    {
+      "nama_user": "Budi Santoso",
+      "email": "budi@lrt.co.id",
+      "password": "",
+      "role": "PETUGAS",
+      "id_stasiun": 2
+    }
+order: 4000

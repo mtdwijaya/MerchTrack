@@ -1,0 +1,15 @@
+$kind: http-request
+url: "{{baseUrl}}/api/stasiun/1"
+method: PUT
+headers:
+  Content-Type: application/json
+body:
+  type: text
+  content: |-
+    {
+      "kode_stasiun": "STN-100",
+      "nama_stasiun": "Stasiun Uji Update",
+      "alamat": "Bekasi",
+      "kontak": "08987654321"
+    }
+order: 4000
