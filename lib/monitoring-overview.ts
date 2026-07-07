@@ -1,7 +1,7 @@
 import type { Role } from "@prisma/client";
 import { unstable_cache } from "next/cache";
 
-import { ANALYTICS_CACHE_TAG } from "@/lib/revalidate-analytics";
+import { ANALYTICS_CACHE_TAG } from "@/lib/analytics-cache-tag";
 import { formatStasiunId } from "@/lib/format-stasiun";
 import { getStockStatus } from "@/lib/monitoring";
 import {
