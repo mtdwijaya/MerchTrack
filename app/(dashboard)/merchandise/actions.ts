@@ -13,9 +13,12 @@ import {
   updateMerchandise,
 } from "@/lib/merchandise";
 import {
+  parseRestockBukti,
+  parseRestockFormData,
+} from "@/lib/parse-transaksi-form";
+import {
   idParamSchema,
   merchandiseCreateSchema,
-  merchandiseRestockSchema,
   merchandiseUpdateSchema,
   parseSchema,
 } from "@/lib/validations";
@@ -116,10 +119,7 @@ export async function updateMerchandiseAction(
 
 export async function restockMerchandiseAction(
   id: number,
-  data: {
-    jumlah: number;
-    keterangan: string;
-  }
+  formData: FormData
 ): Promise<ActionResult> {
   try {
     const auth = await requireActionAdmin();
@@ -128,11 +128,19 @@ export async function restockMerchandiseAction(
     const idParsed = parseSchema(idParamSchema, id);
     if (!idParsed.ok) return idParsed;
 
-    const parsed = parseSchema(merchandiseRestockSchema, data);
+    const parsed = parseRestockFormData(formData);
     if (!parsed.ok) return parsed;
 
-    await restockMerchandise(idParsed.data, auth.user.id_user, parsed.data);
+    const bukti = await parseRestockBukti(formData);
+
+    await restockMerchandise(idParsed.data, auth.user.id_user, {
+      ...parsed.data,
+      bukti_path: bukti?.bukti_path ?? null,
+      bukti_nama: bukti?.bukti_nama ?? null,
+    });
     revalidateMerchandisePages();
+    revalidatePath("/laporan");
+    revalidatePath("/riwayat-transaksi");
     return { ok: true };
   } catch (error) {
     return {

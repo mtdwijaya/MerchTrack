@@ -60,7 +60,7 @@ export default function CategoryPieChart({ data }: { data: CategoryItem[] }) {
   if (data.length === 0) {
     return (
       <div className="flex h-full min-h-[140px] items-center justify-center text-sm text-[#9A9A9A]">
-        Belum ada data kategori
+        Belum ada data tujuan
       </div>
     );
   }
@@ -72,9 +72,14 @@ export default function CategoryPieChart({ data }: { data: CategoryItem[] }) {
   }
 
   return (
-    <div className="flex h-full min-h-[140px] items-center gap-2">
-      <div className="relative h-full min-w-0 flex-[1.35]">
-        <ResponsiveContainer width="100%" height="100%">
+    <div className="flex h-full min-h-[140px] items-stretch gap-2">
+      <div className="relative min-h-0 min-w-0 flex-[1.35]">
+        <ResponsiveContainer
+          width="100%"
+          height="100%"
+          minWidth={0}
+          initialDimension={{ width: 200, height: 140 }}
+        >
           <PieChart>
             <Pie
               data={data}
@@ -104,7 +109,7 @@ export default function CategoryPieChart({ data }: { data: CategoryItem[] }) {
         </div>
       </div>
 
-      <ul className="min-w-0 flex-1 space-y-1.5">
+      <ul className="min-w-0 flex-1 space-y-1.5 self-center">
         {data.map((item, index) => (
           <li key={item.nama} className="flex items-center gap-1.5">
             <span

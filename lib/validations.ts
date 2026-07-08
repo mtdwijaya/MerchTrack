@@ -24,13 +24,30 @@ export const loginSchema = z.object({
 
 export const barangKeluarSchema = z.object({
   id_merch: idParamSchema,
-  id_stasiun: idParamSchema,
-  id_kategori: idParamSchema,
+  id_tujuan: idParamSchema,
+  id_stasiun: z
+    .union([idParamSchema, z.literal(0), z.null()])
+    .optional()
+    .transform((v) => (v === 0 || v == null ? undefined : v)),
+  id_unit: z
+    .union([idParamSchema, z.literal(0), z.null()])
+    .optional()
+    .transform((v) => (v === 0 || v == null ? undefined : v)),
+  detail_teks: optionalText(500),
   jumlah: z.coerce
     .number()
     .int("Jumlah harus bilangan bulat")
     .positive("Jumlah harus lebih dari 0"),
   tanggal_keluar: z.string().optional().or(z.literal("")),
+  keterangan: optionalText(500),
+});
+
+export const barangKembaliSchema = z.object({
+  jumlah_kembali: z.coerce
+    .number()
+    .int("Jumlah harus bilangan bulat")
+    .positive("Jumlah kembali harus lebih dari 0"),
+  tanggal_kembali: z.string().optional().or(z.literal("")),
   keterangan: optionalText(500),
 });
 

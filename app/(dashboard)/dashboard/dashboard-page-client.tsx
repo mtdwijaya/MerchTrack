@@ -2,29 +2,28 @@
 
 import Link from "next/link";
 import {
-  AlertTriangle,
-  ArrowDownToLine,
   ChevronRight,
-  Package,
-  ShoppingBag,
   Truck,
 } from "lucide-react";
 
 import CategoryPieChart from "@/components/charts/category-pie-chart";
 import DashboardBarChart from "@/components/charts/dashboard-bar-chart";
+import RecentActivityPanel from "@/components/dashboard/recent-activity-panel";
 import IconImage from "@/components/ui/icon-image";
 import type { DashboardData } from "@/lib/dashboard-types";
+import type { RecentActivity } from "@/lib/recent-activity";
 
 import DashboardPeriodFilter from "./dashboard-period-filter";
 
 interface Props {
   dashboard: DashboardData;
+  recentActivity: RecentActivity;
   selectedMonth: number;
   selectedYear: number;
 }
 
 function formatDelta(
-  delta: number,
+    delta: number,
   unit = "pcs",
   compareLabel = "bulan lalu"
 ) {
@@ -45,6 +44,7 @@ function formatDelta(
 
 export default function DashboardPageClient({
   dashboard,
+  recentActivity,
   selectedMonth,
   selectedYear,
 }: Props) {
@@ -67,7 +67,7 @@ export default function DashboardPageClient({
     "kemarin"
   );
 
-  const chartStasiun = dashboard.top5StasiunTeraktif.map((item) => ({
+  const chartMerch = dashboard.top5Merchandise.map((item) => ({
     label: item.nama,
     total: item.total,
   }));
@@ -76,11 +76,6 @@ export default function DashboardPageClient({
     label: item.label,
     total: item.total,
     isCurrent: item.isCurrent,
-  }));
-
-  const chartMerch = dashboard.top5Merchandise.map((item) => ({
-    label: item.nama,
-    total: item.total,
   }));
 
   const topMerchSubtitle = dashboard.merchandiseTerbanyak
@@ -157,23 +152,23 @@ export default function DashboardPageClient({
       </section>
 
       {/* Charts 2×2 */}
-      <section className="grid min-h-0 flex-1 grid-cols-1 gap-2.5 lg:grid-cols-2">
+      <section className="grid min-h-0 flex-1 grid-cols-1 gap-2.5 lg:grid-cols-2 lg:grid-rows-2">
         <ChartPanel
-          title="Top 5 Stasiun Teraktif"
+          title="Top 5 Merchandise Didistribusikan"
           subtitle={`Distribusi ${periodLabel}`}
           href="/barang-keluar"
         >
           <DashboardBarChart
-            data={chartStasiun}
+            data={chartMerch}
             layout="horizontal"
-            emptyMessage="Belum ada distribusi"
+            emptyMessage="Belum ada merchandise didistribusikan"
           />
         </ChartPanel>
 
         <ChartPanel
-          title="Trend Distribusi per Bulan"
+          title="Trend Distribusi per Bulan (pcs)"
           subtitle={`Jan – Des ${chartMeta.tahun} · periode ${periodLabel}`}
-          href="/riwayat-transaksi"
+          href="/laporan"
         >
           <DashboardBarChart
             data={chartTrend}
@@ -184,88 +179,18 @@ export default function DashboardPageClient({
         </ChartPanel>
 
         <ChartPanel
-          title="Top 5 Merchandise Didistribusikan"
-          subtitle="Keseluruhan periode"
-          href="/barang-keluar"
-        >
-          <DashboardBarChart
-            data={chartMerch}
-            layout="vertical"
-            emptyMessage="Belum ada merchandise didistribusikan"
-            compactXLabels
-          />
-        </ChartPanel>
-
-        <ChartPanel
-          title="Penggunaan Berdasarkan Kategori"
+          title="Penggunaan Berdasarkan Tujuan"
           subtitle={`Distribusi ${periodLabel}`}
-          href="/riwayat-transaksi"
+          href="/laporan"
         >
-          <CategoryPieChart data={dashboard.penggunaanKategori} />
+          <CategoryPieChart data={dashboard.penggunaanTujuan} />
         </ChartPanel>
-      </section>
 
-      {/* Stok Gudang Pusat */}
-      <section className="shrink-0 rounded-xl border border-[#EFEAE5] bg-white px-4 py-2.5">
-        <div className="mb-2 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Package size={14} className="text-[#D71920]" />
-            <h3 className="text-sm font-semibold text-[#1A1A1A]">
-              Ringkasan Stok Gudang Pusat
-            </h3>
-          </div>
-          <Link
-            href="/merchandise"
-            className="flex items-center gap-0.5 text-xs font-medium text-[#D71920] hover:underline"
-          >
-            Kelola Merchandise
-            <ChevronRight size={14} />
-          </Link>
-        </div>
-
-        {dashboard.stokGudang.length === 0 ? (
-          <p className="text-xs text-[#6B7280]">Belum ada data stok</p>
-        ) : (
-          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-            {dashboard.stokGudang.map((item) => {
-              const maxRef = Math.max(
-                ...dashboard.stokGudang.map((s) => s.stok),
-                1
-              );
-              const fillRatio = item.stok / maxRef;
-
-              return (
-                <div
-                  key={item.id}
-                  className="rounded-lg border border-[#E8E4DF] bg-[#FAFAFA] px-3 py-2"
-                >
-                  <div className="flex items-center gap-2">
-                    <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-[#FFF5F5]">
-                      <ShoppingBag size={13} className="text-[#D32F2F]" />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-[11px] font-medium text-[#4A4A4A]">
-                        {item.nama}
-                      </p>
-                      <p className="text-sm font-bold text-[#1A1A1A]">
-                        {item.stok}{" "}
-                        <span className="text-[10px] font-normal text-[#9A9A9A]">
-                          pcs
-                        </span>
-                      </p>
-                    </div>
-                  </div>
-                  <div className="mt-1.5 h-1 overflow-hidden rounded-full bg-[#F3F4F6]">
-                    <div
-                      className="h-full rounded-full bg-[#D32F2F]"
-                      style={{ width: `${fillRatio * 100}%` }}
-                    />
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
+        <RecentActivityPanel
+          items={recentActivity}
+          href="/riwayat-transaksi"
+          className="h-full"
+        />
       </section>
     </div>
   );
@@ -441,7 +366,9 @@ function ChartPanel({
           </Link>
         )}
       </div>
-      <div className="min-h-0 flex-1 px-3 pb-3 pt-1">{children}</div>
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col px-3 pb-3 pt-1">
+        {children}
+      </div>
     </div>
   );
 }

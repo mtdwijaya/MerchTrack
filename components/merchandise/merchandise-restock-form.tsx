@@ -2,13 +2,17 @@
 
 import { useState } from "react";
 
+import BuktiUploadField from "@/components/ui/bukti-upload-field";
 import Field from "@/components/ui/field";
 import FormActions from "@/components/ui/form-actions";
 
 interface MerchandiseRestockFormProps {
   nama_merch: string;
   stokSaatIni: number;
-  onSubmit: (data: { jumlah: number; keterangan: string }) => Promise<void>;
+  onSubmit: (
+    data: { jumlah: number; keterangan: string },
+    bukti?: File | null
+  ) => Promise<void>;
   loading?: boolean;
   onCancel?: () => void;
 }
@@ -24,12 +28,13 @@ export default function MerchandiseRestockForm({
     jumlah: 1,
     keterangan: "",
   });
+  const [bukti, setBukti] = useState<File | null>(null);
 
   return (
     <form
       onSubmit={(e) => {
         e.preventDefault();
-        onSubmit(form);
+        onSubmit(form, bukti);
       }}
       className="space-y-5"
     >
@@ -62,6 +67,8 @@ export default function MerchandiseRestockForm({
           placeholder="Catatan restock (opsional)"
         />
       </Field>
+
+      <BuktiUploadField value={bukti} onChange={setBukti} />
 
       <FormActions
         loading={loading}

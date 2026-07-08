@@ -18,7 +18,7 @@ import { parseSortValue } from "@/lib/sort";
 import { barangKeluarSchema } from "@/lib/validations";
 import { revalidatePath } from "next/cache";
 
-// GET /api/barang-keluar?page=&limit=&search=&sort=tanggal_keluar:desc&id_stasiun=&id_kategori=
+// GET /api/barang-keluar?page=&limit=&search=&sort=tanggal_keluar:desc&id_tujuan=
 export const GET = route(async (req) => {
   requireUser(req);
   const q = getQuery(req);
@@ -36,8 +36,7 @@ export const GET = route(async (req) => {
       search: q.str("search") || undefined,
       sortBy: parsed.sortBy,
       sortOrder: parsed.sortOrder,
-      idStasiun: q.optionalNum("id_stasiun"),
-      idKategori: q.optionalNum("id_kategori"),
+      idTujuan: q.optionalNum("id_tujuan"),
     }),
     getBarangKeluarSummary(),
   ]);
@@ -45,15 +44,17 @@ export const GET = route(async (req) => {
   return jsonOk({ ...list, summary });
 });
 
-// POST /api/barang-keluar — catat barang keluar (user login mana pun)
+// POST /api/barang-keluar
 export const POST = route(async (req) => {
   const user = requireUser(req);
   const data = await parseJson(req, barangKeluarSchema);
 
   const created = await createBarangKeluar({
     id_merch: data.id_merch,
+    id_tujuan: data.id_tujuan,
     id_stasiun: data.id_stasiun,
-    id_kategori: data.id_kategori,
+    id_unit: data.id_unit,
+    detail_teks: data.detail_teks,
     id_user: user.id_user,
     jumlah: data.jumlah,
     tanggal_keluar: parseTanggalKeluar(data.tanggal_keluar),
@@ -61,6 +62,7 @@ export const POST = route(async (req) => {
   });
 
   revalidatePath("/barang-keluar");
+  revalidatePath("/laporan");
   revalidatePath("/riwayat-transaksi");
   revalidateMerchandiseListCache();
   revalidateAnalyticsPages();

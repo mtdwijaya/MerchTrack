@@ -1,43 +1,189 @@
 "use client";
 
-import type { Role } from "@prisma/client";
+import type { Role, StatusBarangKeluar } from "@prisma/client";
 import IconImage from "@/components/ui/icon-image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 
+import {
+  getBarangKeluarFormData,
+  getBarangKeluarReturnInfo,
+  returnBarangKeluarAction,
+  updateBarangKeluarAction,
+} from "@/app/(dashboard)/barang-keluar/actions";
+import BarangKeluarDetailDialog from "@/components/barang-keluar/barang-keluar-detail-dialog";
+import BarangKeluarForm from "@/components/barang-keluar/barang-keluar-form";
+import BarangKembaliForm from "@/components/barang-keluar/barang-kembali-form";
+import StatusBarangKeluarBadge, {
+  type TujuanOption,
+} from "@/components/barang-keluar/status-badge";
+import TujuanCell from "@/components/barang-keluar/tujuan-cell";
+import MerchandiseStockCard from "@/components/monitoring/merchandise-stock-card";
+import {
+  DataTable,
+  DataTableSection,
+  TableEmptyRow,
+  Td,
+  Th,
+} from "@/components/ui/data-table";
+import FormDialog from "@/components/ui/form-dialog";
 import PageHeader from "@/components/ui/page-header";
-import { RelativeTime } from "@/components/ui/relative-time";
+import { DetailsAction } from "@/components/ui/table-actions";
+import { useFormModal } from "@/hooks/use-form-modal";
+import { useSyncedPanelHeight } from "@/hooks/use-synced-panel-height";
+import { buildBarangKeluarFormData } from "@/lib/build-transaksi-form-data";
+import { getBarangKeluarQuantities } from "@/lib/barang-keluar-quantities";
+import { showError, showSuccess } from "@/lib/toast";
 import type {
   MonitoringOverview,
-  RecentActivity,
+  MonitoringRecentTransactions,
 } from "@/lib/monitoring-overview";
 
 const REFRESH_INTERVAL_MS = 15_000;
 
-// warna label aktivitas di feed monitoring
-const ACTIVITY_TONE: Record<string, string> = {
-  urgent: "text-[#B1070E]",
-  processing: "text-[#2563EB]",
-  alert: "text-[#D97706]",
-  verified: "text-[#059669]",
-};
+interface MerchandiseOption {
+  id_merch: number;
+  nama_merch: string;
+  jumlah_stok: number;
+}
+
+interface StasiunOption {
+  id_stasiun: number;
+  nama_stasiun: string;
+}
+
+interface UnitOption {
+  id_unit: number;
+  nama_unit: string;
+}
+
+interface ReturnInfo {
+  id_keluar: number;
+  merchandise: string;
+  tujuan: string;
+  jumlah: number;
+  jumlah_kembali: number;
+  sisa: number;
+  status: StatusBarangKeluar;
+}
 
 interface Props {
   data: MonitoringOverview;
-  recentActivity: RecentActivity;
+  recentTransactions: MonitoringRecentTransactions;
   role: Role;
+  merchandiseList: MerchandiseOption[];
+  stasiunList: StasiunOption[];
+  unitList: UnitOption[];
+  tujuanList: TujuanOption[];
 }
 
 export default function MonitoringPageClient({
   data,
-  recentActivity,
+  recentTransactions,
   role,
+  merchandiseList,
+  stasiunList,
+  unitList,
+  tujuanList,
 }: Props) {
   const router = useRouter();
+  const [, startTransition] = useTransition();
+  const distribusiPanelRef = useRef<HTMLDivElement>(null);
+  const stockPanelHeight = useSyncedPanelHeight(distribusiPanelRef);
+  const [detailId, setDetailId] = useState<number | null>(null);
+  const [returnInfo, setReturnInfo] = useState<ReturnInfo | null>(null);
+  const [returnSaving, setReturnSaving] = useState(false);
+  const [returnLoading, setReturnLoading] = useState(false);
+
+  const modal = useFormModal<{
+    id_merch: number;
+    id_tujuan: number;
+    id_stasiun: number;
+    id_unit: number;
+    detail_teks: string;
+    jumlah: number;
+    jumlah_kembali: number;
+    tanggal_keluar: string;
+    keterangan: string;
+  }>(getBarangKeluarFormData);
+
+  function openEditModal(id: number) {
+    modal.openEdit(id);
+  }
+
+  async function openReturnModal(id: number) {
+    setReturnLoading(true);
+    const info = await getBarangKeluarReturnInfo(id);
+    setReturnLoading(false);
+
+    if (!info) {
+      showError("Data transaksi tidak ditemukan");
+      return;
+    }
+
+    if (info.sisa <= 0) {
+      showError("Semua barang sudah dikembalikan");
+      return;
+    }
+
+    setReturnInfo(info);
+  }
+
+  async function handleSubmit(
+    data: {
+      id_merch: number;
+      id_tujuan: number;
+      id_stasiun?: number;
+      id_unit?: number;
+      detail_teks?: string;
+      jumlah: number;
+      tanggal_keluar: string;
+      keterangan: string;
+    },
+    bukti?: File | null
+  ) {
+    if (!modal.editId) return;
+
+    modal.setSaving(true);
+    const result = await updateBarangKeluarAction(
+      modal.editId,
+      buildBarangKeluarFormData(data, bukti)
+    );
+    modal.setSaving(false);
+
+    if (!result.ok) {
+      showError(result.message);
+      return;
+    }
+
+    showSuccess("Data berhasil diperbarui");
+    modal.close();
+    startTransition(() => router.refresh());
+  }
+
+  async function handleReturn(data: {
+    jumlah_kembali: number;
+    tanggal_kembali: string;
+    keterangan: string;
+  }) {
+    if (!returnInfo) return;
+
+    setReturnSaving(true);
+    const result = await returnBarangKeluarAction(returnInfo.id_keluar, data);
+    setReturnSaving(false);
+
+    if (!result.ok) {
+      showError(result.message);
+      return;
+    }
+
+    showSuccess("Pengembalian barang berhasil dicatat");
+    setReturnInfo(null);
+    startTransition(() => router.refresh());
+  }
 
   useEffect(() => {
-    // refresh data monitoring dari server tanpa reload halaman penuh
     const interval = setInterval(() => {
       router.refresh();
     }, REFRESH_INTERVAL_MS);
@@ -46,13 +192,14 @@ export default function MonitoringPageClient({
   }, [router]);
 
   return (
+    <>
     <div className="space-y-6">
       <PageHeader
         title="Monitoring"
         description={
           role === "ADMIN"
-            ? "Ringkasan stok, distribusi, dan seluruh aktivitas sistem. Aktivitas diperbarui otomatis setiap 15 detik."
-            : "Ringkasan stok dan aktivitas terbaru. Aktivitas diperbarui otomatis setiap 15 detik."
+            ? "Ringkasan stok dan distribusi per tujuan. Diperbarui otomatis setiap 15 detik."
+            : "Ringkasan stok dan distribusi per tujuan. Diperbarui otomatis setiap 15 detik."
         }
       />
 
@@ -63,8 +210,8 @@ export default function MonitoringPageClient({
           iconSrc="/icons/icon-stok.svg"
         />
         <SummaryMetric
-          label="Stasiun Aktif"
-          value={data.summary.stasiunAktif}
+          label="Jenis Tujuan Aktif"
+          value={data.summary.tujuanAktif}
           iconSrc="/icons/icon-red-stasiun.svg"
         />
         <SummaryMetric
@@ -85,16 +232,22 @@ export default function MonitoringPageClient({
         />
       </section>
 
-      <section className="grid grid-cols-1 gap-5 xl:grid-cols-3">
-        <div className="rounded-2xl border border-[#EFEAE5] bg-white p-6 shadow-sm xl:col-span-1">
+      <section className="grid grid-cols-1 gap-5 xl:grid-cols-3 xl:items-start">
+        <div
+          ref={distribusiPanelRef}
+          className="flex flex-col rounded-2xl border border-[#EFEAE5] bg-white p-6 shadow-sm xl:col-span-1"
+        >
+          {/* card top merchandise digunakan */}
           <h2 className="text-lg font-semibold text-[#1A1C1C]">
-            Distribusi Merchandise Teratas
+            Top 5 Merchandise Digunakan
           </h2>
 
+          {/* list top merchandise digunakan */}
           <div className="mt-5 space-y-4">
-            {data.topMerchandise.length === 0 ? (
+            {data.topMerchandise.length === 0 ? ( // kalo belom ada data
               <p className="text-sm text-[#6B7280]">Belum ada data distribusi</p>
             ) : (
+              // kalo ada data, map data ke card
               data.topMerchandise.map((item) => (
                 <div
                   key={item.id_merch}
@@ -104,17 +257,12 @@ export default function MonitoringPageClient({
                     <p className="truncate text-sm font-medium text-[#1A1C1C]">
                       {item.nama}
                     </p>
-                    <p className="mt-1 text-sm text-[#6B7280]">
-                      {item.total.toLocaleString("id-ID")} pcs
+                    <p className="mt-1 text-sm text-gray-400">
+                      Stok tersisa: {item.stokTersisa.toLocaleString("id-ID")} pcs
                     </p>
                   </div>
-                  <span
-                    className={`shrink-0 text-sm font-semibold ${
-                      item.delta >= 0 ? "text-[#059669]" : "text-[#DC2626]"
-                    }`}
-                  >
-                    {item.delta >= 0 ? "+" : ""}
-                    {item.delta} pcs
+                  <span className="shrink-0 text-sm font-semibold text-[#1A1C1C]">
+                    {item.total.toLocaleString("id-ID")} pcs
                   </span>
                 </div>
               ))
@@ -122,108 +270,171 @@ export default function MonitoringPageClient({
           </div>
         </div>
 
-        <div className="rounded-2xl border border-[#EFEAE5] bg-white p-6 shadow-sm xl:col-span-2">
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+        <div
+          className="flex min-h-0 flex-col overflow-hidden rounded-2xl border border-[#EFEAE5] bg-white p-6 shadow-sm xl:col-span-2"
+          style={stockPanelHeight ? { height: stockPanelHeight } : undefined}
+        >
+          <div className="flex shrink-0 flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
             <div>
               <h2 className="text-lg font-semibold text-[#1A1C1C]">
-                Distribusi Stok per Stasiun
+                Stok Merchandise
               </h2>
               <p className="mt-1 text-sm text-[#6B7280]">
-                Kapasitas dan ketersediaan stok di seluruh stasiun LRT aktif.
+                Ketersediaan stok setiap merchandise di gudang saat ini.
               </p>
             </div>
             <Link
-              href="/barang-keluar"
-              className="text-sm font-semibold text-[#B1070E] hover:underline"
+              href="/merchandise"
+              className="shrink-0 text-sm font-semibold text-[#B1070E] hover:underline"
             >
-              Lihat Semua Transaksi
+              Kelola Merchandise
             </Link>
           </div>
 
-          <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
-            {data.stasiunDistribution.length === 0 ? (
-              <p className="text-sm text-[#6B7280] sm:col-span-2">
-                Belum ada distribusi ke stasiun
+          <div className="mt-5 grid min-h-0 flex-1 grid-cols-2 gap-3 [grid-auto-rows:minmax(0,1fr)] lg:grid-cols-3">
+            {data.merchandiseStock.length === 0 ? (
+              <p className="col-span-full text-sm text-[#6B7280]">
+                Belum ada merchandise terdaftar
               </p>
             ) : (
-              data.stasiunDistribution.map((item) => (
-                <article
-                  key={item.id_stasiun}
-                  className="rounded-xl border border-[#EFEAE5] bg-[#FAFAFA] p-5"
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <h3 className="text-base font-semibold text-[#1A1C1C]">
-                        {item.nama}
-                      </h3>
-                      <p className="mt-1 text-xs font-medium uppercase tracking-wide text-[#6B7280]">
-                        {item.kode}
-                      </p>
-                    </div>
-                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#FFF2F2]">
-                      <IconImage src="/icons/icon-red-stasiun.svg" size={18} />
-                    </div>
-                  </div>
-
-                  <div className="mt-4">
-                    <p className="text-xs uppercase tracking-wide text-[#6B7280]">
-                      Total Distribusi
-                    </p>
-                    <p className="mt-1 text-2xl font-bold text-[#1A1C1C]">
-                      {item.total.toLocaleString("id-ID")}{" "}
-                      <span className="text-sm font-medium text-[#6B7280]">pcs</span>
-                    </p>
-                  </div>
-                </article>
+              data.merchandiseStock.map((item) => (
+                <MerchandiseStockCard
+                  key={item.id_merch}
+                  item={item}
+                  compact={data.merchandiseStock.length > 6}
+                />
               ))
             )}
           </div>
         </div>
       </section>
 
-      <section className="rounded-2xl border border-[#EFEAE5] bg-white p-6 shadow-sm">
-        <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-          <h2 className="text-lg font-semibold text-[#1A1C1C]">Aktivitas Terbaru</h2>
-          <p className="text-xs text-[#6B7280]">
-            {role === "ADMIN"
-              ? "Semua transaksi & restock"
-              : "Semua barang keluar & peringatan stok"}
-          </p>
+      <DataTableSection>
+        <div className="flex items-center justify-between border-b border-[#EFEAE5] px-5 py-4">
+          <div>
+            <h2 className="text-lg font-semibold text-[#1A1C1C]">
+              Transaksi Terbaru
+            </h2>
+            <p className="mt-1 text-sm text-[#6B7280]">
+              10 transaksi terakhir — bisa return & edit dari detail
+            </p>
+          </div>
+          <Link
+            href="/laporan"
+            className="text-sm font-semibold text-[#B1070E] hover:underline"
+          >
+            Lihat Semua Laporan
+          </Link>
         </div>
 
-        <div className="mt-5 divide-y divide-[#F3F4F6]">
-          {recentActivity.length === 0 ? (
-            <p className="py-4 text-sm text-[#6B7280]">Belum ada aktivitas</p>
-          ) : (
-            recentActivity.map((item) => (
-              <div
-                key={item.id}
-                className="flex flex-col gap-1 py-4 sm:flex-row sm:items-center sm:justify-between"
-              >
-                <p className="text-sm text-[#1A1C1C]">{item.message}</p>
-                <p className="shrink-0 text-xs text-[#6B7280]">
-                  {item.occurredAt ? (
-                    <RelativeTime iso={item.occurredAt} />
-                  ) : (
-                    "Peringatan sistem"
-                  )}
-                  {" • "}
-                  <span className={ACTIVITY_TONE[item.tone] ?? "text-[#6B7280]"}>
-                    {item.type}
-                  </span>
-                  {role === "ADMIN" && item.audience === "admin" && (
-                    <>
-                      {" • "}
-                      <span className="font-medium text-[#7C3AED]">Admin</span>
-                    </>
-                  )}
-                </p>
-              </div>
-            ))
-          )}
-        </div>
-      </section>
+        <DataTable>
+          <thead>
+            <tr className="border-b border-[#EFEAE5] bg-[#FAFAFA]">
+              <Th>Tanggal</Th>
+              <Th>Merchandise</Th>
+              <Th align="center">Terpakai</Th>
+              <Th>Tujuan</Th>
+              <Th align="center">Status</Th>
+              <Th align="center">Aksi</Th>
+            </tr>
+          </thead>
+          <tbody>
+            {returnLoading ? (
+              <TableEmptyRow colSpan={6} message="Memuat data..." />
+            ) : recentTransactions.length === 0 ? (
+              <TableEmptyRow colSpan={6} message="Belum ada transaksi" />
+            ) : (
+              recentTransactions.map((item) => {
+                const qty = getBarangKeluarQuantities(
+                  item.jumlah,
+                  item.jumlah_kembali
+                );
+
+                return (
+                <tr
+                  key={item.id_keluar}
+                  className="border-b border-[#EFEAE5] last:border-b-0 hover:bg-gray-50/60"
+                >
+                  <Td variant="numeric" align="left">
+                    {new Date(item.tanggal_keluar).toLocaleDateString("id-ID")}
+                  </Td>
+                  <Td variant="truncate">{item.merchandise.nama_merch}</Td>
+                  <Td variant="numeric" align="center">
+                    {qty.terpakai.toLocaleString("id-ID")}
+                  </Td>
+                  <Td>
+                    <TujuanCell item={item} />
+                  </Td>
+                  <Td align="center">
+                    <StatusBarangKeluarBadge
+                      status={item.status as StatusBarangKeluar}
+                    />
+                  </Td>
+                  <Td variant="action" align="center">
+                    <DetailsAction
+                      onClick={() => setDetailId(item.id_keluar)}
+                    />
+                  </Td>
+                </tr>
+                );
+              })
+            )}
+          </tbody>
+        </DataTable>
+      </DataTableSection>
     </div>
+
+    <BarangKeluarDetailDialog
+      id={detailId}
+      open={detailId !== null}
+      onOpenChange={(open) => {
+        if (!open) setDetailId(null);
+      }}
+      onReturn={openReturnModal}
+      onEdit={openEditModal}
+    />
+
+    <FormDialog
+      open={modal.open}
+      onOpenChange={modal.setOpen}
+      title="Edit Barang Keluar"
+      description="Perbarui data transaksi barang keluar."
+      loading={modal.loading}
+      contentClassName="sm:max-w-2xl"
+    >
+      <BarangKeluarForm
+        key={modal.editId ?? "edit"}
+        initialData={modal.editData ?? undefined}
+        onSubmit={handleSubmit}
+        loading={modal.saving}
+        onCancel={modal.close}
+        merchandiseList={merchandiseList}
+        stasiunList={stasiunList}
+        unitList={unitList}
+        tujuanList={tujuanList}
+      />
+    </FormDialog>
+
+    <FormDialog
+      open={returnInfo !== null}
+      onOpenChange={(open) => {
+        if (!open) setReturnInfo(null);
+      }}
+      title="Kembalikan Barang"
+      description="Catat barang yang kembali ke gudang dari transaksi ini."
+      contentClassName="sm:max-w-xl"
+    >
+      {returnInfo && (
+        <BarangKembaliForm
+          key={returnInfo.id_keluar}
+          info={returnInfo}
+          onSubmit={handleReturn}
+          loading={returnSaving}
+          onCancel={() => setReturnInfo(null)}
+        />
+      )}
+    </FormDialog>
+    </>
   );
 }
 

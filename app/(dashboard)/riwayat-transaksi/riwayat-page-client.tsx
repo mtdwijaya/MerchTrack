@@ -2,12 +2,14 @@
 
 import { useState, useTransition } from "react";
 
+import RiwayatDetailDialog from "@/components/riwayat-transaksi/riwayat-detail-dialog";
 import RiwayatSummary from "@/components/riwayat-transaksi/riwayat-summary";
 import {
+  DataTable,
   DataTableSection,
-  SortableTh,
   TableEmptyRow,
   Td,
+  Th,
 } from "@/components/ui/data-table";
 import {
   FilterBar,
@@ -15,276 +17,176 @@ import {
   FilterSearch,
   FilterSelect,
 } from "@/components/ui/filter-bar";
-import PageHeader, { PrimaryButton, SecondaryButton } from "@/components/ui/page-header";
+import PageHeader, { PrimaryButton } from "@/components/ui/page-header";
 import Pagination from "@/components/ui/pagination";
+import { DetailsAction } from "@/components/ui/table-actions";
 import { useListFilters } from "@/hooks/use-list-filters";
-import { formatTransaksiDate, formatTransaksiId } from "@/lib/format-transaksi";
-import { parseSortValue, toggleSortValue } from "@/lib/sort";
-import { showError } from "@/lib/toast";
-
-import { exportRiwayatData } from "./actions";
-
-type SortField =
-  | "tanggal_keluar"
-  | "nama_merch"
-  | "nama_kategori"
-  | "nama_stasiun"
-  | "jumlah";
+import { formatTransaksiDate } from "@/lib/format-transaksi";
+import type { RiwayatJenis, RiwayatUnifiedItem } from "@/lib/riwayat-transaksi";
 
 interface Props {
   list: {
-    data: {
-      id_keluar: number;
-      jumlah: number;
-      tanggal_keluar: string | Date;
-      keterangan: string | null;
-      merchandise: { nama_merch: string };
-      kategori: { nama_kategori: string };
-      stasiun: { nama_stasiun: string };
-    }[];
+    data: RiwayatUnifiedItem[];
     total: number;
     totalPages: number;
   };
   summary: {
-    totalTransaksiBulanIni: number;
-    totalBarangKeluar30Hari: number;
-    stasiunTerpopuler: {
-      nama_stasiun: string;
-      totalDistribusi: number;
-    } | null;
+    transaksiMasukBulanIni: number;
+    transaksiKeluarBulanIni: number;
+    totalBarangKeluarBulanIni: number;
+    totalBarangMasukBulanIni: number;
   };
-  kategoriList: { id_kategori: number; nama_kategori: string }[];
   pageSize: number;
-  defaultSort: string;
 }
 
-export default function RiwayatPageClient({
-  list,
-  summary,
-  kategoriList,
-  pageSize,
-  defaultSort,
-}: Props) {
+function JenisBadge({ jenis }: { jenis: RiwayatJenis }) {
+  const styles =
+    jenis === "KELUAR"
+      ? "bg-[#FFF5F5] text-[#D32F2F]"
+      : "bg-emerald-50 text-emerald-700";
+
+  return (
+    <span
+      className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${styles}`}
+    >
+      {jenis === "KELUAR" ? "Barang Keluar" : "Barang Masuk"}
+    </span>
+  );
+}
+
+export default function RiwayatPageClient({ list, summary, pageSize }: Props) {
   const [isPending] = useTransition();
   const {
     search,
     setSearch,
     page,
-    sort,
     setParam,
     setPage,
     resetParams,
     getParam,
-  } = useListFilters({ sort: defaultSort });
+  } = useListFilters({});
 
-  const kategoriFilter = getParam("id_kategori");
   const tanggal = getParam("tanggal");
-  const [exporting, setExporting] = useState(false);
-
-  const currentSort = sort || defaultSort;
-  const { sortBy, sortOrder } = parseSortValue<SortField>(
-    currentSort,
-    "tanggal_keluar",
-    "desc"
-  );
-
-  async function handleExport() {
-    try {
-      setExporting(true);
-      const data = await exportRiwayatData({
-        search,
-        sort: currentSort,
-        id_kategori: kategoriFilter ? Number(kategoriFilter) : undefined,
-        tanggal: tanggal || undefined,
-      });
-
-      const csv = [
-        [
-          "ID",
-          "Tanggal",
-          "Nama Barang",
-          "Kategori",
-          "Stasiun",
-          "Jumlah",
-          "Keterangan",
-        ].join(","),
-        ...data.map((item) =>
-          [
-            formatTransaksiId(item.id_keluar),
-            formatTransaksiDate(String(item.tanggal_keluar)),
-            `"${item.merchandise.nama_merch}"`,
-            `"${item.kategori.nama_kategori}"`,
-            `"${item.stasiun.nama_stasiun}"`,
-            item.jumlah,
-            `"${item.keterangan ?? ""}"`,
-          ].join(",")
-        ),
-      ].join("\n");
-
-      const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = "riwayat-transaksi.csv";
-      link.click();
-      URL.revokeObjectURL(url);
-    } catch {
-      showError("Gagal mengekspor data");
-    } finally {
-      setExporting(false);
-    }
-  }
+  const jenisFilter = getParam("jenis");
+  const [detail, setDetail] = useState<{
+    jenis: RiwayatJenis;
+    id: number;
+  } | null>(null);
 
   return (
-    <div className="space-y-6">
-      <PageHeader
-        title="Riwayat Transaksi"
-        description="Monitoring pergerakan distribusi merchandise seluruh stasiun."
-        actions={
-          <>
-            <SecondaryButton onClick={handleExport} disabled={exporting}>
-              {exporting ? "Mengekspor..." : "Ekspor Data"}
-            </SecondaryButton>
+    <>
+      <div className="space-y-6">
+        <PageHeader
+          title="Riwayat Transaksi"
+          description="Gabungan transaksi barang keluar dan barang masuk (restock)."
+          actions={
             <PrimaryButton href="/barang-keluar?modal=tambah">
               Tambah Transaksi
             </PrimaryButton>
-          </>
-        }
+          }
+        />
+
+        <RiwayatSummary {...summary} />
+
+        <FilterBar
+          onReset={() => resetParams(["search", "jenis", "tanggal"])}
+        >
+          <FilterSearch
+            value={search}
+            onChange={setSearch}
+            placeholder="ID, nama barang, petugas..."
+          />
+          <FilterSelect
+            id="filter-jenis-riwayat"
+            label="Jenis"
+            value={jenisFilter}
+            onChange={(value) => setParam("jenis", value)}
+            placeholder="Semua jenis"
+            options={[
+              { value: "KELUAR", label: "Barang Keluar" },
+              { value: "MASUK", label: "Barang Masuk" },
+            ]}
+          />
+          <FilterDateRange
+            value={tanggal}
+            onChange={(value) => setParam("tanggal", value)}
+            label="Tanggal"
+          />
+        </FilterBar>
+
+        <DataTableSection>
+          <DataTable>
+            <thead>
+              <tr className="border-b border-[#E8E4DF] bg-[#FAFAF8]">
+                <Th>Tanggal</Th>
+                <Th>Jenis</Th>
+                <Th>Merchandise</Th>
+                <Th align="center">Jumlah</Th>
+                <Th>Keterangan</Th>
+                <Th>Petugas</Th>
+                <Th align="center">Aksi</Th>
+              </tr>
+            </thead>
+            <tbody>
+              {isPending ? (
+                <TableEmptyRow colSpan={7} message="Memuat data..." />
+              ) : list.data.length === 0 ? (
+                <TableEmptyRow colSpan={7} message="Tidak ada transaksi" />
+              ) : (
+                list.data.map((item) => (
+                  <tr
+                    key={item.key}
+                    className="border-b border-[#E8E4DF] last:border-b-0 hover:bg-[#FAFAF8]/80"
+                  >
+                    <Td variant="numeric" align="left">
+                      {formatTransaksiDate(item.tanggal.toISOString())}
+                    </Td>
+                    <Td>
+                      <JenisBadge jenis={item.jenis} />
+                    </Td>
+                    <Td variant="truncate">{item.merchandise}</Td>
+                    <Td variant="numeric" align="center">
+                      {item.jumlah.toLocaleString("id-ID")}
+                    </Td>
+                    <Td variant="truncate">{item.info}</Td>
+                    <Td variant="truncate">{item.petugas}</Td>
+                    <Td variant="action" align="center">
+                      <DetailsAction
+                        label="Detail"
+                        onClick={() =>
+                          setDetail({ jenis: item.jenis, id: item.id })
+                        }
+                      />
+                    </Td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </DataTable>
+
+          {list.total > 0 && (
+            <div className="border-t border-[#E8E4DF] px-6 py-4">
+              <Pagination
+                currentPage={page}
+                totalPages={list.totalPages}
+                totalItems={list.total}
+                pageSize={pageSize}
+                itemLabel="transaksi"
+                onPageChange={setPage}
+              />
+            </div>
+          )}
+        </DataTableSection>
+      </div>
+
+      <RiwayatDetailDialog
+        jenis={detail?.jenis ?? null}
+        id={detail?.id ?? null}
+        open={detail !== null}
+        onOpenChange={(open) => {
+          if (!open) setDetail(null);
+        }}
       />
-
-      <RiwayatSummary {...summary} />
-
-      <FilterBar
-        onReset={() =>
-          resetParams(["search", "sort", "id_kategori", "tanggal"])
-        }
-      >
-        <FilterSearch
-          value={search}
-          onChange={setSearch}
-          placeholder="ID transaksi, nama barang..."
-        />
-        <FilterSelect
-          id="filter-kategori-riwayat"
-          label="Kategori"
-          value={kategoriFilter}
-          onChange={(value) => setParam("id_kategori", value)}
-          placeholder="Pilih kategori..."
-          options={kategoriList.map((item) => ({
-            value: String(item.id_kategori),
-            label: item.nama_kategori,
-          }))}
-        />
-        <FilterDateRange
-          value={tanggal}
-          onChange={(value) => setParam("tanggal", value)}
-          label="Tanggal"
-        />
-        <FilterSelect
-          id="sort-riwayat"
-          label="Urutkan"
-          value={currentSort}
-          onChange={(value) => setParam("sort", value)}
-          placeholder="Pilih urutan..."
-          options={[
-            { value: "tanggal_keluar:desc", label: "Tanggal (Terbaru)" },
-            { value: "nama_merch:asc", label: "Nama Barang (A-Z)" },
-            { value: "jumlah:desc", label: "Jumlah (Terbesar)" },
-          ]}
-        />
-      </FilterBar>
-
-      <DataTableSection>
-        <table className="w-full">
-          <thead>
-            <tr className="border-b border-[#EFEAE5] bg-[#FAFAFA]">
-              <SortableTh
-                label="Tanggal & Waktu"
-                field="tanggal_keluar"
-                activeField={sortBy}
-                activeOrder={sortOrder}
-                onSort={(f) =>
-                  setParam("sort", toggleSortValue(currentSort, f))
-                }
-              />
-              <SortableTh
-                label="Nama Barang"
-                field="nama_merch"
-                activeField={sortBy}
-                activeOrder={sortOrder}
-                onSort={(f) =>
-                  setParam("sort", toggleSortValue(currentSort, f))
-                }
-              />
-              <SortableTh
-                label="Kategori"
-                field="nama_kategori"
-                activeField={sortBy}
-                activeOrder={sortOrder}
-                onSort={(f) =>
-                  setParam("sort", toggleSortValue(currentSort, f))
-                }
-              />
-              <SortableTh
-                label="Stasiun/Lokasi"
-                field="nama_stasiun"
-                activeField={sortBy}
-                activeOrder={sortOrder}
-                onSort={(f) =>
-                  setParam("sort", toggleSortValue(currentSort, f))
-                }
-              />
-              <SortableTh
-                label="Jumlah"
-                field="jumlah"
-                activeField={sortBy}
-                activeOrder={sortOrder}
-                onSort={(f) =>
-                  setParam("sort", toggleSortValue(currentSort, f))
-                }
-              />
-              <th className="px-5 py-4 text-left text-xs font-semibold uppercase tracking-wide text-[#6B7280]">
-                Keterangan
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {isPending ? (
-              <TableEmptyRow colSpan={6} message="Memuat data..." />
-            ) : list.data.length === 0 ? (
-              <TableEmptyRow colSpan={6} message="Tidak ada transaksi ditemukan" />
-            ) : (
-              list.data.map((item) => (
-                <tr
-                  key={item.id_keluar}
-                  className="border-b border-[#EFEAE5] hover:bg-gray-50/60"
-                >
-                  <Td>{formatTransaksiDate(String(item.tanggal_keluar))}</Td>
-                  <Td>{item.merchandise.nama_merch}</Td>
-                  <Td>{item.kategori.nama_kategori}</Td>
-                  <Td>{item.stasiun.nama_stasiun}</Td>
-                  <Td>{item.jumlah.toLocaleString("id-ID")}</Td>
-                  <Td className="max-w-xs truncate">
-                    {item.keterangan || "-"}
-                  </Td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-        {list.total > 0 && (
-          <div className="border-t border-[#EFEAE5] px-5 py-4">
-            <Pagination
-              currentPage={page}
-              totalPages={list.totalPages}
-              totalItems={list.total}
-              pageSize={pageSize}
-              itemLabel="transaksi"
-              onPageChange={setPage}
-            />
-          </div>
-        )}
-      </DataTableSection>
-    </div>
+    </>
   );
 }

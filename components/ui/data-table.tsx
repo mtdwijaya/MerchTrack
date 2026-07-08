@@ -3,6 +3,20 @@
 import { ReactNode } from "react";
 
 import { SortOrder } from "@/lib/sort";
+import { cn } from "@/lib/utils";
+
+type TableAlign = "left" | "center" | "right";
+
+const alignClass: Record<TableAlign, string> = {
+  left: "text-left",
+  center: "text-center",
+  right: "text-right",
+};
+
+const thBase =
+  "px-4 py-3.5 text-xs font-semibold uppercase tracking-wide text-[#6B7280] first:pl-6 last:pr-6";
+const tdBase =
+  "px-4 py-4 text-sm leading-relaxed text-[#1A1C1C] first:pl-6 last:pr-6";
 
 export function DataTableSection({ children }: { children: ReactNode }) {
   return (
@@ -12,17 +26,56 @@ export function DataTableSection({ children }: { children: ReactNode }) {
   );
 }
 
-export function Th({ children }: { children: React.ReactNode }) {
+export function DataTable({
+  children,
+  className,
+}: {
+  children: ReactNode;
+  className?: string;
+}) {
   return (
-    <th className="px-5 py-4 text-left text-xs font-semibold uppercase tracking-wide text-[#6B7280]">
+    <table className={cn("w-full min-w-[720px] border-collapse", className)}>
       {children}
-    </th>
+    </table>
   );
 }
 
-export function Td({ children, className }: { children: React.ReactNode; className?: string }) {
+export function Th({
+  children,
+  align = "left",
+  className,
+}: {
+  children: React.ReactNode;
+  align?: TableAlign;
+  className?: string;
+}) {
   return (
-    <td className={`px-5 py-4 text-sm text-[#1A1C1C] ${className ?? ""}`}>
+    <th className={cn(thBase, alignClass[align], className)}>{children}</th>
+  );
+}
+
+export function Td({
+  children,
+  className,
+  align = "left",
+  variant = "default",
+}: {
+  children: React.ReactNode;
+  className?: string;
+  align?: TableAlign;
+  variant?: "default" | "numeric" | "action" | "truncate";
+}) {
+  return (
+    <td
+      className={cn(
+        tdBase,
+        alignClass[align],
+        variant === "numeric" && "tabular-nums whitespace-nowrap",
+        variant === "action" && "whitespace-nowrap",
+        variant === "truncate" && "max-w-[180px] truncate",
+        className
+      )}
+    >
       {children}
     </td>
   );
@@ -34,25 +87,27 @@ export function SortableTh<T extends string>({
   activeField,
   activeOrder,
   onSort,
+  align = "left",
 }: {
   label: string;
   field: T;
   activeField: T;
   activeOrder: SortOrder;
   onSort: (field: T) => void;
+  align?: TableAlign;
 }) {
   const isActive = activeField === field;
 
   return (
-    <th className="px-5 py-4 text-left">
+    <th className={cn(thBase, alignClass[align])}>
       <button
         type="button"
         onClick={() => onSort(field)}
-        className="
-          inline-flex items-center gap-1
-          text-xs font-semibold uppercase tracking-wide
-          text-[#6B7280] hover:text-[#B1070E]
-        "
+        className={cn(
+          "inline-flex items-center gap-1 text-xs font-semibold uppercase tracking-wide text-[#6B7280] hover:text-[#B1070E]",
+          align === "center" && "w-full justify-center",
+          align === "right" && "w-full justify-end"
+        )}
       >
         {label}
         <SortIcon isActive={isActive} order={activeOrder} />

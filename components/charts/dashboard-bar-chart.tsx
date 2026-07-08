@@ -29,7 +29,7 @@ interface Props {
 
 function getHorizontalBarSize(count: number) {
   if (count <= 3) return 40;
-  if (count <= 5) return 20;
+  if (count <= 5) return 25;
   return 20;
 }
 
@@ -82,8 +82,13 @@ export default function DashboardBarChart({
     const barSize = getHorizontalBarSize(chartData.length);
 
     return (
-      <div className="h-full min-h-[140px] w-full">
-        <ResponsiveContainer width="100%" height="100%">
+      <div className="h-full min-h-[140px] w-full min-w-0">
+        <ResponsiveContainer
+          width="100%"
+          height="100%"
+          minWidth={0}
+          initialDimension={{ width: 400, height: 180 }}
+        >
           <BarChart
             data={chartData}
             layout="vertical"
@@ -131,8 +136,13 @@ export default function DashboardBarChart({
   const barSize = getVerticalBarSize(chartData.length);
 
   return (
-    <div className="h-full min-h-[140px] w-full">
-      <ResponsiveContainer width="100%" height="100%">
+    <div className="h-full min-h-[140px] w-full min-w-0">
+      <ResponsiveContainer
+        width="100%"
+        height="100%"
+        minWidth={0}
+        initialDimension={{ width: 400, height: 180 }}
+      >
         <BarChart
           data={chartData}
           margin={{ top: 4, right: 12, left: -8, bottom: compactXLabels ? 12 : 0 }}

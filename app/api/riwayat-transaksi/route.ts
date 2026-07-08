@@ -6,7 +6,7 @@ import {
 } from "@/lib/riwayat-transaksi";
 import { parseSortValue } from "@/lib/sort";
 
-// GET /api/riwayat-transaksi?page=&limit=&search=&sort=tanggal_keluar:desc&id_kategori=&tanggal=YYYY-MM-DD
+// GET /api/riwayat-transaksi?page=&limit=&search=&sort=tanggal_keluar:desc&id_tujuan=&tanggal=YYYY-MM-DD
 export const GET = route(async (req) => {
   requireUser(req);
   const q = getQuery(req);
@@ -24,7 +24,7 @@ export const GET = route(async (req) => {
       search: q.str("search") || undefined,
       sortBy: parsed.sortBy,
       sortOrder: parsed.sortOrder,
-      idKategori: q.optionalNum("id_kategori"),
+      idTujuan: q.optionalNum("id_tujuan"),
       tanggal: q.str("tanggal") || undefined,
     }),
     getRiwayatTransaksiSummary(),

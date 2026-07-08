@@ -5,13 +5,17 @@ import SummaryCards from "@/components/ui/summary-cards";
 interface Props {
   totalTransaksi: number;
   totalBarangKeluar: number;
-  totalStasiun: number;
+  merchandiseTerbanyak: {
+    nama: string;
+    total: number;
+  } | null;
 }
 
+/** ringkasan statistik halaman barang keluar */
 export default function BarangKeluarSummary({
   totalTransaksi,
   totalBarangKeluar,
-  totalStasiun,
+  merchandiseTerbanyak,
 }: Props) {
   return (
     <SummaryCards
@@ -30,11 +34,14 @@ export default function BarangKeluarSummary({
           iconSrc: "/icons/icon-barangkeluar-merah.svg",
         },
         {
-          title: "Stasiun Tujuan",
-          value: totalStasiun,
-          subtitle: "Stasiun yang pernah menerima distribusi",
-          iconSrc: "/icons/icon-red-stasiun.svg",
-        },
+          title: "Barang Terbanyak Digunakan",
+          value: merchandiseTerbanyak?.nama ?? "-",
+          subtitle: merchandiseTerbanyak
+            ? `${merchandiseTerbanyak.total.toLocaleString("id-ID")} pcs terdistribusi`
+            : "Belum ada data distribusi",
+          iconSrc: "/icons/icon-merchandise-merah.svg",
+          isTextValue: true,
+          },
       ]}
     />
   );

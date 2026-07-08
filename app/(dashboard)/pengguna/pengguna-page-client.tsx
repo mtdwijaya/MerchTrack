@@ -19,7 +19,7 @@ import {
 import PageHeader, { PrimaryButton } from "@/components/ui/page-header";
 import Pagination from "@/components/ui/pagination";
 import SummaryCards from "@/components/ui/summary-cards";
-import { DeleteAction, EditAction } from "@/components/ui/table-actions";
+import { DeleteAction, TextOutlineAction } from "@/components/ui/table-actions";
 import { useFormModal } from "@/hooks/use-form-modal";
 import { useListFilters } from "@/hooks/use-list-filters";
 import { parseSortValue, toggleSortValue } from "@/lib/sort";
@@ -245,7 +245,7 @@ export default function PenggunaPageClient({
                 <th className="px-5 py-4 text-left text-xs font-semibold uppercase tracking-wide text-[#6B7280]">
                   Stasiun
                 </th>
-                <th className="px-5 py-4 text-left text-xs font-semibold uppercase tracking-wide text-[#6B7280]">
+                <th className="px-5 py-4 text-center text-xs font-semibold uppercase tracking-wide text-[#6B7280]">
                   Aksi
                 </th>
               </tr>
@@ -275,9 +275,10 @@ export default function PenggunaPageClient({
                       </span>
                     </Td>
                     <Td>{item.stasiun?.nama_stasiun ?? "-"}</Td>
-                    <Td>
-                      <div className="flex items-center gap-3">
-                        <EditAction
+                    <Td align="center" variant="action">
+                      <div className="flex items-center justify-center gap-3">
+                        <TextOutlineAction
+                          label="Edit"
                           onClick={() => openEditModal(item.id_user)}
                         />
                         <DeleteAction

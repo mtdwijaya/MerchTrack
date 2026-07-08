@@ -1,131 +1,210 @@
 generator client {
-provider = "prisma-client-js"
+  provider = "prisma-client-js"
 }
 
 datasource db {
-provider = "postgresql"
-url      = env("DATABASE_URL")
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
 enum Role {
-ADMIN
-PETUGAS
+  ADMIN
+  PETUGAS
+}
+
+enum JenisDetailTujuan {
+  STASIUN
+  UNIT
+  TEKS
+  TIDAK_ADA
+}
+
+enum StatusBarangKeluar {
+  AKTIF
+  SEBAGIAN_KEMBALI
+  LUNAS_KEMBALI
+}
+
+enum JenisAktivitas {
+  EDIT
+  KEMBALI
 }
 
 model User {
-id_user    Int @id @default(autoincrement())
-id_stasiun Int?
+  id_user    Int  @id @default(autoincrement())
+  id_stasiun Int?
 
-nama_user String
-email     String @unique
-password  String
+  nama_user String
+  email     String @unique
+  password  String
 
-role Role @default(PETUGAS)
+  role Role @default(PETUGAS)
 
-created_at DateTime @default(now())
-updated_at DateTime @updatedAt
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
 
-stasiun Stasiun? @relation(fields: [id_stasiun], references: [id_stasiun])
+  stasiun Stasiun? @relation(fields: [id_stasiun], references: [id_stasiun])
 
-barangMasuk  BarangMasuk[]
-barangKeluar BarangKeluar[]
+  barangMasuk   BarangMasuk[]
+  barangKeluar  BarangKeluar[]
+  barangKembali BarangKembali[]
+  aktivitasLog  AktivitasLog[]
 }
 
 model Stasiun {
-id_stasiun Int @id @default(autoincrement())
+  id_stasiun Int @id @default(autoincrement())
 
-kode_stasiun String @unique
-nama_stasiun String
+  kode_stasiun String @unique
+  nama_stasiun String
 
-alamat String?
-kontak String?
+  alamat String?
+  kontak String?
 
-created_at DateTime @default(now())
-updated_at DateTime @updatedAt
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
 
-users        User[]
-barangKeluar BarangKeluar[]
+  users        User[]
+  barangKeluar BarangKeluar[]
+}
+
+model Unit {
+  id_unit Int @id @default(autoincrement())
+
+  kode_unit String @unique
+  nama_unit String
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  barangKeluar BarangKeluar[]
 }
 
 model Merchandise {
-id_merch Int @id @default(autoincrement())
+  id_merch Int @id @default(autoincrement())
 
-nama_merch String
-// versi ternormalisasi (lowercase + rapikan spasi) untuk cegah duplikat nama
-nama_normalized String @unique
-deskripsi       String?
+  nama_merch      String
+  nama_normalized String @unique
+  deskripsi       String?
 
-created_at DateTime @default(now())
-updated_at DateTime @updatedAt
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
 
-stok Stok?
+  stok Stok?
 
-barangMasuk  BarangMasuk[]
-barangKeluar BarangKeluar[]
+  barangMasuk  BarangMasuk[]
+  barangKeluar BarangKeluar[]
 }
 
 model Stok {
-id_stok Int @id @default(autoincrement())
+  id_stok Int @id @default(autoincrement())
 
-id_merch Int @unique
+  id_merch Int @unique
 
-jumlah_stok Int @default(0)
+  jumlah_stok Int @default(0)
 
-merchandise Merchandise @relation(fields: [id_merch], references: [id_merch], onDelete: Cascade)
+  merchandise Merchandise @relation(fields: [id_merch], references: [id_merch], onDelete: Cascade)
 }
 
-model KategoriPenggunaan {
-id_kategori Int @id @default(autoincrement())
+model Tujuan {
+  id_tujuan Int @id @default(autoincrement())
 
-nama_kategori String @unique
+  nama_tujuan  String            @unique
+  jenis_detail JenisDetailTujuan @default(TEKS)
+  label_detail String?
+  boleh_return Boolean           @default(false)
 
-barangKeluar BarangKeluar[]
+  barangKeluar BarangKeluar[]
 }
 
 model BarangMasuk {
-id_masuk Int @id @default(autoincrement())
+  id_masuk Int @id @default(autoincrement())
 
-id_merch Int
-id_user  Int
+  id_merch Int
+  id_user  Int
 
-jumlah Int
+  jumlah Int
 
-tanggal_masuk DateTime @default(now())
+  tanggal_masuk DateTime @default(now())
 
-keterangan String?
+  keterangan String?
 
-merchandise Merchandise @relation(fields: [id_merch], references: [id_merch])
+  bukti_path String?
+  bukti_nama String?
 
-user User @relation(fields: [id_user], references: [id_user])
+  merchandise Merchandise @relation(fields: [id_merch], references: [id_merch])
+  user        User        @relation(fields: [id_user], references: [id_user])
 
-@@index([tanggal_masuk])
-@@index([id_merch])
+  @@index([tanggal_masuk])
+  @@index([id_merch])
 }
 
 model BarangKeluar {
-id_keluar Int @id @default(autoincrement())
+  id_keluar Int @id @default(autoincrement())
 
-id_merch    Int
-id_stasiun  Int
-id_kategori Int
-id_user     Int
+  id_merch Int
+  id_tujuan Int
+  id_user   Int
 
-jumlah Int
+  id_stasiun  Int?
+  id_unit     Int?
+  detail_teks String?
 
-tanggal_keluar DateTime @default(now())
+  jumlah         Int
+  jumlah_kembali Int                @default(0)
+  status         StatusBarangKeluar @default(AKTIF)
 
-keterangan String?
+  tanggal_keluar DateTime @default(now())
+  dicatat_pada   DateTime @default(now())
 
-merchandise Merchandise @relation(fields: [id_merch], references: [id_merch])
+  keterangan String?
 
-stasiun Stasiun @relation(fields: [id_stasiun], references: [id_stasiun])
+  bukti_path String?
+  bukti_nama String?
 
-kategori KategoriPenggunaan @relation(fields: [id_kategori], references: [id_kategori])
+  merchandise   Merchandise    @relation(fields: [id_merch], references: [id_merch])
+  tujuan        Tujuan         @relation(fields: [id_tujuan], references: [id_tujuan])
+  stasiun       Stasiun?       @relation(fields: [id_stasiun], references: [id_stasiun])
+  unit          Unit?          @relation(fields: [id_unit], references: [id_unit])
+  user          User           @relation(fields: [id_user], references: [id_user])
+  barangKembali BarangKembali[]
 
-user User @relation(fields: [id_user], references: [id_user])
+  @@index([tanggal_keluar])
+  @@index([dicatat_pada(sort: Desc)])
+  @@index([id_merch])
+  @@index([id_stasiun])
+  @@index([id_tujuan])
+  @@index([status])
+}
 
-@@index([tanggal_keluar])
-@@index([id_merch])
-@@index([id_stasiun])
-@@index([id_kategori])
+model BarangKembali {
+  id_kembali Int @id @default(autoincrement())
+
+  id_keluar Int
+  id_user   Int
+
+  jumlah_kembali  Int
+  tanggal_kembali DateTime @default(now())
+
+  keterangan String?
+
+  barangKeluar BarangKeluar @relation(fields: [id_keluar], references: [id_keluar], onDelete: Cascade)
+  user         User         @relation(fields: [id_user], references: [id_user])
+
+  @@index([id_keluar])
+  @@index([tanggal_kembali])
+}
+
+model AktivitasLog {
+  id_aktivitas Int @id @default(autoincrement())
+
+  jenis JenisAktivitas
+  id_user Int
+
+  pesan String
+
+  created_at DateTime @default(now())
+
+  user User @relation(fields: [id_user], references: [id_user])
+
+  @@index([created_at(sort: Desc)])
 }

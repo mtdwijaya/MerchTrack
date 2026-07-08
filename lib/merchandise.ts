@@ -262,6 +262,8 @@ export async function restockMerchandise(
   data: {
     jumlah: number;
     keterangan?: string;
+    bukti_path?: string | null;
+    bukti_nama?: string | null;
   }
 ) {
   if (!Number.isFinite(data.jumlah) || data.jumlah <= 0) {
@@ -285,6 +287,8 @@ export async function restockMerchandise(
         id_user,
         jumlah: data.jumlah,
         keterangan: data.keterangan?.trim() || "Restock gudang pusat",
+        bukti_path: data.bukti_path,
+        bukti_nama: data.bukti_nama,
       },
     });
 

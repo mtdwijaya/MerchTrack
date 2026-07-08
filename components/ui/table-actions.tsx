@@ -1,4 +1,28 @@
 import Link from "next/link";
+import { Eye, SlidersHorizontal } from "lucide-react";
+
+import { actionButton } from "@/constants/design-tokens";
+
+export function TextOutlineAction({
+  label,
+  onClick,
+  disabled,
+}: {
+  label: string;
+  onClick: () => void;
+  disabled?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      className={`${actionButton.outline} disabled:cursor-not-allowed disabled:opacity-40`}
+    >
+      {label}
+    </button>
+  );
+}
 
 export function EditAction({
   href,
@@ -7,8 +31,7 @@ export function EditAction({
   href?: string;
   onClick?: () => void;
 }) {
-  const className =
-    "flex h-8 w-8 items-center justify-center rounded-lg border border-[#E2E2E2] text-[#2563EB] hover:border-[#2563EB] hover:bg-blue-50";
+  const className = actionButton.icon;
 
   const icon = (
     <svg
@@ -50,11 +73,7 @@ export function RestockAction({
     <button
       type="button"
       onClick={onClick}
-      className="
-        flex h-8 w-8 items-center justify-center
-        rounded-lg border border-[#E2E2E2]
-        text-[#059669] hover:border-[#059669] hover:bg-emerald-50
-      "
+      className={actionButton.icon}
       title="Restock"
     >
       <svg
@@ -74,6 +93,90 @@ export function RestockAction({
   );
 }
 
+export function DetailsAction({
+  onClick,
+  label = "Details",
+  variant = "view",
+}: {
+  onClick: () => void;
+  label?: string;
+  variant?: "view" | "manage";
+}) {
+  const Icon = variant === "manage" ? SlidersHorizontal : Eye;
+
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`${actionButton.outline} inline-flex items-center gap-1.5`}
+    >
+      <Icon className="h-4 w-4" />
+      {label}
+    </button>
+  );
+}
+
+export function TableTextAction({
+  label,
+  onClick,
+  variant,
+  disabled,
+}: {
+  label: string;
+  onClick: () => void;
+  variant: "return" | "edit" | "delete";
+  disabled?: boolean;
+}) {
+  const styles = {
+    return: actionButton.textLink,
+    edit: actionButton.textLink,
+    delete: actionButton.textDestructive,
+  };
+
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      className={`disabled:cursor-not-allowed disabled:opacity-40 ${styles[variant]}`}
+    >
+      {label}
+    </button>
+  );
+}
+
+export function ReturnAction({
+  onClick,
+  disabled,
+}: {
+  onClick: () => void;
+  disabled?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      className={`${actionButton.icon} disabled:cursor-not-allowed disabled:opacity-40`}
+      title="Kembalikan Barang"
+    >
+      <svg
+        className="h-4 w-4"
+        fill="none"
+        viewBox="0 0 24 24"
+        stroke="currentColor"
+        strokeWidth={2}
+      >
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"
+        />
+      </svg>
+    </button>
+  );
+}
+
 export function DeleteAction({
   onClick,
 }: {
@@ -83,11 +186,7 @@ export function DeleteAction({
     <button
       type="button"
       onClick={onClick}
-      className="
-        flex h-8 w-8 items-center justify-center
-        rounded-lg border border-[#E2E2E2]
-        text-[#DC2626] hover:border-[#DC2626] hover:bg-red-50
-      "
+      className={actionButton.iconDestructive}
       title="Hapus"
     >
       <svg

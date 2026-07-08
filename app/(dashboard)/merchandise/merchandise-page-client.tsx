@@ -20,9 +20,10 @@ import {
 import PageHeader, { PrimaryButton } from "@/components/ui/page-header";
 import Pagination from "@/components/ui/pagination";
 import SummaryCards from "@/components/ui/summary-cards";
-import { DeleteAction, EditAction, RestockAction } from "@/components/ui/table-actions";
+import { DeleteAction, TextOutlineAction } from "@/components/ui/table-actions";
 import { useFormModal } from "@/hooks/use-form-modal";
 import { useListFilters } from "@/hooks/use-list-filters";
+import { buildRestockFormData } from "@/lib/build-transaksi-form-data";
 import { parseSortValue, toggleSortValue } from "@/lib/sort";
 import { showError, showSuccess } from "@/lib/toast";
 
@@ -164,11 +165,17 @@ export default function MerchandisePageClient({
     startTransition(() => {});
   }
 
-  async function handleRestock(data: { jumlah: number; keterangan: string }) {
+  async function handleRestock(
+    data: { jumlah: number; keterangan: string },
+    bukti?: File | null
+  ) {
     if (!restock.id) return;
 
     setRestock((prev) => ({ ...prev, saving: true }));
-    const result = await restockMerchandiseAction(restock.id, data);
+    const result = await restockMerchandiseAction(
+      restock.id,
+      buildRestockFormData(data, bukti)
+    );
     setRestock((prev) => ({ ...prev, saving: false }));
 
     if (!result.ok) {
@@ -277,11 +284,12 @@ export default function MerchandisePageClient({
                   field="jumlah_stok"
                   activeField={sortBy}
                   activeOrder={sortOrder}
+                  align="center"
                   onSort={(f) =>
                     setParam("sort", toggleSortValue(currentSort, f))
                   }
                 />
-                <th className="px-5 py-4 text-left text-xs font-semibold uppercase tracking-wide text-[#6B7280]">
+                <th className="px-5 py-4 text-center text-xs font-semibold uppercase tracking-wide text-[#6B7280]">
                   Aksi
                 </th>
               </tr>
@@ -303,15 +311,17 @@ export default function MerchandisePageClient({
                     <Td className="max-w-xs truncate">
                       {item.deskripsi || "-"}
                     </Td>
-                    <Td>
+                    <Td align="center" variant="numeric">
                       {item.stok?.jumlah_stok.toLocaleString("id-ID") ?? 0}
                     </Td>
-                    <Td>
-                      <div className="flex items-center gap-3">
-                        <RestockAction
+                    <Td align="center" variant="action">
+                      <div className="flex items-center justify-center gap-3">
+                        <TextOutlineAction
+                          label="Restock"
                           onClick={() => openRestockModal(item.id_merch)}
                         />
-                        <EditAction
+                        <TextOutlineAction
+                          label="Edit"
                           onClick={() => openEditModal(item.id_merch)}
                         />
                         <DeleteAction

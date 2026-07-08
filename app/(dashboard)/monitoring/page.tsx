@@ -2,10 +2,14 @@ import { redirect } from "next/navigation";
 import { Suspense } from "react";
 
 import { getCurrentUser } from "@/lib/auth";
+import { getAllMerchandiseNames } from "@/lib/merchandise";
 import {
   getMonitoringOverview,
-  getRecentActivity,
+  getMonitoringRecentTransactions,
 } from "@/lib/monitoring-overview";
+import { getAllStasiun } from "@/lib/stasiun";
+import { getAllTujuan } from "@/lib/tujuan";
+import { getAllUnit } from "@/lib/unit";
 
 import MonitoringPageClient from "./monitoring-page-client";
 
@@ -13,16 +17,31 @@ async function MonitoringContent() {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
 
-  const [data, recentActivity] = await Promise.all([
+  const [
+    data,
+    recentTransactions,
+    merchandiseList,
+    stasiunList,
+    unitList,
+    tujuanList,
+  ] = await Promise.all([
     getMonitoringOverview(user),
-    getRecentActivity(user),
+    getMonitoringRecentTransactions(),
+    getAllMerchandiseNames(),
+    getAllStasiun(),
+    getAllUnit(),
+    getAllTujuan(),
   ]);
 
   return (
     <MonitoringPageClient
       data={data}
-      recentActivity={recentActivity}
+      recentTransactions={recentTransactions}
       role={user.role}
+      merchandiseList={merchandiseList}
+      stasiunList={stasiunList}
+      unitList={unitList}
+      tujuanList={tujuanList}
     />
   );
 }

@@ -1,15 +1,23 @@
 "use client";
 
 import { useEffect, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 
+import BarangKeluarDetailDialog from "@/components/barang-keluar/barang-keluar-detail-dialog";
 import BarangKeluarForm from "@/components/barang-keluar/barang-keluar-form";
+import BarangKembaliForm from "@/components/barang-keluar/barang-kembali-form";
 import BarangKeluarSummary from "@/components/barang-keluar/barang-keluar-summary";
+import StatusBarangKeluarBadge, {
+  type TujuanOption,
+} from "@/components/barang-keluar/status-badge";
 import ConfirmDialog from "@/components/ui/confirm-dialog";
 import {
+  DataTable,
   DataTableSection,
   SortableTh,
   TableEmptyRow,
   Td,
+  Th,
 } from "@/components/ui/data-table";
 import FormDialog from "@/components/ui/form-dialog";
 import {
@@ -19,31 +27,36 @@ import {
 } from "@/components/ui/filter-bar";
 import PageHeader, { PrimaryButton } from "@/components/ui/page-header";
 import Pagination from "@/components/ui/pagination";
-import { DeleteAction, EditAction } from "@/components/ui/table-actions";
+import { DetailsAction } from "@/components/ui/table-actions";
 import { useFormModal } from "@/hooks/use-form-modal";
 import { useListFilters } from "@/hooks/use-list-filters";
+import TujuanCell from "@/components/barang-keluar/tujuan-cell";
+import { getBarangKeluarQuantities } from "@/lib/barang-keluar-quantities";
+import { buildBarangKeluarFormData } from "@/lib/build-transaksi-form-data";
 import { parseSortValue, toggleSortValue } from "@/lib/sort";
 import { showError, showSuccess } from "@/lib/toast";
+import type { StatusBarangKeluar } from "@prisma/client";
 
 import {
   createBarangKeluarAction,
   deleteBarangKeluarAction,
   getBarangKeluarFormData,
+  getBarangKeluarReturnInfo,
+  returnBarangKeluarAction,
   updateBarangKeluarAction,
 } from "./actions";
 
 type SortField =
   | "tanggal_keluar"
   | "nama_merch"
-  | "nama_stasiun"
-  | "nama_kategori"
+  | "nama_tujuan"
   | "jumlah";
 
 const SORT_OPTIONS = [
   { value: "tanggal_keluar:desc", label: "Tanggal (Terbaru)" },
   { value: "id_keluar:desc", label: "ID (Terbaru)" },
   { value: "nama_merch:asc", label: "Merchandise (A-Z)" },
-  { value: "nama_stasiun:asc", label: "Stasiun (A-Z)" },
+  { value: "nama_tujuan:asc", label: "Tujuan (A-Z)" },
   { value: "jumlah:desc", label: "Jumlah (Terbesar)" },
 ];
 
@@ -58,9 +71,19 @@ interface StasiunOption {
   nama_stasiun: string;
 }
 
-interface KategoriOption {
-  id_kategori: number;
-  nama_kategori: string;
+interface UnitOption {
+  id_unit: number;
+  nama_unit: string;
+}
+
+interface ReturnInfo {
+  id_keluar: number;
+  merchandise: string;
+  tujuan: string;
+  jumlah: number;
+  jumlah_kembali: number;
+  sisa: number;
+  status: StatusBarangKeluar;
 }
 
 interface Props {
@@ -68,10 +91,14 @@ interface Props {
     data: {
       id_keluar: number;
       jumlah: number;
+      jumlah_kembali: number;
+      status: StatusBarangKeluar;
       tanggal_keluar: string | Date;
+      detail_teks: string | null;
       merchandise: { nama_merch: string };
-      stasiun: { nama_stasiun: string };
-      kategori: { nama_kategori: string };
+      stasiun: { nama_stasiun: string } | null;
+      unit: { nama_unit: string } | null;
+      tujuan: TujuanOption;
       user: { nama_user: string };
     }[];
     total: number;
@@ -80,11 +107,15 @@ interface Props {
   summary: {
     totalTransaksi: number;
     totalBarangKeluar: number;
-    totalStasiun: number;
+    merchandiseTerbanyak: {
+      nama: string;
+      total: number;
+    } | null;
   };
   merchandiseList: MerchandiseOption[];
   stasiunList: StasiunOption[];
-  kategoriList: KategoriOption[];
+  unitList: UnitOption[];
+  tujuanList: TujuanOption[];
   pageSize: number;
   defaultSort: string;
   openModal?: boolean;
@@ -95,11 +126,13 @@ export default function BarangKeluarPageClient({
   summary,
   merchandiseList,
   stasiunList,
-  kategoriList,
+  unitList,
+  tujuanList,
   pageSize,
   defaultSort,
   openModal: openModalParam,
 }: Props) {
+  const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const {
     search,
@@ -113,19 +146,25 @@ export default function BarangKeluarPageClient({
     replaceParams,
   } = useListFilters({ sort: defaultSort });
 
-  const stasiunFilter = getParam("id_stasiun");
-  const kategoriFilter = getParam("id_kategori");
+  const tujuanFilter = getParam("id_tujuan");
 
   const modal = useFormModal<{
     id_merch: number;
+    id_tujuan: number;
     id_stasiun: number;
-    id_kategori: number;
+    id_unit: number;
+    detail_teks: string;
     jumlah: number;
+    jumlah_kembali: number;
     tanggal_keluar: string;
     keterangan: string;
   }>(getBarangKeluarFormData);
 
+  const [detailId, setDetailId] = useState<number | null>(null);
   const [deleteId, setDeleteId] = useState<number | null>(null);
+  const [returnInfo, setReturnInfo] = useState<ReturnInfo | null>(null);
+  const [returnSaving, setReturnSaving] = useState(false);
+  const [returnLoading, setReturnLoading] = useState(false);
 
   const currentSort = sort || defaultSort;
   const { sortBy, sortOrder } = parseSortValue<SortField>(
@@ -149,18 +188,42 @@ export default function BarangKeluarPageClient({
     modal.openEdit(id);
   }
 
-  async function handleSubmit(data: {
-    id_merch: number;
-    id_stasiun: number;
-    id_kategori: number;
-    jumlah: number;
-    tanggal_keluar: string;
-    keterangan: string;
-  }) {
+  async function openReturnModal(id: number) {
+    setReturnLoading(true);
+    const info = await getBarangKeluarReturnInfo(id);
+    setReturnLoading(false);
+
+    if (!info) {
+      showError("Data transaksi tidak ditemukan");
+      return;
+    }
+
+    if (info.sisa <= 0) {
+      showError("Semua barang sudah dikembalikan");
+      return;
+    }
+
+    setReturnInfo(info);
+  }
+
+  async function handleSubmit(
+    data: {
+      id_merch: number;
+      id_tujuan: number;
+      id_stasiun?: number;
+      id_unit?: number;
+      detail_teks?: string;
+      jumlah: number;
+      tanggal_keluar: string;
+      keterangan: string;
+    },
+    bukti?: File | null
+  ) {
     modal.setSaving(true);
+    const formData = buildBarangKeluarFormData(data, bukti);
     const result = modal.editId
-      ? await updateBarangKeluarAction(modal.editId, data)
-      : await createBarangKeluarAction(data);
+      ? await updateBarangKeluarAction(modal.editId, formData)
+      : await createBarangKeluarAction(formData);
     modal.setSaving(false);
 
     if (!result.ok) {
@@ -174,7 +237,28 @@ export default function BarangKeluarPageClient({
         : "Barang keluar berhasil ditambahkan"
     );
     modal.close();
-    startTransition(() => {});
+    startTransition(() => router.refresh());
+  }
+
+  async function handleReturn(data: {
+    jumlah_kembali: number;
+    tanggal_kembali: string;
+    keterangan: string;
+  }) {
+    if (!returnInfo) return;
+
+    setReturnSaving(true);
+    const result = await returnBarangKeluarAction(returnInfo.id_keluar, data);
+    setReturnSaving(false);
+
+    if (!result.ok) {
+      showError(result.message);
+      return;
+    }
+
+    showSuccess("Pengembalian barang berhasil dicatat");
+    setReturnInfo(null);
+    startTransition(() => router.refresh());
   }
 
   async function handleDelete() {
@@ -186,7 +270,7 @@ export default function BarangKeluarPageClient({
     }
     setDeleteId(null);
     showSuccess("Data berhasil dihapus");
-    startTransition(() => {});
+    startTransition(() => router.refresh());
   }
 
   return (
@@ -197,7 +281,7 @@ export default function BarangKeluarPageClient({
           description="Kelola seluruh transaksi barang keluar."
           actions={
             <PrimaryButton onClick={openAddModal}>
-              + Catat Barang Keluar
+              + Barang Keluar
             </PrimaryButton>
           }
         />
@@ -205,35 +289,22 @@ export default function BarangKeluarPageClient({
         <BarangKeluarSummary {...summary} />
 
         <FilterBar
-          onReset={() =>
-            resetParams(["search", "sort", "id_stasiun", "id_kategori"])
-          }
+          onReset={() => resetParams(["search", "sort", "id_tujuan"])}
         >
           <FilterSearch
             value={search}
             onChange={setSearch}
-            placeholder="Cari merchandise, stasiun, atau kategori..."
+            placeholder="Cari merchandise, tujuan, atau detail..."
           />
           <FilterSelect
-            id="filter-stasiun-bk"
-            label="Stasiun"
-            value={stasiunFilter}
-            onChange={(value) => setParam("id_stasiun", value)}
-            placeholder="Pilih stasiun..."
-            options={stasiunList.map((item) => ({
-              value: String(item.id_stasiun),
-              label: item.nama_stasiun,
-            }))}
-          />
-          <FilterSelect
-            id="filter-kategori-bk"
-            label="Kategori"
-            value={kategoriFilter}
-            onChange={(value) => setParam("id_kategori", value)}
-            placeholder="Pilih kategori..."
-            options={kategoriList.map((item) => ({
-              value: String(item.id_kategori),
-              label: item.nama_kategori,
+            id="filter-tujuan-bk"
+            label="Tujuan"
+            value={tujuanFilter}
+            onChange={(value) => setParam("id_tujuan", value)}
+            placeholder="Pilih tujuan..."
+            options={tujuanList.map((item) => ({
+              value: String(item.id_tujuan),
+              label: item.nama_tujuan,
             }))}
           />
           <FilterSelect
@@ -247,7 +318,7 @@ export default function BarangKeluarPageClient({
         </FilterBar>
 
         <DataTableSection>
-          <table className="w-full">
+          <DataTable>
             <thead>
               <tr className="border-b border-[#EFEAE5] bg-[#FAFAFA]">
                 <SortableTh
@@ -268,80 +339,60 @@ export default function BarangKeluarPageClient({
                     setParam("sort", toggleSortValue(currentSort, f))
                   }
                 />
-                <SortableTh
-                  label="Kategori"
-                  field="nama_kategori"
-                  activeField={sortBy}
-                  activeOrder={sortOrder}
-                  onSort={(f) =>
-                    setParam("sort", toggleSortValue(currentSort, f))
-                  }
-                />
-                <SortableTh
-                  label="Stasiun"
-                  field="nama_stasiun"
-                  activeField={sortBy}
-                  activeOrder={sortOrder}
-                  onSort={(f) =>
-                    setParam("sort", toggleSortValue(currentSort, f))
-                  }
-                />
-                <SortableTh
-                  label="Jumlah"
-                  field="jumlah"
-                  activeField={sortBy}
-                  activeOrder={sortOrder}
-                  onSort={(f) =>
-                    setParam("sort", toggleSortValue(currentSort, f))
-                  }
-                />
-                <th className="px-5 py-4 text-left text-xs font-semibold uppercase tracking-wide text-[#6B7280]">
-                  Petugas
-                </th>
-                <th className="px-5 py-4 text-left text-xs font-semibold uppercase tracking-wide text-[#6B7280]">
-                  Aksi
-                </th>
+                <Th align="center">Barang Terpakai</Th>
+                <Th>Tujuan</Th>
+                <Th align="center">Status</Th>
+                <Th align="center">Aksi</Th>
               </tr>
             </thead>
             <tbody>
-              {isPending ? (
-                <TableEmptyRow colSpan={7} message="Memuat data..." />
+              {isPending || returnLoading ? (
+                <TableEmptyRow colSpan={6} message="Memuat data..." />
               ) : list.data.length === 0 ? (
-                <TableEmptyRow colSpan={7} message="Tidak ada data" />
+                <TableEmptyRow colSpan={6} message="Tidak ada data" />
               ) : (
-                list.data.map((item) => (
-                  <tr
-                    key={item.id_keluar}
-                    className="border-b border-[#EFEAE5] hover:bg-gray-50/60"
-                  >
-                    <Td>
-                      {new Date(item.tanggal_keluar).toLocaleDateString(
-                        "id-ID"
-                      )}
-                    </Td>
-                    <Td>{item.merchandise.nama_merch}</Td>
-                    <Td>{item.kategori.nama_kategori}</Td>
-                    <Td>{item.stasiun.nama_stasiun}</Td>
-                    <Td>{item.jumlah}</Td>
-                    <Td>{item.user.nama_user}</Td>
-                    <Td>
-                      <div className="flex items-center gap-3">
-                        <EditAction
-                          onClick={() => openEditModal(item.id_keluar)}
+                list.data.map((item) => {
+                  const qty = getBarangKeluarQuantities(
+                    item.jumlah,
+                    item.jumlah_kembali
+                  );
+
+                  return (
+                    <tr
+                      key={item.id_keluar}
+                      className="border-b border-[#EFEAE5] last:border-b-0 hover:bg-gray-50/60"
+                    >
+                      <Td variant="numeric" align="left">
+                        {new Date(item.tanggal_keluar).toLocaleDateString(
+                          "id-ID"
+                        )}
+                      </Td>
+                      <Td variant="truncate">{item.merchandise.nama_merch}</Td>
+                      <Td variant="numeric" align="center">
+                        {qty.terpakai.toLocaleString("id-ID")}
+                      </Td>
+                      <Td>
+                        <TujuanCell item={item} />
+                      </Td>
+                      <Td align="center">
+                        <StatusBarangKeluarBadge status={item.status} />
+                      </Td>
+                      <Td variant="action" align="center">
+                        <DetailsAction
+                          label="Kelola"
+                          variant="manage"
+                          onClick={() => setDetailId(item.id_keluar)}
                         />
-                        <DeleteAction
-                          onClick={() => setDeleteId(item.id_keluar)}
-                        />
-                      </div>
-                    </Td>
-                  </tr>
-                ))
+                      </Td>
+                    </tr>
+                  );
+                })
               )}
             </tbody>
-          </table>
+          </DataTable>
 
           {list.total > 0 && (
-            <div className="border-t border-[#EFEAE5] px-5 py-4">
+            <div className="border-t border-[#EFEAE5] px-6 py-4">
               <Pagination
                 currentPage={page}
                 totalPages={list.totalPages}
@@ -354,6 +405,17 @@ export default function BarangKeluarPageClient({
           )}
         </DataTableSection>
       </div>
+
+      <BarangKeluarDetailDialog
+        id={detailId}
+        open={detailId !== null}
+        onOpenChange={(open) => {
+          if (!open) setDetailId(null);
+        }}
+        onReturn={openReturnModal}
+        onEdit={openEditModal}
+        onDelete={setDeleteId}
+      />
 
       <FormDialog
         open={modal.open}
@@ -375,8 +437,29 @@ export default function BarangKeluarPageClient({
           onCancel={modal.close}
           merchandiseList={merchandiseList}
           stasiunList={stasiunList}
-          kategoriList={kategoriList}
+          unitList={unitList}
+          tujuanList={tujuanList}
         />
+      </FormDialog>
+
+      <FormDialog
+        open={returnInfo !== null}
+        onOpenChange={(open) => {
+          if (!open) setReturnInfo(null);
+        }}
+        title="Kembalikan Barang"
+        description="Catat barang yang kembali ke gudang dari transaksi ini."
+        contentClassName="sm:max-w-xl"
+      >
+        {returnInfo && (
+          <BarangKembaliForm
+            key={returnInfo.id_keluar}
+            info={returnInfo}
+            onSubmit={handleReturn}
+            loading={returnSaving}
+            onCancel={() => setReturnInfo(null)}
+          />
+        )}
       </FormDialog>
 
       <ConfirmDialog

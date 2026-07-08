@@ -43,8 +43,8 @@ async function main() {
 
   const cases = [
     {
-      name: "kategoriPenggunaan.findMany",
-      fn: () => prisma.kategoriPenggunaan.findMany({ orderBy: { nama_kategori: "asc" } }),
+      name: "tujuan.findMany",
+      fn: () => prisma.tujuan.findMany({ orderBy: { nama_tujuan: "asc" } }),
     },
     {
       name: "stasiun.findMany",

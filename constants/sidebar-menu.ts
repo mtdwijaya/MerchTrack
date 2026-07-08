@@ -23,6 +23,11 @@ export const sidebarMenus = {
         icon: "/icons/icon-monitoring.svg",
       },
       {
+        name: "Laporan",
+        href: "/laporan",
+        icon: "/icons/icon-laporan.svg",
+      },
+      {
         name: "Riwayat Transaksi",
         href: "/riwayat-transaksi",
         icon: "/icons/icon-riwayat.svg",
@@ -66,10 +71,16 @@ export const sidebarMenus = {
         icon: "/icons/icon-monitoring.svg",
       },
       {
+        name: "Laporan",
+        href: "/laporan",
+        icon: "/icons/icon-laporan.svg",
+      },
+      {
         name: "Riwayat Transaksi",
         href: "/riwayat-transaksi",
         icon: "/icons/icon-riwayat.svg",
       },
+
     ],
 
     master: [],

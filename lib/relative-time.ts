@@ -1,7 +1,25 @@
 export function formatRelativeTime(date: Date, now = Date.now()): string {
-  const diffMs = now - date.getTime();
-  const minutes = Math.max(1, Math.round(diffMs / 60_000));
+  const time = date.getTime();
 
+  if (Number.isNaN(time)) {
+    return "-";
+  }
+
+  const diffMs = now - time;
+
+  // Timestamp di masa depan (salah zona / input tanggal) — jangan tampil "baru saja" selamanya
+  if (diffMs < 0) {
+    return date.toLocaleDateString("id-ID", {
+      day: "numeric",
+      month: "short",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  }
+
+  if (diffMs < 60_000) return "baru saja";
+
+  const minutes = Math.round(diffMs / 60_000);
   if (minutes < 60) return `${minutes} menit lalu`;
 
   const hours = Math.round(minutes / 60);

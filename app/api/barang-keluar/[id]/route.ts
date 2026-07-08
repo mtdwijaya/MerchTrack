@@ -21,6 +21,7 @@ type Ctx = { params: Promise<{ id: string }> };
 
 function refreshTransaksiPages() {
   revalidatePath("/barang-keluar");
+  revalidatePath("/laporan");
   revalidatePath("/riwayat-transaksi");
   revalidateMerchandiseListCache();
   revalidateAnalyticsPages();
@@ -35,7 +36,7 @@ export const GET = route<Ctx>(async (req, ctx) => {
   return jsonOk(data);
 });
 
-// PUT /api/barang-keluar/:id — stok lama dikembalikan lalu dipotong ulang otomatis
+// PUT /api/barang-keluar/:id
 export const PUT = route<Ctx>(async (req, ctx) => {
   requireUser(req);
   const id = await parseIdParam(ctx);
@@ -47,8 +48,10 @@ export const PUT = route<Ctx>(async (req, ctx) => {
 
   const updated = await updateBarangKeluar(id, {
     id_merch: data.id_merch,
+    id_tujuan: data.id_tujuan,
     id_stasiun: data.id_stasiun,
-    id_kategori: data.id_kategori,
+    id_unit: data.id_unit,
+    detail_teks: data.detail_teks,
     jumlah: data.jumlah,
     tanggal_keluar: parseTanggalKeluar(data.tanggal_keluar),
     keterangan: data.keterangan || undefined,
@@ -58,7 +61,7 @@ export const PUT = route<Ctx>(async (req, ctx) => {
   return jsonOk(updated);
 });
 
-// DELETE /api/barang-keluar/:id — stok otomatis dikembalikan
+// DELETE /api/barang-keluar/:id
 export const DELETE = route<Ctx>(async (req, ctx) => {
   requireUser(req);
   const id = await parseIdParam(ctx);

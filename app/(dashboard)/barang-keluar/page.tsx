@@ -6,16 +6,17 @@ import {
   getBarangKeluarSummary,
   parseBarangKeluarSort,
 } from "@/lib/barang-keluar";
-import { getAllKategori } from "@/lib/kategori";
+import { getAllMerchandiseNames } from "@/lib/merchandise";
 import {
   getOptionalNumberParam,
   getPageParam,
   getParam,
   type SearchParams,
 } from "@/lib/list-params";
-import { getAllMerchandiseNames } from "@/lib/merchandise";
 import { parseSortValue } from "@/lib/sort";
 import { getAllStasiun } from "@/lib/stasiun";
+import { getAllTujuan } from "@/lib/tujuan";
+import { getAllUnit } from "@/lib/unit";
 
 const PAGE_SIZE = 10;
 const DEFAULT_SORT = "tanggal_keluar:desc";
@@ -28,12 +29,11 @@ async function BarangKeluarContent({
   const page = getPageParam(searchParams);
   const search = getParam(searchParams, "search");
   const sort = getParam(searchParams, "sort", DEFAULT_SORT);
-  const idStasiun = getOptionalNumberParam(searchParams, "id_stasiun");
-  const idKategori = getOptionalNumberParam(searchParams, "id_kategori");
+  const idTujuan = getOptionalNumberParam(searchParams, "id_tujuan");
   const { sortBy, sortOrder } = parseSortValue(sort, "tanggal_keluar", "desc");
   const parsed = parseBarangKeluarSort(sortBy, sortOrder);
 
-  const [list, summary, merchandiseList, stasiunList, kategoriList] =
+  const [list, summary, merchandiseList, stasiunList, tujuanList, unitList] =
     await Promise.all([
       getBarangKeluarPaginated({
         page,
@@ -41,13 +41,13 @@ async function BarangKeluarContent({
         search,
         sortBy: parsed.sortBy,
         sortOrder: parsed.sortOrder,
-        idStasiun,
-        idKategori,
+        idTujuan,
       }),
       getBarangKeluarSummary(),
       getAllMerchandiseNames(),
       getAllStasiun(),
-      getAllKategori(),
+      getAllTujuan(),
+      getAllUnit(),
     ]);
 
   return (
@@ -56,7 +56,8 @@ async function BarangKeluarContent({
       summary={summary}
       merchandiseList={merchandiseList}
       stasiunList={stasiunList}
-      kategoriList={kategoriList}
+      tujuanList={tujuanList}
+      unitList={unitList}
       pageSize={PAGE_SIZE}
       defaultSort={DEFAULT_SORT}
       openModal={getParam(searchParams, "modal") === "tambah"}

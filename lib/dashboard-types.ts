@@ -16,10 +16,9 @@ export type DashboardData = {
   distribusiHariIniDelta: number;
   peringatanStokRendah: number;
   stokRendahItems: { nama: string; jumlah: number }[];
-  top5StasiunTeraktif: { nama: string; total: number }[];
   trendDistribusi: { label: string; total: number; isCurrent: boolean }[];
   top5Merchandise: { nama: string; total: number }[];
-  penggunaanKategori: { nama: string; total: number }[];
+  penggunaanTujuan: { nama: string; total: number }[];
   stokGudang: { id: number; nama: string; stok: number }[];
   chartMeta: {
     bulan: string;

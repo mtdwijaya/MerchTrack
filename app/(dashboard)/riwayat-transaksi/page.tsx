@@ -1,7 +1,6 @@
 import { Suspense } from "react";
 
 import RiwayatPageClient from "./riwayat-page-client";
-import { getAllKategori } from "@/lib/kategori";
 import {
   getOptionalNumberParam,
   getPageParam,
@@ -9,14 +8,12 @@ import {
   type SearchParams,
 } from "@/lib/list-params";
 import {
-  getRiwayatTransaksiPaginated,
-  getRiwayatTransaksiSummary,
-  parseRiwayatSort,
+  getRiwayatUnifiedPaginated,
+  getRiwayatUnifiedSummary,
+  type RiwayatJenis,
 } from "@/lib/riwayat-transaksi";
-import { parseSortValue } from "@/lib/sort";
 
-const PAGE_SIZE = 5;
-const DEFAULT_SORT = "tanggal_keluar:desc";
+const PAGE_SIZE = 8;
 
 async function RiwayatContent({
   searchParams,
@@ -25,33 +22,25 @@ async function RiwayatContent({
 }) {
   const page = getPageParam(searchParams);
   const search = getParam(searchParams, "search");
-  const sort = getParam(searchParams, "sort", DEFAULT_SORT);
   const tanggal = getParam(searchParams, "tanggal");
-  const idKategori = getOptionalNumberParam(searchParams, "id_kategori");
-  const { sortBy, sortOrder } = parseSortValue(sort, "tanggal_keluar", "desc");
-  const parsed = parseRiwayatSort(sortBy, sortOrder);
+  const jenis = getParam(searchParams, "jenis") as RiwayatJenis | "";
 
-  const [list, summary, kategoriList] = await Promise.all([
-    getRiwayatTransaksiPaginated({
+  const [list, summary] = await Promise.all([
+    getRiwayatUnifiedPaginated({
       page,
       limit: PAGE_SIZE,
       search,
-      sortBy: parsed.sortBy,
-      sortOrder: parsed.sortOrder,
-      idKategori,
+      jenis,
       tanggal: tanggal || undefined,
     }),
-    getRiwayatTransaksiSummary(),
-    getAllKategori(),
+    getRiwayatUnifiedSummary(),
   ]);
 
   return (
     <RiwayatPageClient
       list={list}
       summary={summary}
-      kategoriList={kategoriList}
       pageSize={PAGE_SIZE}
-      defaultSort={DEFAULT_SORT}
     />
   );
 }

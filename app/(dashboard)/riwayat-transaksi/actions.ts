@@ -1,37 +1,15 @@
 "use server";
 
 import { requireActionUser } from "@/lib/auth";
-import {
-  getRiwayatTransaksiPaginated,
-  parseRiwayatSort,
-} from "@/lib/riwayat-transaksi";
-import { parseSortValue } from "@/lib/sort";
+import { getBarangMasukDetail } from "@/lib/barang-masuk";
+import { idParamSchema, parseSchema } from "@/lib/validations";
 
-export async function exportRiwayatData(params: {
-  search: string;
-  sort: string;
-  id_kategori?: number;
-  tanggal?: string;
-}) {
+export async function getBarangMasukDetailAction(id: number) {
   const auth = await requireActionUser();
-  if (!auth.ok) return [];
+  if (!auth.ok) return null;
 
-  const { sortBy, sortOrder } = parseSortValue(
-    params.sort,
-    "tanggal_keluar",
-    "desc"
-  );
-  const parsed = parseRiwayatSort(sortBy, sortOrder);
+  const idParsed = parseSchema(idParamSchema, id);
+  if (!idParsed.ok) return null;
 
-  const result = await getRiwayatTransaksiPaginated({
-    page: 1,
-    limit: 10000,
-    search: params.search,
-    sortBy: parsed.sortBy,
-    sortOrder: parsed.sortOrder,
-    idKategori: params.id_kategori,
-    tanggal: params.tanggal,
-  });
-
-  return result.data;
+  return getBarangMasukDetail(idParsed.data);
 }

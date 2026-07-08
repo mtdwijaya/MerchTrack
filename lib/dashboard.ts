@@ -91,9 +91,8 @@ async function fetchDashboardData(month: number, year: number) {
     distribusiKemarinAgg,
     peringatanStokRendah,
     stokRendah,
-    top5StasiunGroup,
-    top5MerchAllTime,
-    kategoriGroup,
+    top5MerchBulanIniGroup,
+    tujuanGroup,
     trendYearRecords,
     stokGudang,
   ] = await Promise.all([
@@ -161,20 +160,14 @@ async function fetchDashboardData(month: number, year: number) {
       take: 3,
     }),
     prisma.barangKeluar.groupBy({
-      by: ["id_stasiun"],
+      by: ["id_merch"],
       where: monthWhere,
       _sum: { jumlah: true },
       orderBy: { _sum: { jumlah: "desc" } },
       take: 5,
     }),
     prisma.barangKeluar.groupBy({
-      by: ["id_merch"],
-      _sum: { jumlah: true },
-      orderBy: { _sum: { jumlah: "desc" } },
-      take: 5,
-    }),
-    prisma.barangKeluar.groupBy({
-      by: ["id_kategori"],
+      by: ["id_tujuan"],
       where: monthWhere,
       _sum: { jumlah: true },
       orderBy: { _sum: { jumlah: "desc" } },
@@ -203,27 +196,21 @@ async function fetchDashboardData(month: number, year: number) {
   const merchIds = [
     ...new Set([
       ...topMerchBulanIni.map((item) => item.id_merch),
-      ...top5MerchAllTime.map((item) => item.id_merch),
+      ...top5MerchBulanIniGroup.map((item) => item.id_merch),
     ]),
   ];
-  const stasiunIds = top5StasiunGroup.map((item) => item.id_stasiun);
-  const kategoriIds = kategoriGroup.map((item) => item.id_kategori);
+  const tujuanIds = tujuanGroup.map((item) => item.id_tujuan);
 
-  const [merchandiseRecords, stasiunRecords, kategoriRecords, topMerchRecord] =
+  const [merchandiseRecords, tujuanRecords, topMerchRecord] =
     await Promise.all([
       merchIds.length > 0
         ? prisma.merchandise.findMany({
             where: { id_merch: { in: merchIds } },
           })
         : Promise.resolve([]),
-      stasiunIds.length > 0
-        ? prisma.stasiun.findMany({
-            where: { id_stasiun: { in: stasiunIds } },
-          })
-        : Promise.resolve([]),
-      kategoriIds.length > 0
-        ? prisma.kategoriPenggunaan.findMany({
-            where: { id_kategori: { in: kategoriIds } },
+      tujuanIds.length > 0
+        ? prisma.tujuan.findMany({
+            where: { id_tujuan: { in: tujuanIds } },
           })
         : Promise.resolve([]),
       topMerchBulanIni[0]
@@ -237,11 +224,8 @@ async function fetchDashboardData(month: number, year: number) {
   const merchMap = new Map(
     merchandiseRecords.map((item) => [item.id_merch, item.nama_merch])
   );
-  const stasiunMap = new Map(
-    stasiunRecords.map((item) => [item.id_stasiun, item.nama_stasiun])
-  );
-  const kategoriMap = new Map(
-    kategoriRecords.map((item) => [item.id_kategori, item.nama_kategori])
+  const tujuanMap = new Map(
+    tujuanRecords.map((item) => [item.id_tujuan, item.nama_tujuan])
   );
 
   const topMerchQty = topMerchBulanIni[0]?._sum.jumlah ?? 0;
@@ -273,17 +257,13 @@ async function fetchDashboardData(month: number, year: number) {
       nama: item.merchandise.nama_merch,
       jumlah: item.jumlah_stok,
     })),
-    top5StasiunTeraktif: top5StasiunGroup.map((item) => ({
-      nama: stasiunMap.get(item.id_stasiun) ?? "Stasiun",
-      total: item._sum.jumlah ?? 0,
-    })),
     trendDistribusi: buildMonthlyTrend(trendYearRecords, month, year),
-    top5Merchandise: top5MerchAllTime.map((item) => ({
+    top5Merchandise: top5MerchBulanIniGroup.map((item) => ({
       nama: merchMap.get(item.id_merch) ?? "Merchandise",
       total: item._sum.jumlah ?? 0,
     })),
-    penggunaanKategori: kategoriGroup.map((item) => ({
-      nama: kategoriMap.get(item.id_kategori) ?? "Kategori",
+    penggunaanTujuan: tujuanGroup.map((item) => ({
+      nama: tujuanMap.get(item.id_tujuan) ?? "Tujuan",
       total: item._sum.jumlah ?? 0,
     })),
     stokGudang: stokGudang.map((item) => ({
