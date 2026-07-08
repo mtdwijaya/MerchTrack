@@ -2,6 +2,8 @@
 
 import { useRouter } from "next/navigation";
 
+import { Button } from "@/components/ui/button";
+
 interface FormActionsProps {
   loading?: boolean;
   submitLabel?: string;
@@ -10,6 +12,7 @@ interface FormActionsProps {
   loadingLabel?: string;
 }
 
+// tombol batal/simpan di bawah form modal
 export default function FormActions({
   loading,
   submitLabel = "Simpan",
@@ -19,35 +22,28 @@ export default function FormActions({
 }: FormActionsProps) {
   const router = useRouter();
 
+  function handleCancel() {
+    // prioritas: callback custom > href > back browser
+    if (onCancel) {
+      onCancel();
+      return;
+    }
+    if (cancelHref) {
+      router.push(cancelHref);
+      return;
+    }
+    router.back();
+  }
+
   return (
     <div className="flex justify-end gap-3 pt-2">
-      <button
-        type="button"
-        onClick={() => {
-          if (onCancel) onCancel();
-          else if (cancelHref) router.push(cancelHref);
-          else router.back();
-        }}
-        className="
-          rounded-xl border border-[#E2E2E2]
-          px-6 py-3 text-sm font-medium text-[#1A1C1C]
-          hover:bg-gray-50
-        "
-      >
+      <Button type="button" variant="outline" onClick={handleCancel}>
         Batal
-      </button>
+      </Button>
 
-      <button
-        type="submit"
-        disabled={loading}
-        className="
-          rounded-xl bg-[#B1070E] px-6 py-3
-          text-sm font-medium text-white shadow-md
-          hover:bg-[#93060c] disabled:opacity-50
-        "
-      >
+      <Button type="submit" variant="brand" disabled={loading}>
         {loading ? loadingLabel : submitLabel}
-      </button>
+      </Button>
     </div>
   );
 }

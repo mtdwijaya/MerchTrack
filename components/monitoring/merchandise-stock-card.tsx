@@ -1,3 +1,4 @@
+import { Badge } from "@/components/ui/badge";
 import { stockStatusStyle } from "@/constants/design-tokens";
 import type { StockStatus } from "@/lib/monitoring";
 import { cn } from "@/lib/utils";
@@ -36,14 +37,15 @@ export default function MerchandiseStockCard({
           {item.nama}
         </h3>
 
-        <span
+        <Badge
+          variant="secondary"
           className={cn(
-            "shrink-0 rounded-sm px-1.5 py-0.5 text-[8px] font-semibold uppercase tracking-wide",
+            "shrink-0 rounded-sm border-0 px-1.5 py-0.5 text-[8px] font-semibold uppercase tracking-wide",
             statusStyle.badge
           )}
         >
           {statusStyle.label}
-        </span>
+        </Badge>
       </div>
 
       <div className={cn("mt-auto", compact ? "pt-2" : "pt-4")}>

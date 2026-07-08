@@ -56,6 +56,7 @@ function buildSearchWhere(search?: string): Prisma.BarangKeluarWhereInput {
   if (!search?.trim()) return {};
 
   const term = search.trim();
+  // support cari by id transaksi (#123 atau 123)
   const numericId = Number(term.replace(/^#?/i, ""));
 
   const orFilters: Prisma.BarangKeluarWhereInput[] = [
@@ -171,6 +172,7 @@ type BarangKeluarInput = {
 };
 
 async function validateBarangKeluarInput(data: BarangKeluarInput) {
+  // cek tujuan valid + detail stasiun/unit sesuai jenis tujuan
   const tujuan = await getTujuanById(data.id_tujuan);
   if (!tujuan) {
     throw new Error("Tujuan tidak ditemukan");
@@ -198,6 +200,7 @@ export async function createBarangKeluar(
       throw new Error("Data stok tidak ditemukan");
     }
 
+    // stok harus cukup sebelum barang keluar dicatat
     if (stok.jumlah_stok < data.jumlah) {
       throw new Error("Stok tidak mencukupi");
     }

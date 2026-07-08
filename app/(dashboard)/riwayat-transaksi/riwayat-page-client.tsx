@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 
+import { Badge } from "@/components/ui/badge";
 import RiwayatDetailDialog from "@/components/riwayat-transaksi/riwayat-detail-dialog";
 import RiwayatSummary from "@/components/riwayat-transaksi/riwayat-summary";
 import {
@@ -40,17 +41,19 @@ interface Props {
 }
 
 function JenisBadge({ jenis }: { jenis: RiwayatJenis }) {
-  const styles =
-    jenis === "KELUAR"
-      ? "bg-[#FFF5F5] text-[#D32F2F]"
-      : "bg-emerald-50 text-emerald-700";
+  const isKeluar = jenis === "KELUAR";
 
   return (
-    <span
-      className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${styles}`}
+    <Badge
+      variant="secondary"
+      className={
+        isKeluar
+          ? "rounded-full border-0 bg-[#FFF5F5] text-[#D32F2F]"
+          : "rounded-full border-0 bg-emerald-50 text-emerald-700"
+      }
     >
-      {jenis === "KELUAR" ? "Barang Keluar" : "Barang Masuk"}
-    </span>
+      {isKeluar ? "Barang Keluar" : "Barang Masuk"}
+    </Badge>
   );
 }
 

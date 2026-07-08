@@ -12,7 +12,7 @@ import { useEffect, useState } from "react";
 
 import StatusBarangKeluarBadge from "@/components/barang-keluar/status-badge";
 import BuktiDocumentPreview from "@/components/ui/bukti-document-preview";
-import { actionButton } from "@/constants/design-tokens";
+import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -249,50 +249,50 @@ export default function BarangKeluarDetailDialog({
             <div className="flex flex-col-reverse gap-2 border-t border-[#E8E4DF] bg-[#FAFAF8] px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
               <div className="flex flex-wrap gap-2">
                 {onReturn && (
-                  <button
+                  <Button
                     type="button"
+                    variant="outline"
                     disabled={!canReturn}
                     onClick={() => {
                       onOpenChange(false);
                       onReturn(detail.id_keluar);
                     }}
-                    className={`${actionButton.outlineMd} disabled:cursor-not-allowed disabled:opacity-40`}
                   >
                     Kembalikan Barang
-                  </button>
+                  </Button>
                 )}
                 {onEdit && (
-                  <button
+                  <Button
                     type="button"
+                    variant="outline"
                     onClick={() => {
                       onOpenChange(false);
                       onEdit(detail.id_keluar);
                     }}
-                    className={actionButton.outlineMd}
                   >
                     Edit Transaksi
-                  </button>
+                  </Button>
                 )}
                 {onDelete && (
-                  <button
+                  <Button
                     type="button"
+                    variant="destructive"
                     onClick={() => {
                       onOpenChange(false);
                       onDelete(detail.id_keluar);
                     }}
-                    className={actionButton.destructive}
                   >
                     Hapus Transaksi
-                  </button>
+                  </Button>
                 )}
               </div>
-              <button
+              <Button
                 type="button"
+                variant="outline"
                 onClick={() => onOpenChange(false)}
-                className={actionButton.outlineMd}
               >
                 Tutup
-              </button>
+              </Button>
             </div>
           </>
         )}

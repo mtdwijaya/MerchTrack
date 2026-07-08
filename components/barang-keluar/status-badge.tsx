@@ -2,24 +2,27 @@
 
 import type { JenisDetailTujuan, StatusBarangKeluar } from "@prisma/client";
 
+import { Badge } from "@/components/ui/badge";
 import { statusBarangKeluarStyle } from "@/constants/design-tokens";
 import { STATUS_BARANG_KELUAR_LABEL } from "@/lib/detail-tujuan";
+import { cn } from "@/lib/utils";
 
-const STATUS_STYLE = statusBarangKeluarStyle;
-
+// badge status transaksi barang keluar — warna dari design token
 export default function StatusBarangKeluarBadge({
   status,
 }: {
   status: StatusBarangKeluar;
 }) {
-  const style = STATUS_STYLE[status];
-
   return (
-    <span
-      className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${style}`}
+    <Badge
+      variant="secondary"
+      className={cn(
+        "rounded-full border-0 px-2.5 py-1 text-xs font-medium",
+        statusBarangKeluarStyle[status]
+      )}
     >
       {STATUS_BARANG_KELUAR_LABEL[status] ?? status}
-    </span>
+    </Badge>
   );
 }
 

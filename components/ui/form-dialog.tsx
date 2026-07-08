@@ -28,6 +28,7 @@ export default function FormDialog({
   contentClassName,
   children,
 }: FormDialogProps) {
+  // ga render dialog sama sekali kalo closed — hemat DOM
   if (!open) return null;
 
   return (

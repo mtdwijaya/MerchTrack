@@ -78,6 +78,7 @@ interface Props {
   tujuanList: TujuanOption[];
 }
 
+// halaman monitoring — auto refresh tiap 15 detik + panel stok sinkron tinggi
 export default function MonitoringPageClient({
   data,
   recentTransactions,
@@ -184,6 +185,7 @@ export default function MonitoringPageClient({
   }
 
   useEffect(() => {
+    // polling ringan biar angka monitoring ke-update tanpa reload manual
     const interval = setInterval(() => {
       router.refresh();
     }, REFRESH_INTERVAL_MS);

@@ -12,6 +12,7 @@ export type MonitoringUser = {
   role: Role;
 };
 
+// hitung range tanggal bulan ini / bulan lalu (offset 0 = bulan ini)
 function monthRange(offset = 0) {
   const now = new Date();
   const start = new Date(now.getFullYear(), now.getMonth() + offset, 1);
@@ -22,6 +23,7 @@ function monthRange(offset = 0) {
 async function fetchMonitoringOverview(role: Role) {
   const thisMonth = monthRange(0);
 
+  // semua query paralel biar load halaman monitoring cepet
   const [
     totalStokAktifAgg,
     tujuanAktifGroup,
@@ -37,6 +39,7 @@ async function fetchMonitoringOverview(role: Role) {
       where: { tanggal_keluar: { gte: thisMonth.start, lte: thisMonth.end } },
       _sum: { jumlah: true },
     }),
+    // stok 1–50 pcs dianggap rendah (bukan habis)
     prisma.stok.count({ where: { jumlah_stok: { gt: 0, lte: 50 } } }),
     prisma.barangKeluar.groupBy({
       by: ["id_merch"],
@@ -61,6 +64,7 @@ async function fetchMonitoringOverview(role: Role) {
     merchandiseStock.map((item) => [item.id_merch, item.jumlah_stok])
   );
 
+  // top 5 merch paling banyak keluar bulan ini
   const topMerchSorted = [...merchGroupThisMonth]
     .sort((a, b) => (b._sum.jumlah ?? 0) - (a._sum.jumlah ?? 0))
     .slice(0, 5);
@@ -108,6 +112,7 @@ async function fetchMonitoringOverview(role: Role) {
   };
 }
 
+// cache 30 detik — data monitoring ga perlu real-time banget
 const getCachedMonitoringOverview = unstable_cache(
   fetchMonitoringOverview,
   ["monitoring-overview"],
@@ -126,7 +131,6 @@ export async function getMonitoringRecentTransactions() {
   });
 }
 
-// aktivitas terbaru dipindah ke lib/recent-activity.ts
 export type MonitoringOverview = Awaited<ReturnType<typeof getMonitoringOverview>>;
 export type MonitoringRecentTransactions = Awaited<
   ReturnType<typeof getMonitoringRecentTransactions>

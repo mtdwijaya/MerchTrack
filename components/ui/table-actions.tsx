@@ -1,8 +1,10 @@
 import Link from "next/link";
-import { Eye, SlidersHorizontal } from "lucide-react";
+import { Eye, Pencil, SlidersHorizontal, Trash2, Undo2 } from "lucide-react";
 
-import { actionButton } from "@/constants/design-tokens";
+import { Button, buttonVariants } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
+// tombol teks outline kecil di tabel
 export function TextOutlineAction({
   label,
   onClick,
@@ -13,86 +15,19 @@ export function TextOutlineAction({
   disabled?: boolean;
 }) {
   return (
-    <button
+    <Button
       type="button"
+      variant="outline"
+      size="sm"
       onClick={onClick}
       disabled={disabled}
-      className={`${actionButton.outline} disabled:cursor-not-allowed disabled:opacity-40`}
     >
       {label}
-    </button>
+    </Button>
   );
 }
 
-export function EditAction({
-  href,
-  onClick,
-}: {
-  href?: string;
-  onClick?: () => void;
-}) {
-  const className = actionButton.icon;
-
-  const icon = (
-    <svg
-      className="h-4 w-4"
-      fill="none"
-      viewBox="0 0 24 24"
-      stroke="currentColor"
-      strokeWidth={2}
-    >
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-      />
-    </svg>
-  );
-
-  if (onClick) {
-    return (
-      <button type="button" onClick={onClick} className={className} title="Edit">
-        {icon}
-      </button>
-    );
-  }
-
-  return (
-    <Link href={href!} className={className} title="Edit">
-      {icon}
-    </Link>
-  );
-}
-
-export function RestockAction({
-  onClick,
-}: {
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={actionButton.icon}
-      title="Restock"
-    >
-      <svg
-        className="h-4 w-4"
-        fill="none"
-        viewBox="0 0 24 24"
-        stroke="currentColor"
-        strokeWidth={2}
-      >
-        <path
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          d="M12 4v16m8-8H4"
-        />
-      </svg>
-    </button>
-  );
-}
-
+// tombol detail / kelola di tabel monitoring & riwayat
 export function DetailsAction({
   onClick,
   label = "Details",
@@ -105,46 +40,48 @@ export function DetailsAction({
   const Icon = variant === "manage" ? SlidersHorizontal : Eye;
 
   return (
-    <button
+    <Button
       type="button"
+      variant="outline"
+      size="sm"
       onClick={onClick}
-      className={`${actionButton.outline} inline-flex items-center gap-1.5`}
+      className="gap-1.5"
     >
       <Icon className="h-4 w-4" />
       {label}
-    </button>
+    </Button>
   );
 }
 
-export function TableTextAction({
-  label,
-  onClick,
-  variant,
-  disabled,
-}: {
-  label: string;
-  onClick: () => void;
-  variant: "return" | "edit" | "delete";
-  disabled?: boolean;
-}) {
-  const styles = {
-    return: actionButton.textLink,
-    edit: actionButton.textLink,
-    delete: actionButton.textDestructive,
-  };
-
+export function DeleteAction({ onClick }: { onClick: () => void }) {
   return (
-    <button
+    <Button
       type="button"
+      variant="outline"
+      size="icon"
       onClick={onClick}
-      disabled={disabled}
-      className={`disabled:cursor-not-allowed disabled:opacity-40 ${styles[variant]}`}
+      title="Hapus"
+      className="text-[#B71C1C] hover:text-[#D32F2F]"
     >
-      {label}
-    </button>
+      <Trash2 className="h-4 w-4" />
+    </Button>
   );
 }
 
+// aksi edit via link (halaman merchandise/stasiun dll)
+export function EditLinkAction({ href }: { href: string }) {
+  return (
+    <Link
+      href={href}
+      title="Edit"
+      className={cn(buttonVariants({ variant: "outline", size: "icon" }))}
+    >
+      <Pencil className="h-4 w-4" />
+    </Link>
+  );
+}
+
+// aksi kembalikan barang (barang keluar)
 export function ReturnAction({
   onClick,
   disabled,
@@ -153,55 +90,15 @@ export function ReturnAction({
   disabled?: boolean;
 }) {
   return (
-    <button
+    <Button
       type="button"
+      variant="outline"
+      size="icon"
       onClick={onClick}
       disabled={disabled}
-      className={`${actionButton.icon} disabled:cursor-not-allowed disabled:opacity-40`}
       title="Kembalikan Barang"
     >
-      <svg
-        className="h-4 w-4"
-        fill="none"
-        viewBox="0 0 24 24"
-        stroke="currentColor"
-        strokeWidth={2}
-      >
-        <path
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"
-        />
-      </svg>
-    </button>
-  );
-}
-
-export function DeleteAction({
-  onClick,
-}: {
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={actionButton.iconDestructive}
-      title="Hapus"
-    >
-      <svg
-        className="h-4 w-4"
-        fill="none"
-        viewBox="0 0 24 24"
-        stroke="currentColor"
-        strokeWidth={2}
-      >
-        <path
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-        />
-      </svg>
-    </button>
+      <Undo2 className="h-4 w-4" />
+    </Button>
   );
 }

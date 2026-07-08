@@ -4,7 +4,8 @@ import type { JenisDetailTujuan, StatusBarangKeluar } from "@prisma/client";
 import { Eye, MapPin, User } from "lucide-react";
 
 import StatusBarangKeluarBadge from "@/components/barang-keluar/status-badge";
-import { actionButton } from "@/constants/design-tokens";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   getLaporanCardDetailLabel,
   getLaporanCardSummary,
@@ -50,9 +51,12 @@ export default function LaporanCard({ item, onPreview }: LaporanCardProps) {
 
       <div className="min-w-0 flex-1 space-y-3">
         <div className="flex flex-wrap items-center gap-2">
-          <span className="rounded-full bg-[#FFF5F5] px-2.5 py-1 text-xs font-semibold text-[#D32F2F]">
+          <Badge
+            variant="secondary"
+            className="rounded-full border-0 bg-[#FFF5F5] px-2.5 py-1 text-xs font-semibold text-[#D32F2F]"
+          >
             {formatTransaksiId(item.id_keluar)}
-          </span>
+          </Badge>
          
         </div>
 
@@ -83,15 +87,10 @@ export default function LaporanCard({ item, onPreview }: LaporanCardProps) {
             <p className="mt-0.5 text-xs text-[#6B7280]">{returnCount}</p>
           )}
         </div>
-        <button
-          type="button"
-          onClick={() => onPreview(item.id_keluar)}
-          className={actionButton.primary}
-          style={{ backgroundColor: "#B71C1C" }}
-        >
+        <Button type="button" variant="brand" onClick={() => onPreview(item.id_keluar)}>
           <Eye className="h-4 w-4" />
           Preview PDF
-        </button>
+        </Button>
       </div>
     </article>
   );

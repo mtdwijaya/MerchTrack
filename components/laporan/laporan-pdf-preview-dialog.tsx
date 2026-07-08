@@ -10,12 +10,12 @@ import {
   LaporanTransaksiDocument,
   type LaporanPdfData,
 } from "@/components/laporan/laporan-transaksi-document";
+import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { actionButton } from "@/constants/design-tokens";
 
 interface LaporanPdfPreviewDialogProps {
   id: number | null;
@@ -74,14 +74,10 @@ export default function LaporanPdfPreviewDialog({
             Preview Laporan PDF
           </DialogTitle>
           {data && (
-            <button
-              type="button"
-              onClick={handleDownload}
-              className={actionButton.outline}
-            >
+            <Button type="button" variant="outline" size="sm" onClick={handleDownload}>
               <Download className="h-4 w-4" />
               Unduh
-            </button>
+            </Button>
           )}
         </div>
 

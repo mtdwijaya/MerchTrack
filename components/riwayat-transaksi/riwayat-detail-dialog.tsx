@@ -16,12 +16,12 @@ import {
   buildLaporanMasukPdfFilename,
   LaporanMasukDocument,
 } from "@/components/laporan/laporan-masuk-document";
+import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { actionButton } from "@/constants/design-tokens";
 import { formatTransaksiDate } from "@/lib/format-transaksi";
 import type { RiwayatJenis } from "@/lib/riwayat-transaksi";
 
@@ -174,22 +174,18 @@ export default function RiwayatDetailDialog({
 
         <div className="flex justify-end gap-2 border-t border-[#E8E4DF] bg-[#FAFAF8] px-6 py-4">
           {(keluarDetail || masukDetail) && (
-            <button
-              type="button"
-              onClick={handleDownload}
-              className={actionButton.primary}
-            >
+            <Button type="button" variant="brand" onClick={handleDownload}>
               <Download className="h-4 w-4" />
               Unduh Laporan PDF
-            </button>
+            </Button>
           )}
-          <button
+          <Button
             type="button"
+            variant="outline"
             onClick={() => onOpenChange(false)}
-            className={actionButton.outlineMd}
           >
             Tutup
-          </button>
+          </Button>
         </div>
       </DialogContent>
     </Dialog>

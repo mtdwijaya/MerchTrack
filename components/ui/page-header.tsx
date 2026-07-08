@@ -1,6 +1,10 @@
 import Link from "next/link";
 import { ReactNode } from "react";
 
+import { Button, buttonVariants } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
+
+// header standar tiap halaman list/dashboard
 export default function PageHeader({
   title,
   description,
@@ -25,6 +29,7 @@ export default function PageHeader({
   );
 }
 
+// tombol utama merah LRT — dipakai di header halaman CRUD
 export function PrimaryButton({
   href,
   children,
@@ -36,8 +41,7 @@ export function PrimaryButton({
   onClick?: () => void;
   disabled?: boolean;
 }) {
-  const className =
-    "rounded-lg bg-[#B1070E] px-5 py-3 text-sm font-semibold text-white shadow-sm hover:bg-[#93060c] disabled:opacity-50";
+  const className = cn(buttonVariants({ variant: "brand", size: "lg" }), "px-5");
 
   if (href) {
     return (
@@ -48,33 +52,15 @@ export function PrimaryButton({
   }
 
   return (
-    <button type="button" onClick={onClick} disabled={disabled} className={className}>
-      {children}
-    </button>
-  );
-}
-
-export function SecondaryButton({
-  children,
-  onClick,
-  disabled,
-}: {
-  children: ReactNode;
-  onClick?: () => void;
-  disabled?: boolean;
-}) {
-  return (
-    <button
+    <Button
       type="button"
+      variant="brand"
+      size="lg"
       onClick={onClick}
       disabled={disabled}
-      className="
-        rounded-lg border border-[#E2E2E2]
-        bg-white px-5 py-3 text-sm font-semibold text-[#1A1C1C]
-        hover:bg-gray-50 disabled:opacity-50
-      "
+      className="px-5"
     >
       {children}
-    </button>
+    </Button>
   );
 }

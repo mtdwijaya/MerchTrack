@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 
+import { Badge } from "@/components/ui/badge";
 import { RelativeTime } from "@/components/ui/relative-time";
 import {
   activityTypeStyle,
@@ -9,6 +10,7 @@ import {
   palette,
 } from "@/constants/design-tokens";
 import type { RecentActivityItem } from "@/lib/recent-activity";
+import { cn } from "@/lib/utils";
 
 const TYPE_STYLES: Record<
   RecentActivityItem["type"],
@@ -101,11 +103,15 @@ export default function RecentActivityPanel({
                       </span>
                     </div>
                     <div className="mt-0.5 flex items-center gap-2">
-                      <span
-                        className={`shrink-0 rounded px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide ${styles.badge}`}
+                      <Badge
+                        variant="secondary"
+                        className={cn(
+                          "shrink-0 rounded border-0 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide",
+                          styles.badge
+                        )}
                       >
                         {typeLabel(item.type)}
-                      </span>
+                      </Badge>
                       <p
                         className={`text-[10px] ${
                           item.type === "Edit Transaksi"

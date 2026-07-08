@@ -3,15 +3,17 @@
 import { Download, ExternalLink, Eye, FileText } from "lucide-react";
 import { useEffect, useState } from "react";
 
+import { Button, buttonVariants } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { actionButton } from "@/constants/design-tokens";
+import { cn } from "@/lib/utils";
 
 export type BuktiFileKind = "pdf" | "image" | "unknown";
 
+// deteksi jenis file bukti dari ekstensi
 export function getBuktiFileKind(path: string, name?: string) {
   const source = (name || path).toLowerCase();
 
@@ -40,30 +42,27 @@ function BuktiPreviewFrame({
   if (kind === "image") {
     return (
       // eslint-disable-next-line @next/next/no-img-element
-      <img
-        src={path}
-        alt={name}
-        className={className}
-      />
+      <img src={path} alt={name} className={className} />
     );
   }
 
   if (kind === "pdf") {
-    return (
-      <iframe
-        src={path}
-        title={name}
-        className={className}
-      />
-    );
+    return <iframe src={path} title={name} className={className} />;
   }
 
   return (
-    <div className={`flex items-center justify-center text-sm text-[#6B7280] ${className ?? ""}`}>
+    <div
+      className={`flex items-center justify-center text-sm text-[#6B7280] ${className ?? ""}`}
+    >
       Pratinjau tidak tersedia untuk format ini
     </div>
   );
 }
+
+const linkButtonClass = cn(
+  buttonVariants({ variant: "outline", size: "sm" }),
+  "inline-flex gap-1.5"
+);
 
 export default function BuktiDocumentPreview({
   path,
@@ -88,25 +87,26 @@ export default function BuktiDocumentPreview({
 
           <div className="flex flex-wrap gap-2">
             {canPreview && (
-              <button
+              <Button
                 type="button"
+                variant="outline"
+                size="sm"
                 onClick={() => setPreviewOpen(true)}
-                className={actionButton.outlineMd}
               >
                 <Eye className="h-4 w-4" />
                 Preview
-              </button>
+              </Button>
             )}
             <a
               href={path}
               target="_blank"
               rel="noreferrer"
-              className={actionButton.outlineMd}
+              className={linkButtonClass}
             >
               <ExternalLink className="h-4 w-4" />
               Buka
             </a>
-            <a href={path} download={name} className={actionButton.outlineMd}>
+            <a href={path} download={name} className={linkButtonClass}>
               <Download className="h-4 w-4" />
               Unduh
             </a>
@@ -123,7 +123,7 @@ export default function BuktiDocumentPreview({
               path={path}
               name={name}
               kind={kind}
-              className="h-48 w-full object-contain bg-white"
+              className="h-48 w-full bg-white object-contain"
             />
           </button>
         )}
@@ -138,11 +138,7 @@ export default function BuktiDocumentPreview({
             <DialogTitle className="truncate text-lg font-semibold text-[#1A1C1C]">
               Preview — {name}
             </DialogTitle>
-            <a
-              href={path}
-              download={name}
-              className={actionButton.outline}
-            >
+            <a href={path} download={name} className={linkButtonClass}>
               <Download className="h-4 w-4" />
               Unduh
             </a>
@@ -166,6 +162,7 @@ interface BuktiLocalPreviewProps {
   file: File;
 }
 
+// preview file yang baru dipilih di form (belum di-upload)
 export function BuktiLocalPreview({ file }: BuktiLocalPreviewProps) {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const kind = getBuktiFileKind(file.name);
@@ -187,13 +184,22 @@ export function BuktiLocalPreview({ file }: BuktiLocalPreviewProps) {
   return (
     <div className="mt-3 overflow-hidden rounded-lg border border-[#E5E7EB] bg-[#FAFAFA]">
       <p className="border-b border-[#E5E7EB] px-3 py-2 text-xs text-[#6B7280]">
-        Pratinjau: <span className="font-medium text-[#1A1C1C]">{file.name}</span>
+        Pratinjau:{" "}
+        <span className="font-medium text-[#1A1C1C]">{file.name}</span>
       </p>
       {kind === "image" ? (
         // eslint-disable-next-line @next/next/no-img-element
-        <img src={previewUrl} alt={file.name} className="max-h-48 w-full object-contain bg-white" />
+        <img
+          src={previewUrl}
+          alt={file.name}
+          className="max-h-48 w-full bg-white object-contain"
+        />
       ) : (
-        <iframe src={previewUrl} title={file.name} className="h-48 w-full bg-white" />
+        <iframe
+          src={previewUrl}
+          title={file.name}
+          className="h-48 w-full bg-white"
+        />
       )}
     </div>
   );
