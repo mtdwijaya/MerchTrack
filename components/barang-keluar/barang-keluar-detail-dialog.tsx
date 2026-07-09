@@ -107,7 +107,7 @@ export default function BarangKeluarDetailDialog({
         ) : (
           <>
             <div className="border-b border-[#EFEAE5] px-6 py-5">
-              <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between mr-4 mt-4">
                 <div className="flex items-start gap-3">
                   <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#FFF2F2]">
                     <Package className="h-5 w-5 text-[#B1070E]" />

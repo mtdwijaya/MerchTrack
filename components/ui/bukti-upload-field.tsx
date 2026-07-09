@@ -39,6 +39,7 @@ export default function BuktiUploadField({
   return (
     <Field label="Upload Bukti Dokumen">
       <input
+      style={{ alignContent: 'center' }}
         type="file"
         accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png"
         onChange={(e) => {

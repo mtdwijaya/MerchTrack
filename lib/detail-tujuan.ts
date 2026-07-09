@@ -68,7 +68,7 @@ export function formatDetailTujuan(item: DetailTujuanDisplay): string {
 }
 
 export const STATUS_BARANG_KELUAR_LABEL: Record<string, string> = {
-  AKTIF: "Terpakai",
+  AKTIF: "Diterima",
   SEBAGIAN_KEMBALI: "Sebagian Dikembalikan",
   LUNAS_KEMBALI: "Dikembalikan Semua",
 };

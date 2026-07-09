@@ -42,7 +42,7 @@ function BuktiPreviewFrame({
   if (kind === "image") {
     return (
       // eslint-disable-next-line @next/next/no-img-element
-      <img src={path} alt={name} className={className} />
+      <img src={path} alt={name} className={className} style={{ objectFit: 'contain' }} />
     );
   }
 
