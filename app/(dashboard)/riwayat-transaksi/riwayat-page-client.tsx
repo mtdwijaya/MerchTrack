@@ -122,8 +122,8 @@ export default function RiwayatPageClient({ list, summary, pageSize }: Props) {
             <thead>
               <tr className="border-b border-[#E8E4DF] bg-[#FAFAF8]">
                 <Th>Tanggal</Th>
-                <Th>Jenis</Th>
-                <Th>Merchandise</Th>
+                <Th align="center">Jenis</Th>
+                <Th align="center">Merchandise</Th>
                 <Th align="center">Jumlah</Th>
                 <Th>Keterangan</Th>
                 <Th>Petugas</Th>
@@ -144,10 +144,12 @@ export default function RiwayatPageClient({ list, summary, pageSize }: Props) {
                     <Td variant="numeric" align="left">
                       {formatTransaksiDate(item.tanggal.toISOString())}
                     </Td>
-                    <Td>
+                    <Td align="center">
                       <JenisBadge jenis={item.jenis} />
                     </Td>
-                    <Td variant="truncate">{item.merchandise}</Td>
+                    <Td align="center" variant="truncate">
+                      {item.merchandise}
+                    </Td>
                     <Td variant="numeric" align="center">
                       {item.jumlah.toLocaleString("id-ID")}
                     </Td>

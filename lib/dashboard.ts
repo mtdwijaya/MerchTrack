@@ -8,6 +8,7 @@ import {
   MONTH_SHORT,
 } from "@/lib/dashboard-constants";
 import type { DashboardData } from "@/lib/dashboard-types";
+import { lowStockWhere } from "@/lib/monitoring";
 import { prisma } from "@/lib/prisma";
 
 function periodRange(month: number, year: number) {
@@ -152,9 +153,10 @@ async function fetchDashboardData(month: number, year: number) {
           _sum: { jumlah: true },
         })
       : Promise.resolve({ _sum: { jumlah: 0 } }),
-    prisma.stok.count({ where: { jumlah_stok: { gt: 0, lte: 50 } } }),
+    // stok < 20 termasuk habis — sama kayak monitoring & merchandise
+    prisma.stok.count({ where: lowStockWhere }),
     prisma.stok.findMany({
-      where: { jumlah_stok: { gt: 0, lte: 50 } },
+      where: lowStockWhere,
       include: { merchandise: true },
       orderBy: { jumlah_stok: "asc" },
       take: 3,

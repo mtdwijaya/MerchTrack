@@ -17,9 +17,7 @@ interface HeaderProps {
 const pageTitles: Record<string, string> = {
   "/dashboard": "Dashboard",
   "/barang-keluar": "Barang Keluar",
-  "/barang-masuk": "Barang Masuk",
   "/monitoring": "Monitoring",
-  "/history": "History",
   "/stasiun": "Manajemen Stasiun",
   "/merchandise": "Manajemen Merchandise",
   "/pengguna": "Manajemen Pengguna",

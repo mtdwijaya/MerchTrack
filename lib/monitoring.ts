@@ -13,9 +13,17 @@ const SORT_FIELDS: MonitoringSortField[] = [
 
 export type StockStatus = "normal" | "rendah" | "habis";
 
+/** stok < 20 pcs (0–19) = rendah/habis — dipakai semua halaman KPI */
+export const LOW_STOCK_MAX = 20;
+
+/** filter prisma: termasuk stok habis */
+export const lowStockWhere = {
+  jumlah_stok: { lte: LOW_STOCK_MAX },
+} satisfies Prisma.StokWhereInput;
+
 export function getStockStatus(jumlah: number): StockStatus {
   if (jumlah <= 0) return "habis";
-  if (jumlah <= 50) return "rendah";
+  if (jumlah <= LOW_STOCK_MAX) return "rendah";
   return "normal";
 }
 
@@ -66,9 +74,9 @@ export async function getMonitoringPaginated({
   if (status === "habis") {
     where.jumlah_stok = { lte: 0 };
   } else if (status === "rendah") {
-    where.jumlah_stok = { gt: 0, lte: 50 };
+    where.jumlah_stok = { gt: 0, lte: LOW_STOCK_MAX };
   } else if (status === "normal") {
-    where.jumlah_stok = { gt: 50 };
+    where.jumlah_stok = { gt: LOW_STOCK_MAX };
   }
 
   const orderBy =
@@ -105,7 +113,9 @@ export async function getMonitoringSummary() {
   const [totalItem, stokAggregate, rendah, habis] = await Promise.all([
     prisma.stok.count(),
     prisma.stok.aggregate({ _sum: { jumlah_stok: true } }),
-    prisma.stok.count({ where: { jumlah_stok: { gt: 0, lte: 50 } } }),
+    prisma.stok.count({
+      where: { jumlah_stok: { gt: 0, lte: LOW_STOCK_MAX } },
+    }),
     prisma.stok.count({ where: { jumlah_stok: { lte: 0 } } }),
   ]);
 

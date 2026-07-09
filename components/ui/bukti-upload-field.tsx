@@ -57,7 +57,7 @@ export default function BuktiUploadField({
           }
           onChange(file);
         }}
-        className="input-field cursor-pointer file:mr-3 file:rounded-md file:border-0 file:bg-[#FFF5F5] file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-[#D32F2F]"
+        className="input-field w-full cursor-pointer text-sm text-[#4A4A4A] file:mr-3 file:rounded-md file:border-0 file:bg-[#FFF5F5] file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-[#D32F2F]"
       />
       <p className="mt-1.5 text-xs text-[#9A9A9A]">
         PDF, JPG, atau PNG — maksimal 5MB

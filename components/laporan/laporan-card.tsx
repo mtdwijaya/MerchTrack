@@ -41,7 +41,7 @@ export default function LaporanCard({ item, onPreview }: LaporanCardProps) {
   return (
     <article className="flex flex-col gap-4 rounded-2xl border border-[#EFEAE5] bg-white p-5 shadow-sm transition-shadow hover:shadow-md sm:flex-row sm:items-center">
       <div className="flex shrink-0 items-center gap-4 border-[#EFEAE5] pr-5 sm:border-r sm:pr-8">
-        <div className="flex items-center gap-8 sm:flex-col sm:gap-0 sm:text-center">
+        <div className="flex items-center gap-8 pl-4 sm:flex-col sm:gap-0 sm:text-center">
           <p className="text-2xl font-bold leading-none text-gray-700">{day}</p>
           <p className="text-sm font-bold uppercase tracking-wide text-[#6B7280] sm:mt-1">
             {month}

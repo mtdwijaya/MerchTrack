@@ -10,30 +10,18 @@ export type MerchandiseStockItem = {
   status: StockStatus;
 };
 
-/** kartu stok per merchandise — selaras panel monitoring & summary cards */
+/** kartu stok kecil di panel monitoring — tinggi natural, ga ditempel stretch */
 export default function MerchandiseStockCard({
   item,
-  compact = false,
 }: {
   item: MerchandiseStockItem;
-  compact?: boolean;
 }) {
   const statusStyle = stockStatusStyle[item.status];
 
   return (
-    <article
-      className={cn(
-        "flex h-full min-h-0 flex-col overflow-hidden rounded-xl border border-[#EFEAE5] bg-[#FAFAFA]",
-        compact ? "p-2.5" : "p-4"
-      )}
-    >
-      <div className="flex min-h-0 items-start justify-between gap-2">
-        <h3
-          className={cn(
-            "min-w-0 flex-1 line-clamp-2 font-semibold leading-snug text-[#1A1C1C]",
-            compact ? "text-sm" : "text-sm"
-          )}
-        >
+    <article className="rounded-xl border border-[#EFEAE5] bg-[#FAFAFA] p-3">
+      <div className="flex items-start justify-between gap-2">
+        <h3 className="min-w-0 flex-1 truncate text-sm font-medium text-[#1A1C1C]">
           {item.nama}
         </h3>
 
@@ -48,20 +36,13 @@ export default function MerchandiseStockCard({
         </Badge>
       </div>
 
-      <div className={cn("mt-auto", compact ? "pt-2" : "pt-4")}>
-        <p className="text-[10px] font-semibold uppercase tracking-wide text-[#6B7280]">
-          Stok Tersedia
-        </p>
-        <p
-          className={cn(
-            "mt-0.5 font-bold tabular-nums text-[#1A1C1C]",
-            compact ? "text-base" : "text-xl"
-          )}
-        >
-          {item.jumlah.toLocaleString("id-ID")}
-          <span className="ml-1 text-xs font-medium text-[#6B7280]">pcs</span>
-        </p>
-      </div>
+      <p className="mt-2 text-lg font-bold tabular-nums leading-none text-[#1A1C1C]">
+        {item.jumlah.toLocaleString("id-ID")}
+        <span className="ml-1 text-xs font-medium text-[#6B7280]">pcs</span>
+      </p>
+      <p className="mt-1 text-[10px] font-medium uppercase tracking-wide text-[#9CA3AF]">
+        Stok tersedia
+      </p>
     </article>
   );
 }

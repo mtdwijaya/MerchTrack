@@ -142,15 +142,6 @@ export async function getBarangKeluarPaginated({
   };
 }
 
-export async function getBarangKeluar() {
-  return prisma.barangKeluar.findMany({
-    include: barangKeluarListInclude,
-    orderBy: {
-      tanggal_keluar: "desc",
-    },
-  });
-}
-
 export async function getBarangKeluarById(id: number) {
   return prisma.barangKeluar.findUnique({
     where: { id_keluar: id },
@@ -207,6 +198,7 @@ export async function createBarangKeluar(
 
     const tanggalKeluar = data.tanggal_keluar ?? new Date();
 
+    // bukti_path/nama ikut disimpan kalo ada upload di form
     const transaksi = await tx.barangKeluar.create({
       data: {
         id_merch: data.id_merch,
@@ -219,6 +211,8 @@ export async function createBarangKeluar(
         tanggal_keluar: tanggalKeluar,
         dicatat_pada: tanggalKeluar,
         keterangan: data.keterangan,
+        bukti_path: data.bukti_path ?? null,
+        bukti_nama: data.bukti_nama ?? null,
       },
     });
 

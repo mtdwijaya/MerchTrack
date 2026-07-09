@@ -1,6 +1,7 @@
 import { revalidateTag, unstable_cache } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { Prisma } from "@prisma/client";
+import { lowStockWhere } from "@/lib/monitoring";
 import { SortOrder } from "@/lib/sort";
 
 export const MERCHANDISE_LIST_CACHE_TAG = "merchandise-list";
@@ -30,10 +31,6 @@ export function parseMerchandiseSort(
     sortBy: field,
     sortOrder: sortOrder === "desc" ? "desc" : "asc",
   };
-}
-
-export function formatMerchandiseId(id: number) {
-  return `MRC-${String(id).padStart(3, "0")}`;
 }
 
 // samakan aturan dengan backfill di migration: lowercase + trim + spasi tunggal
@@ -146,13 +143,6 @@ export function revalidateMerchandiseListCache() {
   revalidateTag(MERCHANDISE_LIST_CACHE_TAG, "max");
 }
 
-export async function getAllMerchandiseWithStok() {
-  return prisma.merchandise.findMany({
-    include: { stok: true },
-    orderBy: { nama_merch: "asc" },
-  });
-}
-
 export async function getMerchandiseById(id: number) {
   return prisma.merchandise.findUnique({
     where: { id_merch: id },
@@ -164,7 +154,7 @@ export async function getMerchandiseSummary() {
   const [totalMerchandise, stokAggregate, lowStockCount] = await Promise.all([
     prisma.merchandise.count(),
     prisma.stok.aggregate({ _sum: { jumlah_stok: true } }),
-    prisma.stok.count({ where: { jumlah_stok: { lte: 50 } } }),
+    prisma.stok.count({ where: lowStockWhere }),
   ]);
 
   return {

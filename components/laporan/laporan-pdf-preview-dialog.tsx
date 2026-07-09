@@ -69,12 +69,18 @@ export default function LaporanPdfPreviewDialog({
         className="flex h-[90vh] max-h-[90vh] flex-col gap-0 overflow-hidden border border-[#E5E7EB] p-0 shadow-xl sm:max-w-4xl"
         showCloseButton
       >
-        <div className="flex items-center justify-between border-b border-[#EFEAE5] px-6 py-4">
-          <DialogTitle className="text-lg font-semibold text-[#1A1C1C]">
+        <div className="flex items-center justify-between gap-3 border-b border-[#EFEAE5] py-4 pr-14 pl-6">
+          <DialogTitle className="min-w-0 truncate text-lg font-semibold text-[#1A1C1C]">
             Preview Laporan PDF
           </DialogTitle>
           {data && (
-            <Button type="button" variant="outline" size="sm" onClick={handleDownload}>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="shrink-0"
+              onClick={handleDownload}
+            >
               <Download className="h-4 w-4" />
               Unduh
             </Button>

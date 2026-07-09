@@ -56,8 +56,3 @@ export function resetRateLimit(key: string) {
 export function loginRateLimitKey(ip: string) {
   return `login:${ip}`;
 }
-
-export const LOGIN_RATE_LIMIT = {
-  limit: LOGIN_LIMIT,
-  windowMs: LOGIN_WINDOW_MS,
-} as const;

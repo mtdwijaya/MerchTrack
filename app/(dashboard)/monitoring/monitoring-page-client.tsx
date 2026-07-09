@@ -1,6 +1,7 @@
 "use client";
 
 import type { Role, StatusBarangKeluar } from "@prisma/client";
+import { ChevronRight } from "lucide-react";
 import IconImage from "@/components/ui/icon-image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -204,33 +205,48 @@ export default function MonitoringPageClient({
             : "Ringkasan stok dan distribusi per tujuan. Diperbarui otomatis setiap 15 detik."
         }
       />
-
-      <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      {/* card summary */}
+      <section className="grid grid-cols-2 gap-2.5 lg:grid-cols-4">
         <SummaryMetric
           label="Total Stok Aktif"
           value={data.summary.totalStokAktif}
+          suffix="pcs"
           iconSrc="/icons/icon-stok.svg"
+          subtitle="Stok tersedia di gudang"
         />
         <SummaryMetric
-          label="Jenis Tujuan Aktif"
-          value={data.summary.tujuanAktif}
-          iconSrc="/icons/icon-red-stasiun.svg"
+          label="Total Merchandise"
+          value={data.summary.totalMerchandise}
+          suffix="item"
+          iconSrc="/icons/icon-merchandise-merah.svg"
+          subtitle="Jenis merchandise "
         />
         <SummaryMetric
           label="Distribusi Bulan Ini"
           value={data.summary.distribusiBulanIni}
           suffix="pcs"
           iconSrc="/icons/icon-barangkeluar-merah.svg"
+          subtitle={
+            data.topMerchandise[0]
+              ? `Terbanyak : ${data.topMerchandise[0].nama}`
+              : "Belum ada distribusi bulan ini"
+          }
         />
         <SummaryMetric
           label="Peringatan Stok Rendah"
           value={data.summary.peringatanStokRendah}
+          suffix="item"
           iconSrc="/icons/icon-merchandise-merah.svg"
-          highlight
-          stockLabels={data.lowStockItems.map((item) => ({
-            nama: item.nama,
-            jumlah: item.jumlah,
-          }))}
+          variant="danger"
+          subtitle={
+            data.lowStockItems[0]
+              ? `${data.lowStockItems[0].nama} (${data.lowStockItems[0].jumlah} pcs)`
+              : "Semua stok aman"
+          }
+          showChevron={data.summary.peringatanStokRendah > 0}
+          href={
+            data.summary.peringatanStokRendah > 0 ? "/merchandise" : undefined
+          }
         />
       </section>
 
@@ -293,20 +309,19 @@ export default function MonitoringPageClient({
             </Link>
           </div>
 
-          <div className="mt-5 grid min-h-0 flex-1 grid-cols-2 gap-3 [grid-auto-rows:minmax(0,1fr)] lg:grid-cols-3">
-            {data.merchandiseStock.length === 0 ? (
-              <p className="col-span-full text-sm text-[#6B7280]">
-                Belum ada merchandise terdaftar
-              </p>
-            ) : (
-              data.merchandiseStock.map((item) => (
-                <MerchandiseStockCard
-                  key={item.id_merch}
-                  item={item}
-                  compact={data.merchandiseStock.length > 6}
-                />
-              ))
-            )}
+          {/* tinggi panel ikut Top 5; isi scroll kalo kebanyakan (4 kolom) */}
+          <div className="mt-5 min-h-0 flex-1 overflow-y-auto pr-1">
+            <div className="grid grid-cols-2 gap-2.5 md:grid-cols-3 xl:grid-cols-4">
+              {data.merchandiseStock.length === 0 ? (
+                <p className="col-span-full text-sm text-[#6B7280]">
+                  Belum ada merchandise terdaftar
+                </p>
+              ) : (
+                data.merchandiseStock.map((item) => (
+                  <MerchandiseStockCard key={item.id_merch} item={item} />
+                ))
+              )}
+            </div>
           </div>
         </div>
       </section>
@@ -444,21 +459,27 @@ function SummaryMetric({
   label,
   value,
   suffix,
+  subtitle,
   iconSrc,
-  highlight,
-  stockLabels,
+  variant = "default",
+  showChevron,
+  href,
 }: {
   label: string;
   value: number;
   suffix?: string;
+  subtitle?: string;
   iconSrc: string;
-  highlight?: boolean;
-  stockLabels?: { nama: string; jumlah: number }[];
+  variant?: "default" | "danger";
+  showChevron?: boolean;
+  href?: string;
 }) {
-  return (
+  const isDanger = variant === "danger";
+
+  const content = (
     <div
-      className={`rounded-2xl border p-5 shadow-sm ${
-        highlight
+      className={`h-full min-h-[154px] rounded-2xl border p-6 shadow-sm ${
+        isDanger
           ? "border-[#B1070E] bg-[#B01B1C] text-white"
           : "border-[#EFEAE5] bg-white"
       }`}
@@ -467,7 +488,7 @@ function SummaryMetric({
         <div className="min-w-0 flex-1">
           <p
             className={`text-xs font-semibold uppercase tracking-wide ${
-              highlight ? "text-white/90" : "text-[#6B7280]"
+              isDanger ? "text-white/90" : "text-[#6B7280]"
             }`}
           >
             {label}
@@ -475,7 +496,7 @@ function SummaryMetric({
           <div className="mt-3 flex items-end gap-2">
             <p
               className={`text-3xl font-bold ${
-                highlight ? "text-white" : "text-[#1A1C1C]"
+                isDanger ? "text-white" : "text-[#1A1C1C]"
               }`}
             >
               {value.toLocaleString("id-ID")}
@@ -483,7 +504,7 @@ function SummaryMetric({
             {suffix && (
               <span
                 className={`pb-1 text-sm ${
-                  highlight ? "text-white/80" : "text-[#6B7280]"
+                  isDanger ? "text-white/80" : "text-[#6B7280]"
                 }`}
               >
                 {suffix}
@@ -491,35 +512,45 @@ function SummaryMetric({
             )}
           </div>
 
-          {highlight && stockLabels && stockLabels.length > 0 && (
-            <div className="mt-3 flex flex-wrap gap-1.5">
-              {stockLabels.map((item) => (
-                <span
-                  key={item.nama}
-                  className="rounded-full bg-white/20 px-2.5 py-1 text-[11px] font-medium text-white"
-                >
-                  {item.nama} · {item.jumlah.toLocaleString("id-ID")} pcs
-                </span>
-              ))}
-            </div>
-          )}
-
-          {highlight && stockLabels && stockLabels.length === 0 && (
-            <p className="mt-3 text-xs text-white/80">Semua stok aman</p>
+          {subtitle ? (
+            <p
+              className={`mt-2 line-clamp-1 text-sm ${
+                isDanger ? "text-white/85" : "text-[#6B7280]"
+              }`}
+            >
+              {subtitle}
+              {showChevron && (
+                <ChevronRight size={12} className="ml-0.5 inline" />
+              )}
+            </p>
+          ) : (
+            // spacer biar tinggi card sama kayak barang keluar yang punya subtitle
+            <div className="mt-2 min-h-5" aria-hidden />
           )}
         </div>
+
         <div
           className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ${
-            highlight ? "bg-white/20" : "bg-[#FFF2F2]"
+            isDanger ? "bg-white/20" : "bg-[#FFF2F2]"
           }`}
         >
           <IconImage
             src={iconSrc}
             size={22}
-            className={highlight ? "brightness-0 invert" : ""}
+            className={isDanger ? "brightness-0 invert" : ""}
           />
         </div>
       </div>
     </div>
   );
+
+  if (href) {
+    return (
+      <Link href={href} className="block h-full transition hover:opacity-95">
+        {content}
+      </Link>
+    );
+  }
+
+  return content;
 }

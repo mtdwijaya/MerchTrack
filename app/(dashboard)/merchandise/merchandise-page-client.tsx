@@ -238,7 +238,8 @@ export default function MerchandisePageClient({
               title: "Stok Rendah",
               value: summary.lowStockCount,
               iconSrc: "/icons/icon-barangkeluar-merah.svg",
-              subtitle: "Perlu perhatian",
+              subtitle: "Stok di bawah 20 pcs atau habis",
+              variant: "danger",
             },
           ]}
         />

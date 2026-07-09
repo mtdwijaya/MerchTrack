@@ -2,7 +2,6 @@ import { Suspense } from "react";
 
 import RiwayatPageClient from "./riwayat-page-client";
 import {
-  getOptionalNumberParam,
   getPageParam,
   getParam,
   type SearchParams,

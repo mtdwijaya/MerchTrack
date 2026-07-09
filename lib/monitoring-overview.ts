@@ -2,7 +2,7 @@ import type { Role } from "@prisma/client";
 import { unstable_cache } from "next/cache";
 
 import { ANALYTICS_CACHE_TAG } from "@/lib/analytics-cache-tag";
-import { getStockStatus } from "@/lib/monitoring";
+import { getStockStatus, lowStockWhere } from "@/lib/monitoring";
 import { prisma } from "@/lib/prisma";
 import { riwayatListInclude } from "@/lib/prisma-selects";
 
@@ -26,7 +26,7 @@ async function fetchMonitoringOverview(role: Role) {
   // semua query paralel biar load halaman monitoring cepet
   const [
     totalStokAktifAgg,
-    tujuanAktifGroup,
+    totalMerchandise,
     distribusiBulanIniAgg,
     peringatanStokRendah,
     merchGroupThisMonth,
@@ -34,20 +34,20 @@ async function fetchMonitoringOverview(role: Role) {
     merchandiseStock,
   ] = await Promise.all([
     prisma.stok.aggregate({ _sum: { jumlah_stok: true } }),
-    prisma.barangKeluar.groupBy({ by: ["id_tujuan"] }),
+    prisma.merchandise.count(),
     prisma.barangKeluar.aggregate({
       where: { tanggal_keluar: { gte: thisMonth.start, lte: thisMonth.end } },
       _sum: { jumlah: true },
     }),
-    // stok 1–50 pcs dianggap rendah (bukan habis)
-    prisma.stok.count({ where: { jumlah_stok: { gt: 0, lte: 50 } } }),
+    // stok < 20 termasuk habis (0 pcs)
+    prisma.stok.count({ where: lowStockWhere }),
     prisma.barangKeluar.groupBy({
       by: ["id_merch"],
       where: { tanggal_keluar: { gte: thisMonth.start, lte: thisMonth.end } },
       _sum: { jumlah: true },
     }),
     prisma.stok.findMany({
-      where: { jumlah_stok: { gt: 0, lte: 50 } },
+      where: lowStockWhere,
       include: { merchandise: true },
       orderBy: { jumlah_stok: "asc" },
       take: 10,
@@ -92,7 +92,7 @@ async function fetchMonitoringOverview(role: Role) {
   return {
     summary: {
       totalStokAktif: totalStokAktifAgg._sum.jumlah_stok ?? 0,
-      tujuanAktif: tujuanAktifGroup.length,
+      totalMerchandise,
       distribusiBulanIni: distribusiBulanIniAgg._sum.jumlah ?? 0,
       peringatanStokRendah,
     },

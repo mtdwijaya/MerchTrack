@@ -91,17 +91,3 @@ export async function deleteEditLogsForTransaksi(
     where: { pesan: { contains: trxRef } },
   });
 }
-
-/** @deprecated use insertEditAktivitasLog */
-export async function upsertEditAktivitasLog(data: {
-  id_keluar: number;
-  id_user: number;
-  pesan: string;
-  occurredAt: Date;
-}) {
-  await insertEditAktivitasLog({
-    id_user: data.id_user,
-    pesan: data.pesan,
-    occurredAt: data.occurredAt,
-  });
-}

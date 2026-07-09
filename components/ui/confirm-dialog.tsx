@@ -28,13 +28,17 @@ export default function ConfirmDialog({
 }: Props) {
   return (
     <Dialog open={open} onOpenChange={(next) => !next && onCancel()}>
-      <DialogContent showCloseButton={false} className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>{title}</DialogTitle>
-          <DialogDescription>{message}</DialogDescription>
+      <DialogContent showCloseButton={false} className="gap-5 sm:max-w-md">
+        <DialogHeader className="gap-2 text-left">
+          <DialogTitle className="text-lg font-semibold text-[#1A1C1C]">
+            {title}
+          </DialogTitle>
+          <DialogDescription className="text-sm leading-relaxed text-[#6B7280]">
+            {message}
+          </DialogDescription>
         </DialogHeader>
 
-        <DialogFooter className="border-0 bg-transparent p-0 pt-2 sm:justify-end">
+        <DialogFooter className="-mx-0 -mb-0 gap-2 border-0 bg-transparent p-0 sm:justify-end">
           <Button type="button" variant="outline" onClick={onCancel}>
             Batal
           </Button>
