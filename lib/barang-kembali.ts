@@ -1,5 +1,6 @@
 import type { StatusBarangKeluar } from "@prisma/client";
 
+import type { BarangKembaliCreateData } from "@/lib/barang-kembali-types";
 import { prisma } from "@/lib/prisma";
 
 function resolveStatus(
@@ -11,13 +12,7 @@ function resolveStatus(
   return "SEBAGIAN_KEMBALI";
 }
 
-export async function createBarangKembali(data: {
-  id_keluar: number;
-  id_user: number;
-  jumlah_kembali: number;
-  tanggal_kembali?: Date;
-  keterangan?: string;
-}) {
+export async function createBarangKembali(data: BarangKembaliCreateData) {
   return prisma.$transaction(async (tx) => {
     const transaksi = await tx.barangKeluar.findUnique({
       where: { id_keluar: data.id_keluar },
@@ -37,8 +32,10 @@ export async function createBarangKembali(data: {
         id_user: data.id_user,
         jumlah_kembali: data.jumlah_kembali,
         tanggal_kembali: data.tanggal_kembali ?? new Date(),
+        pengembali: data.pengembali,
+        asal: data.asal,
         keterangan: data.keterangan,
-      },
+      } as Parameters<typeof tx.barangKembali.create>[0]["data"],
     });
 
     const jumlahKembaliBaru = transaksi.jumlah_kembali + data.jumlah_kembali;
@@ -69,8 +66,30 @@ export async function getBarangKembaliByKeluarId(id_keluar: number) {
     where: { id_keluar },
     include: {
       user: { select: { id_user: true, nama_user: true } },
+      barangKeluar: {
+        include: {
+          merchandise: { select: { nama_merch: true } },
+        },
+      },
     },
     orderBy: { tanggal_kembali: "desc" },
+  });
+}
+
+export async function getBarangKembaliByKeluarIds(ids: number[]) {
+  if (ids.length === 0) return [];
+
+  return prisma.barangKembali.findMany({
+    where: { id_keluar: { in: ids } },
+    include: {
+      user: { select: { id_user: true, nama_user: true } },
+      barangKeluar: {
+        include: {
+          merchandise: { select: { nama_merch: true } },
+        },
+      },
+    },
+    orderBy: [{ tanggal_kembali: "desc" }, { id_kembali: "desc" }],
   });
 }
 

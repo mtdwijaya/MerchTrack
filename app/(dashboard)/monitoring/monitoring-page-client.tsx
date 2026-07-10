@@ -35,7 +35,7 @@ import PageHeader from "@/components/ui/page-header";
 import { DetailsAction } from "@/components/ui/table-actions";
 import { useFormModal } from "@/hooks/use-form-modal";
 import { useSyncedPanelHeight } from "@/hooks/use-synced-panel-height";
-import { buildBarangKeluarEditFormData } from "@/lib/build-transaksi-form-data";
+import { buildBarangKeluarEditFormData, buildBarangKeluarEditBatchFormData } from "@/lib/build-transaksi-form-data";
 import { getBarangKeluarQuantities } from "@/lib/barang-keluar-quantities";
 import { showError, showSuccess } from "@/lib/toast";
 import type {
@@ -97,19 +97,28 @@ export default function MonitoringPageClient({
   const stockPanelHeight = useSyncedPanelHeight(distribusiPanelRef);
   const [detailId, setDetailId] = useState<number | null>(null);
   const [returnInfo, setReturnInfo] = useState<ReturnInfo | null>(null);
+  const [returnSourceDetailId, setReturnSourceDetailId] = useState<
+    number | null
+  >(null);
   const [returnSaving, setReturnSaving] = useState(false);
   const [returnLoading, setReturnLoading] = useState(false);
 
   const modal = useFormModal<{
-    id_merch: number;
     id_tujuan: number;
     id_stasiun: number;
     id_unit: number;
     detail_teks: string;
-    jumlah: number;
     jumlah_kembali: number;
     tanggal_keluar: string;
     keterangan: string;
+    bukti_path?: string | null;
+    bukti_nama?: string | null;
+    items: {
+      id_keluar: number;
+      id_merch: number;
+      jumlah: number;
+      jumlah_kembali: number;
+    }[];
   }>(getBarangKeluarFormData);
 
   function openEditModal(id: number) {
@@ -134,6 +143,22 @@ export default function MonitoringPageClient({
     setReturnInfo(info);
   }
 
+  function closeReturnModal() {
+    const reopenDetailId = returnSourceDetailId;
+    setReturnInfo(null);
+    setReturnSourceDetailId(null);
+    if (reopenDetailId) {
+      setDetailId(reopenDetailId);
+    }
+  }
+
+  function handleReturnFromDetail(itemId: number) {
+    if (detailId) {
+      setReturnSourceDetailId(detailId);
+    }
+    void openReturnModal(itemId);
+  }
+
   async function handleSubmit(
     data: BarangKeluarFormSubmitData,
     bukti?: File | null
@@ -141,21 +166,42 @@ export default function MonitoringPageClient({
     if (!modal.editId) return;
 
     modal.setSaving(true);
+
+    const isMultiEdit =
+      data.items.length > 1 && data.items.every((item) => item.id_keluar);
+
     const result = await updateBarangKeluarAction(
       modal.editId,
-      buildBarangKeluarEditFormData(
-        {
-          id_merch: data.items[0]?.id_merch ?? 0,
-          id_tujuan: data.id_tujuan,
-          id_stasiun: data.id_stasiun,
-          id_unit: data.id_unit,
-          detail_teks: data.detail_teks,
-          jumlah: data.items[0]?.jumlah ?? 1,
-          tanggal_keluar: data.tanggal_keluar,
-          keterangan: data.keterangan,
-        },
-        bukti
-      )
+      isMultiEdit
+        ? buildBarangKeluarEditBatchFormData(
+            {
+              id_tujuan: data.id_tujuan,
+              id_stasiun: data.id_stasiun,
+              id_unit: data.id_unit,
+              detail_teks: data.detail_teks,
+              tanggal_keluar: data.tanggal_keluar,
+              keterangan: data.keterangan,
+              items: data.items.map((item) => ({
+                id_keluar: item.id_keluar!,
+                id_merch: item.id_merch,
+                jumlah: item.jumlah,
+              })),
+            },
+            bukti
+          )
+        : buildBarangKeluarEditFormData(
+            {
+              id_merch: data.items[0]?.id_merch ?? 0,
+              id_tujuan: data.id_tujuan,
+              id_stasiun: data.id_stasiun,
+              id_unit: data.id_unit,
+              detail_teks: data.detail_teks,
+              jumlah: data.items[0]?.jumlah ?? 1,
+              tanggal_keluar: data.tanggal_keluar,
+              keterangan: data.keterangan,
+            },
+            bukti
+          )
     );
     modal.setSaving(false);
 
@@ -172,6 +218,8 @@ export default function MonitoringPageClient({
   async function handleReturn(data: {
     jumlah_kembali: number;
     tanggal_kembali: string;
+    pengembali: string;
+    asal: string;
     keterangan: string;
   }) {
     if (!returnInfo) return;
@@ -187,6 +235,7 @@ export default function MonitoringPageClient({
 
     showSuccess("Pengembalian barang berhasil dicatat");
     setReturnInfo(null);
+    setReturnSourceDetailId(null);
     startTransition(() => router.refresh());
   }
 
@@ -341,12 +390,6 @@ export default function MonitoringPageClient({
               10 transaksi terakhir — bisa return & edit dari detail
             </p>
           </div>
-          <Link
-            href="/laporan"
-            className="text-sm font-semibold text-[#B1070E] hover:underline"
-          >
-            Lihat Semua Laporan
-          </Link>
         </div>
 
         <DataTable>
@@ -412,7 +455,7 @@ export default function MonitoringPageClient({
       onOpenChange={(open) => {
         if (!open) setDetailId(null);
       }}
-      onReturn={openReturnModal}
+      onReturn={handleReturnFromDetail}
       onEdit={openEditModal}
     />
 
@@ -441,7 +484,7 @@ export default function MonitoringPageClient({
     <FormDialog
       open={returnInfo !== null}
       onOpenChange={(open) => {
-        if (!open) setReturnInfo(null);
+        if (!open) closeReturnModal();
       }}
       title="Kembalikan Barang"
       description="Catat barang yang kembali ke gudang dari transaksi ini."
@@ -453,7 +496,7 @@ export default function MonitoringPageClient({
           info={returnInfo}
           onSubmit={handleReturn}
           loading={returnSaving}
-          onCancel={() => setReturnInfo(null)}
+          onCancel={closeReturnModal}
         />
       )}
     </FormDialog>

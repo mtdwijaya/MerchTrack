@@ -1,4 +1,8 @@
 import { prisma } from "@/lib/prisma";
+import { formatDetailTujuan } from "@/lib/detail-tujuan";
+import { formatMerchandiseGroupLabel } from "@/lib/barang-keluar-group";
+import type { BarangKeluarRiwayatWithRelations } from "@/lib/barang-keluar-types";
+import { asBarangKeluarRiwayatWithRelations } from "@/lib/barang-keluar-types";
 import { riwayatListInclude } from "@/lib/prisma-selects";
 import { Prisma } from "@prisma/client";
 
@@ -233,6 +237,7 @@ export type RiwayatUnifiedItem = {
   tanggal: Date;
   merchandise: string;
   jumlah: number;
+  total_jenis?: number;
   info: string;
   petugas: string;
 };
@@ -242,9 +247,7 @@ const masukInclude = {
   user: { select: { nama_user: true } },
 } as const;
 
-type KeluarWithRelations = Prisma.BarangKeluarGetPayload<{
-  include: typeof riwayatListInclude;
-}>;
+type KeluarWithRelations = BarangKeluarRiwayatWithRelations;
 
 type MasukWithRelations = Prisma.BarangMasukGetPayload<{
   include: typeof masukInclude;
@@ -277,16 +280,49 @@ function buildMasukSearchWhere(search?: string): Prisma.BarangMasukWhereInput {
 }
 
 function mapKeluarToUnified(items: KeluarWithRelations[]): RiwayatUnifiedItem[] {
-  return items.map((item) => ({
-    key: `keluar-${item.id_keluar}`,
-    jenis: "KELUAR" as const,
-    id: item.id_keluar,
-    tanggal: item.tanggal_keluar,
-    merchandise: item.merchandise.nama_merch,
-    jumlah: item.jumlah + item.jumlah_kembali,
-    info: item.tujuan.nama_tujuan,
-    petugas: item.user.nama_user,
-  }));
+  const groups = new Map<string, KeluarWithRelations[]>();
+
+  for (const item of items) {
+    const row = asBarangKeluarRiwayatWithRelations(item);
+    const groupKey = row.id_grup ?? `single:${row.id_keluar}`;
+    const existing = groups.get(groupKey) ?? [];
+    existing.push(item);
+    groups.set(groupKey, existing);
+  }
+
+  return [...groups.values()].map((groupItems) => {
+    const primary = groupItems.reduce((min, item) =>
+      item.id_keluar < min.id_keluar ? item : min
+    );
+    const merchandiseNames = groupItems.map(
+      (item) => item.merchandise.nama_merch
+    );
+    const totalJumlah = groupItems.reduce(
+      (sum, item) => sum + item.jumlah + item.jumlah_kembali,
+      0
+    );
+    const detail = formatDetailTujuan(primary);
+    const info =
+      detail && detail !== "-"
+        ? `${primary.tujuan.nama_tujuan} · ${detail}`
+        : primary.tujuan.nama_tujuan;
+
+    return {
+      key: `keluar-${asBarangKeluarRiwayatWithRelations(primary).id_grup ?? `single-${primary.id_keluar}`}`,
+      jenis: "KELUAR" as const,
+      id: primary.id_keluar,
+      tanggal: groupItems.reduce(
+        (latest, item) =>
+          item.tanggal_keluar > latest ? item.tanggal_keluar : latest,
+        primary.tanggal_keluar
+      ),
+      merchandise: formatMerchandiseGroupLabel(merchandiseNames),
+      total_jenis: groupItems.length,
+      jumlah: totalJumlah,
+      info,
+      petugas: primary.user.nama_user,
+    };
+  });
 }
 
 function mapMasukToUnified(items: MasukWithRelations[]): RiwayatUnifiedItem[] {
@@ -368,9 +404,11 @@ export async function getRiwayatUnifiedSummary() {
     totalBarangKeluarBulanIni,
     totalBarangMasukBulanIni,
   ] = await Promise.all([
-    prisma.barangKeluar.count({
-      where: { tanggal_keluar: { gte: startOfMonth } },
-    }),
+    prisma.$queryRaw<{ total: number }[]>`
+      SELECT COUNT(DISTINCT COALESCE("id_grup", 'single:' || "id_keluar"::text))::int AS total
+      FROM "BarangKeluar"
+      WHERE "tanggal_keluar" >= ${startOfMonth}
+    `,
     prisma.barangMasuk.count({
       where: { tanggal_masuk: { gte: startOfMonth } },
     }),
@@ -386,7 +424,7 @@ export async function getRiwayatUnifiedSummary() {
 
   return {
     transaksiMasukBulanIni,
-    transaksiKeluarBulanIni,
+    transaksiKeluarBulanIni: transaksiKeluarBulanIni[0]?.total ?? 0,
     totalBarangKeluarBulanIni: totalBarangKeluarBulanIni._sum.jumlah ?? 0,
     totalBarangMasukBulanIni: totalBarangMasukBulanIni._sum.jumlah ?? 0,
   };

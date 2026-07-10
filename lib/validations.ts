@@ -38,11 +38,16 @@ const barangKeluarDetailFields = {
 };
 
 export const barangKeluarItemSchema = z.object({
+  id_keluar: idParamSchema.optional(),
   id_merch: idParamSchema,
   jumlah: z.coerce
     .number()
     .int("Jumlah harus bilangan bulat")
     .positive("Jumlah harus lebih dari 0"),
+});
+
+export const barangKeluarEditItemSchema = barangKeluarItemSchema.extend({
+  id_keluar: idParamSchema,
 });
 
 export const barangKeluarBatchSchema = z
@@ -82,6 +87,16 @@ export const barangKembaliSchema = z.object({
     .int("Jumlah harus bilangan bulat")
     .positive("Jumlah kembali harus lebih dari 0"),
   tanggal_kembali: z.string().optional().or(z.literal("")),
+  pengembali: z
+    .string()
+    .trim()
+    .min(1, "Nama pengembali wajib diisi")
+    .max(200, "Nama pengembali terlalu panjang"),
+  asal: z
+    .string()
+    .trim()
+    .min(1, "Asal wajib diisi")
+    .max(200, "Asal terlalu panjang"),
   keterangan: optionalText(500),
 });
 

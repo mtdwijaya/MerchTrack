@@ -15,6 +15,8 @@ interface BarangKembaliFormProps {
   onSubmit: (data: {
     jumlah_kembali: number;
     tanggal_kembali: string;
+    pengembali: string;
+    asal: string;
     keterangan: string;
   }) => Promise<void>;
   loading?: boolean;
@@ -30,6 +32,8 @@ export default function BarangKembaliForm({
   const [form, setForm] = useState({
     jumlah_kembali: info.sisa > 0 ? info.sisa : 1,
     tanggal_kembali: new Date().toISOString().split("T")[0],
+    pengembali: "",
+    asal: "",
     keterangan: "",
   });
 
@@ -53,7 +57,7 @@ export default function BarangKembaliForm({
         </p>
       </div>
 
-      <div className="grid gap-5 md:grid-cols-2">
+      <div className="grid gap-4 md:grid-cols-2">
         <Field label="Jumlah Dikembalikan">
           <input
             required
@@ -79,9 +83,33 @@ export default function BarangKembaliForm({
             className="input-field"
           />
         </Field>
+
+        <Field label="Pengembali">
+          <input
+            required
+            type="text"
+            value={form.pengembali}
+            onChange={(e) =>
+              setForm({ ...form, pengembali: e.target.value })
+            }
+            className="input-field"
+            placeholder="Nama yang mengembalikan barang"
+          />
+        </Field>
+
+        <Field label="Asal">
+          <input
+            required
+            type="text"
+            value={form.asal}
+            onChange={(e) => setForm({ ...form, asal: e.target.value })}
+            className="input-field"
+            placeholder="cth: Stasiun Bekasi, Unit Operasi"
+          />
+        </Field>
       </div>
 
-      <Field label="Keterangan">
+      <Field label="Catatan">
         <textarea
           rows={3}
           value={form.keterangan}
@@ -89,7 +117,7 @@ export default function BarangKembaliForm({
             setForm({ ...form, keterangan: e.target.value })
           }
           className="input-field"
-          placeholder="Keterangan pengembalian (opsional)"
+          placeholder="Catatan pengembalian (opsional)"
         />
       </Field>
 

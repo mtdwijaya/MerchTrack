@@ -147,8 +147,17 @@ export default function RiwayatPageClient({ list, summary, pageSize }: Props) {
                     <Td align="center">
                       <JenisBadge jenis={item.jenis} />
                     </Td>
-                    <Td align="center" variant="truncate">
-                      {item.merchandise}
+                    <Td align="center">
+                      <div className="min-w-0">
+                        <p className="truncate font-medium text-[#1A1C1C]">
+                          {item.merchandise}
+                        </p>
+                        {(item.total_jenis ?? 1) > 1 && (
+                          <p className="mt-0.5 text-xs text-[#6B7280]">
+                            {item.total_jenis} jenis merchandise
+                          </p>
+                        )}
+                      </div>
                     </Td>
                     <Td variant="numeric" align="center">
                       {item.jumlah.toLocaleString("id-ID")}

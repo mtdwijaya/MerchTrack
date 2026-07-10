@@ -157,8 +157,11 @@ export function LaporanTransaksiDocument({ data }: { data: LaporanPdfData }) {
             {data.riwayat_kembali.map((item) => (
               <View key={item.id_kembali} style={{ marginBottom: 8 }}>
                 <Text>
-                  • {item.jumlah_kembali} pcs —{" "}
-                  {formatTransaksiDate(item.tanggal_kembali)} — {item.petugas}
+                  • {item.merchandise ?? "Merchandise"} dikembalikan{" "}
+                  {item.jumlah_kembali} pcs —{" "}
+                  {formatTransaksiDate(item.tanggal_kembali)} —{" "}
+                  {item.pengembali ?? item.petugas}
+                  {item.asal ? ` · dari ${item.asal}` : ""}
                 </Text>
                 {item.keterangan ? (
                   <Text style={{ color: "#6B7280", marginLeft: 8 }}>

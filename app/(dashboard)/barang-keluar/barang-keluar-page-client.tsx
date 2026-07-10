@@ -5,9 +5,10 @@ import { useRouter } from "next/navigation";
 
 import BarangKeluarDetailDialog from "@/components/barang-keluar/barang-keluar-detail-dialog";
 import BarangKeluarForm from "@/components/barang-keluar/barang-keluar-form";
+import BarangKeluarGroupTableRow from "@/components/barang-keluar/barang-keluar-group-table-row";
 import BarangKembaliForm from "@/components/barang-keluar/barang-kembali-form";
 import BarangKeluarSummary from "@/components/barang-keluar/barang-keluar-summary";
-import StatusBarangKeluarBadge, {
+import {
   type TujuanOption,
 } from "@/components/barang-keluar/status-badge";
 import ConfirmDialog from "@/components/ui/confirm-dialog";
@@ -16,7 +17,6 @@ import {
   DataTableSection,
   SortableTh,
   TableEmptyRow,
-  Td,
   Th,
 } from "@/components/ui/data-table";
 import FormDialog from "@/components/ui/form-dialog";
@@ -27,12 +27,10 @@ import {
 } from "@/components/ui/filter-bar";
 import PageHeader, { PrimaryButton } from "@/components/ui/page-header";
 import Pagination from "@/components/ui/pagination";
-import { DetailsAction } from "@/components/ui/table-actions";
 import { useFormModal } from "@/hooks/use-form-modal";
 import { useListFilters } from "@/hooks/use-list-filters";
-import TujuanCell from "@/components/barang-keluar/tujuan-cell";
-import { getBarangKeluarQuantities } from "@/lib/barang-keluar-quantities";
-import { buildBarangKeluarEditFormData, buildBarangKeluarFormData } from "@/lib/build-transaksi-form-data";
+import type { BarangKeluarGroupRow } from "@/lib/barang-keluar-group";
+import { buildBarangKeluarEditFormData, buildBarangKeluarEditBatchFormData, buildBarangKeluarFormData } from "@/lib/build-transaksi-form-data";
 import { parseSortValue, toggleSortValue } from "@/lib/sort";
 import { showError, showSuccess } from "@/lib/toast";
 import type { StatusBarangKeluar } from "@prisma/client";
@@ -88,19 +86,9 @@ interface ReturnInfo {
 
 interface Props {
   list: {
-    data: {
-      id_keluar: number;
-      jumlah: number;
-      jumlah_kembali: number;
-      status: StatusBarangKeluar;
+    data: (Omit<BarangKeluarGroupRow, "tanggal_keluar"> & {
       tanggal_keluar: string | Date;
-      detail_teks: string | null;
-      merchandise: { nama_merch: string };
-      stasiun: { nama_stasiun: string } | null;
-      unit: { nama_unit: string } | null;
-      tujuan: TujuanOption;
-      user: { nama_user: string };
-    }[];
+    })[];
     total: number;
     totalPages: number;
   };
@@ -149,20 +137,29 @@ export default function BarangKeluarPageClient({
   const tujuanFilter = getParam("id_tujuan");
 
   const modal = useFormModal<{
-    id_merch: number;
     id_tujuan: number;
     id_stasiun: number;
     id_unit: number;
     detail_teks: string;
-    jumlah: number;
     jumlah_kembali: number;
     tanggal_keluar: string;
     keterangan: string;
+    bukti_path?: string | null;
+    bukti_nama?: string | null;
+    items: {
+      id_keluar: number;
+      id_merch: number;
+      jumlah: number;
+      jumlah_kembali: number;
+    }[];
   }>(getBarangKeluarFormData);
 
   const [detailId, setDetailId] = useState<number | null>(null);
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [returnInfo, setReturnInfo] = useState<ReturnInfo | null>(null);
+  const [returnSourceDetailId, setReturnSourceDetailId] = useState<
+    number | null
+  >(null);
   const [returnSaving, setReturnSaving] = useState(false);
   const [returnLoading, setReturnLoading] = useState(false);
 
@@ -206,6 +203,22 @@ export default function BarangKeluarPageClient({
     setReturnInfo(info);
   }
 
+  function closeReturnModal() {
+    const reopenDetailId = returnSourceDetailId;
+    setReturnInfo(null);
+    setReturnSourceDetailId(null);
+    if (reopenDetailId) {
+      setDetailId(reopenDetailId);
+    }
+  }
+
+  function handleReturnFromDetail(itemId: number) {
+    if (detailId) {
+      setReturnSourceDetailId(detailId);
+    }
+    void openReturnModal(itemId);
+  }
+
   async function handleSubmit(
     data: {
       id_tujuan: number;
@@ -214,26 +227,48 @@ export default function BarangKeluarPageClient({
       detail_teks?: string;
       tanggal_keluar: string;
       keterangan: string;
-      items: { id_merch: number; jumlah: number }[];
+      items: { id_keluar?: number; id_merch: number; jumlah: number }[];
     },
     bukti?: File | null
   ) {
     modal.setSaving(true);
 
+    const isMultiEdit =
+      modal.editId &&
+      data.items.length > 1 &&
+      data.items.every((item) => item.id_keluar);
+
     const formData = modal.editId
-      ? buildBarangKeluarEditFormData(
-          {
-            id_merch: data.items[0]?.id_merch ?? 0,
-            id_tujuan: data.id_tujuan,
-            id_stasiun: data.id_stasiun,
-            id_unit: data.id_unit,
-            detail_teks: data.detail_teks,
-            jumlah: data.items[0]?.jumlah ?? 1,
-            tanggal_keluar: data.tanggal_keluar,
-            keterangan: data.keterangan,
-          },
-          bukti
-        )
+      ? isMultiEdit
+        ? buildBarangKeluarEditBatchFormData(
+            {
+              id_tujuan: data.id_tujuan,
+              id_stasiun: data.id_stasiun,
+              id_unit: data.id_unit,
+              detail_teks: data.detail_teks,
+              tanggal_keluar: data.tanggal_keluar,
+              keterangan: data.keterangan,
+              items: data.items.map((item) => ({
+                id_keluar: item.id_keluar!,
+                id_merch: item.id_merch,
+                jumlah: item.jumlah,
+              })),
+            },
+            bukti
+          )
+        : buildBarangKeluarEditFormData(
+            {
+              id_merch: data.items[0]?.id_merch ?? 0,
+              id_tujuan: data.id_tujuan,
+              id_stasiun: data.id_stasiun,
+              id_unit: data.id_unit,
+              detail_teks: data.detail_teks,
+              jumlah: data.items[0]?.jumlah ?? 1,
+              tanggal_keluar: data.tanggal_keluar,
+              keterangan: data.keterangan,
+            },
+            bukti
+          )
       : buildBarangKeluarFormData(data, bukti);
 
     const result = modal.editId
@@ -260,6 +295,8 @@ export default function BarangKeluarPageClient({
   async function handleReturn(data: {
     jumlah_kembali: number;
     tanggal_kembali: string;
+    pengembali: string;
+    asal: string;
     keterangan: string;
   }) {
     if (!returnInfo) return;
@@ -275,6 +312,7 @@ export default function BarangKeluarPageClient({
 
     showSuccess("Pengembalian barang berhasil dicatat");
     setReturnInfo(null);
+    setReturnSourceDetailId(null);
     startTransition(() => router.refresh());
   }
 
@@ -368,42 +406,13 @@ export default function BarangKeluarPageClient({
               ) : list.data.length === 0 ? (
                 <TableEmptyRow colSpan={6} message="Tidak ada data" />
               ) : (
-                list.data.map((item) => {
-                  const qty = getBarangKeluarQuantities(
-                    item.jumlah,
-                    item.jumlah_kembali
-                  );
-
-                  return (
-                    <tr
-                      key={item.id_keluar}
-                      className="border-b border-[#EFEAE5] last:border-b-0 hover:bg-gray-50/60"
-                    >
-                      <Td variant="numeric" align="left">
-                        {new Date(item.tanggal_keluar).toLocaleDateString(
-                          "id-ID"
-                        )}
-                      </Td>
-                      <Td variant="truncate">{item.merchandise.nama_merch}</Td>
-                      <Td variant="numeric" align="center">
-                        {qty.terpakai.toLocaleString("id-ID")}
-                      </Td>
-                      <Td>
-                        <TujuanCell item={item} />
-                      </Td>
-                      <Td align="center">
-                        <StatusBarangKeluarBadge status={item.status} />
-                      </Td>
-                      <Td variant="action" align="center">
-                        <DetailsAction
-                          label="Kelola"
-                          variant="manage"
-                          onClick={() => setDetailId(item.id_keluar)}
-                        />
-                      </Td>
-                    </tr>
-                  );
-                })
+                list.data.map((item) => (
+                  <BarangKeluarGroupTableRow
+                    key={item.group_key}
+                    item={item}
+                    onManage={setDetailId}
+                  />
+                ))
               )}
             </tbody>
           </DataTable>
@@ -429,7 +438,7 @@ export default function BarangKeluarPageClient({
         onOpenChange={(open) => {
           if (!open) setDetailId(null);
         }}
-        onReturn={openReturnModal}
+        onReturn={handleReturnFromDetail}
         onEdit={openEditModal}
         onDelete={setDeleteId}
       />
@@ -463,7 +472,7 @@ export default function BarangKeluarPageClient({
       <FormDialog
         open={returnInfo !== null}
         onOpenChange={(open) => {
-          if (!open) setReturnInfo(null);
+          if (!open) closeReturnModal();
         }}
         title="Kembalikan Barang"
         description="Catat barang yang kembali ke gudang dari transaksi ini."
@@ -475,15 +484,15 @@ export default function BarangKeluarPageClient({
             info={returnInfo}
             onSubmit={handleReturn}
             loading={returnSaving}
-            onCancel={() => setReturnInfo(null)}
+            onCancel={closeReturnModal}
           />
         )}
       </FormDialog>
 
       <ConfirmDialog
         open={deleteId !== null}
-        title="Hapus Data"
-        message="Apakah Anda yakin ingin menghapus transaksi ini?"
+        title="Hapus Transaksi"
+        message="Apakah Anda yakin ingin menghapus transaksi ini? Semua merchandise dalam grup yang sama juga akan dihapus."
         onConfirm={handleDelete}
         onCancel={() => setDeleteId(null)}
       />

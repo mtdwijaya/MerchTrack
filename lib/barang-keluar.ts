@@ -7,6 +7,14 @@ import {
   validateDetailTujuan,
 } from "@/lib/detail-tujuan";
 import { barangKeluarListInclude } from "@/lib/prisma-selects";
+import type {
+  BarangKeluarCreateData,
+  BarangKeluarWithRelations,
+} from "@/lib/barang-keluar-types";
+import {
+  asBarangKeluarWithRelations,
+  asBarangKeluarWithRelationsList,
+} from "@/lib/barang-keluar-types";
 import { getTujuanById } from "@/lib/tujuan";
 import { Prisma } from "@prisma/client";
 import { SortOrder } from "@/lib/sort";
@@ -54,7 +62,7 @@ function buildOrderBy(
   }
 }
 
-function buildSearchWhere(search?: string): Prisma.BarangKeluarWhereInput {
+export function buildSearchWhere(search?: string): Prisma.BarangKeluarWhereInput {
   if (!search?.trim()) return {};
 
   const term = search.trim();
@@ -144,11 +152,15 @@ export async function getBarangKeluarPaginated({
   };
 }
 
-export async function getBarangKeluarById(id: number) {
-  return prisma.barangKeluar.findUnique({
+export async function getBarangKeluarById(
+  id: number
+): Promise<BarangKeluarWithRelations | null> {
+  const row = await prisma.barangKeluar.findUnique({
     where: { id_keluar: id },
     include: barangKeluarListInclude,
   });
+
+  return row ? asBarangKeluarWithRelations(row) : null;
 }
 
 type BarangKeluarHeaderInput = {
@@ -230,8 +242,7 @@ export async function createBarangKeluarBatch(
     const created = [];
 
     for (const item of data.items) {
-      const transaksi = await tx.barangKeluar.create({
-        data: {
+      const createData: BarangKeluarCreateData = {
           id_grup,
           id_merch: item.id_merch,
           id_tujuan: data.id_tujuan,
@@ -245,7 +256,10 @@ export async function createBarangKeluarBatch(
           keterangan: data.keterangan,
           bukti_path: data.bukti_path ?? null,
           bukti_nama: data.bukti_nama ?? null,
-        },
+        };
+
+      const transaksi = await tx.barangKeluar.create({
+        data: createData as Prisma.BarangKeluarUncheckedCreateInput,
       });
 
       await tx.stok.update({
@@ -262,12 +276,62 @@ export async function createBarangKeluarBatch(
   });
 }
 
-export async function getBarangKeluarByGrup(id_grup: string) {
-  return prisma.barangKeluar.findMany({
-    where: { id_grup },
+export async function updateBarangKeluarBatch(
+  anchorId: number,
+  data: BarangKeluarBatchInput & {
+    items: { id_keluar: number; id_merch: number; jumlah: number }[];
+  },
+  bukti?: { bukti_path: string | null; bukti_nama: string | null }
+) {
+  const anchor = await getBarangKeluarById(anchorId);
+  if (!anchor) {
+    throw new Error("Transaksi tidak ditemukan");
+  }
+
+  const existingItems = anchor.id_grup
+    ? await getBarangKeluarByGrup(anchor.id_grup)
+    : [anchor];
+
+  if (data.items.length !== existingItems.length) {
+    throw new Error("Jumlah merchandise tidak dapat diubah saat edit");
+  }
+
+  const existingIds = new Set(existingItems.map((item) => item.id_keluar));
+  for (const item of data.items) {
+    if (!existingIds.has(item.id_keluar)) {
+      throw new Error("Data merchandise tidak valid");
+    }
+  }
+
+  const buktiPatch = bukti
+    ? { bukti_path: bukti.bukti_path, bukti_nama: bukti.bukti_nama }
+    : {};
+
+  for (const item of data.items) {
+    await updateBarangKeluar(item.id_keluar, {
+      id_merch: item.id_merch,
+      id_tujuan: data.id_tujuan,
+      id_stasiun: data.id_stasiun,
+      id_unit: data.id_unit,
+      detail_teks: data.detail_teks,
+      jumlah: item.jumlah,
+      tanggal_keluar: data.tanggal_keluar,
+      keterangan: data.keterangan,
+      ...buktiPatch,
+    });
+  }
+}
+
+export async function getBarangKeluarByGrup(
+  id_grup: string
+): Promise<BarangKeluarWithRelations[]> {
+  const rows = await prisma.barangKeluar.findMany({
+    where: { id_grup } as Prisma.BarangKeluarWhereInput,
     include: barangKeluarListInclude,
     orderBy: { id_keluar: "asc" },
   });
+
+  return asBarangKeluarWithRelationsList(rows);
 }
 
 export async function createBarangKeluar(
@@ -407,26 +471,41 @@ export async function deleteBarangKeluar(id: number) {
       throw new Error("Transaksi tidak ditemukan");
     }
 
-    const netKeluar = transaksi.jumlah;
+    const idGrup = (transaksi as { id_grup?: string | null }).id_grup ?? null;
 
-    await tx.stok.update({
-      where: { id_merch: transaksi.id_merch },
-      data: {
-        jumlah_stok: { increment: netKeluar },
-      },
-    });
+    const targets: BarangKeluarWithRelations[] = idGrup
+      ? asBarangKeluarWithRelationsList(
+          await tx.barangKeluar.findMany({
+            where: { id_grup: idGrup } as Prisma.BarangKeluarWhereInput,
+            include: barangKeluarListInclude,
+          })
+        )
+      : [asBarangKeluarWithRelations(transaksi as BarangKeluarWithRelations)];
 
-    await deleteEditLogsForTransaksi(id, tx);
+    for (const item of targets) {
+      await tx.stok.update({
+        where: { id_merch: item.id_merch },
+        data: {
+          jumlah_stok: { increment: item.jumlah },
+        },
+      });
 
-    return tx.barangKeluar.delete({
-      where: { id_keluar: id },
-    });
+      await deleteEditLogsForTransaksi(item.id_keluar, tx);
+
+      await tx.barangKeluar.delete({
+        where: { id_keluar: item.id_keluar },
+      });
+    }
   });
 }
 
 export async function getBarangKeluarSummary() {
-  const [totalTransaksi, totalBarangKeluar, terpakaiPerMerch] = await Promise.all([
-    prisma.barangKeluar.count(),
+  const [totalTransaksiRows, totalBarangKeluar, terpakaiPerMerch] =
+    await Promise.all([
+    prisma.$queryRaw<{ total: number }[]>`
+      SELECT COUNT(DISTINCT COALESCE("id_grup", 'single:' || "id_keluar"::text))::int AS total
+      FROM "BarangKeluar"
+    `,
     prisma.barangKeluar.aggregate({ _sum: { jumlah: true } }),
     prisma.$queryRaw<{ id_merch: number; total_terpakai: number }[]>`
       SELECT
@@ -457,7 +536,7 @@ export async function getBarangKeluarSummary() {
   }
 
   return {
-    totalTransaksi,
+    totalTransaksi: totalTransaksiRows[0]?.total ?? 0,
     totalBarangKeluar: totalBarangKeluar._sum.jumlah ?? 0,
     merchandiseTerbanyak,
   };

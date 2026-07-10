@@ -25,8 +25,10 @@ interface Unit {
 }
 
 type MerchItemRow = {
+  id_keluar?: number;
   id_merch: number;
   jumlah: number;
+  jumlah_kembali?: number;
 };
 
 export type BarangKeluarFormSubmitData = {
@@ -41,17 +43,19 @@ export type BarangKeluarFormSubmitData = {
 
 interface BarangKeluarFormProps {
   initialData?: {
-    id_merch: number;
     id_tujuan: number;
     id_stasiun: number;
     id_unit: number;
     detail_teks: string;
-    jumlah: number;
     jumlah_kembali?: number;
     tanggal_keluar: string;
     keterangan?: string;
     bukti_path?: string | null;
     bukti_nama?: string | null;
+    items?: MerchItemRow[];
+    /** @deprecated gunakan items */
+    id_merch?: number;
+    jumlah?: number;
   };
   onSubmit: (
     data: BarangKeluarFormSubmitData,
@@ -91,18 +95,37 @@ export default function BarangKeluarForm({
     tanggal_keluar: initialData?.tanggal_keluar?.split("T")[0] || "",
     keterangan: initialData?.keterangan || "",
   });
-  const [items, setItems] = useState<MerchItemRow[]>(
-    initialData
-      ? [{ id_merch: initialData.id_merch, jumlah: initialData.jumlah }]
-      : [createEmptyItem()]
-  );
+  const [items, setItems] = useState<MerchItemRow[]>(() => {
+    if (initialData?.items?.length) {
+      return initialData.items.map((item) => ({
+        id_keluar: item.id_keluar,
+        id_merch: item.id_merch,
+        jumlah: item.jumlah,
+        jumlah_kembali: item.jumlah_kembali,
+      }));
+    }
+
+    if (initialData?.id_merch) {
+      return [
+        {
+          id_merch: initialData.id_merch,
+          jumlah: initialData.jumlah ?? 1,
+          jumlah_kembali: initialData.jumlah_kembali,
+        },
+      ];
+    }
+
+    return [createEmptyItem()];
+  });
   const [bukti, setBukti] = useState<File | null>(null);
 
   const selectedTujuan = tujuanList.find(
     (item) => item.id_tujuan === header.id_tujuan
   );
 
-  const lockStockFields = (initialData?.jumlah_kembali ?? 0) > 0;
+  const lockStockFields =
+    (initialData?.jumlah_kembali ?? 0) > 0 ||
+    initialData?.items?.some((item) => (item.jumlah_kembali ?? 0) > 0) === true;
   const canManageItems = !isEdit && !lockStockFields;
 
   function handleTujuanChange(id_tujuan: number) {
@@ -214,31 +237,39 @@ export default function BarangKeluarForm({
             detail_teks: header.detail_teks || undefined,
             tanggal_keluar: header.tanggal_keluar,
             keterangan: header.keterangan,
-            items: items.filter((item) => item.id_merch > 0),
+            items: items
+              .filter((item) => item.id_merch > 0)
+              .map((item) => ({
+                id_keluar: item.id_keluar,
+                id_merch: item.id_merch,
+                jumlah: item.jumlah,
+              })),
           },
           bukti
         );
       }}
-      className="space-y-6"
+      className="space-y-5"
     >
-      <div className="space-y-4">
-        <div className="grid grid-cols-[2rem_1fr_7rem_2.5rem] items-center gap-3 text-xs font-semibold uppercase tracking-wide text-[#6B7280]">
+      <section className="space-y-3">
+        <h3 className="text-sm font-semibold text-[#1A1C1C]">Merchandise</h3>
+
+        <div className="grid grid-cols-[2rem_1fr_7rem_2.5rem] items-center gap-x-3 gap-y-1 text-xs font-semibold uppercase tracking-wide text-[#6B7280]">
           <span>#</span>
           <span>Pilih Merchandise</span>
           <span>Jumlah</span>
           <span className="sr-only">Aksi</span>
         </div>
 
-        <div className="space-y-3">
+        <div className="space-y-2">
           {items.map((item, index) => {
             const stokSaatIni = getStokSaatIni(item.id_merch);
 
             return (
               <div
                 key={index}
-                className="grid grid-cols-[2rem_1fr_7rem_2.5rem] items-start gap-3"
+                className="grid grid-cols-[2rem_1fr_7rem_2.5rem] items-center gap-x-3 gap-y-1"
               >
-                <span className="pt-2.5 text-sm font-medium text-[#6B7280]">
+                <span className="text-sm font-medium text-[#6B7280]">
                   {index + 1}
                 </span>
 
@@ -260,7 +291,7 @@ export default function BarangKeluarForm({
                     ))}
                   </select>
                   {!lockStockFields && stokSaatIni !== undefined && (
-                    <p className="mt-1.5 text-xs text-[#6B7280]">
+                    <p className="mt-1 text-xs text-[#6B7280]">
                       Stok:{" "}
                       <span
                         className={`font-semibold ${
@@ -293,7 +324,7 @@ export default function BarangKeluarForm({
                     type="button"
                     variant="ghost"
                     size="icon"
-                    className="mt-0.5 text-[#B1070E] hover:bg-[#FFF2F2] hover:text-[#B1070E]"
+                    className="text-[#B1070E] hover:bg-[#FFF2F2] hover:text-[#B1070E]"
                     disabled={items.length <= 1}
                     onClick={() => removeItem(index)}
                     aria-label={`Hapus item ${index + 1}`}
@@ -309,15 +340,20 @@ export default function BarangKeluarForm({
         </div>
 
         {canManageItems && (
-          <Button
-            type="button"
-            variant="outline"
-            className="w-full border-dashed"
-            onClick={addItem}
-          >
-            <Plus className="mr-2 h-4 w-4" />
-            Tambah Item
-          </Button>
+          <div className="grid grid-cols-[2rem_1fr_7rem_2.5rem] gap-x-3">
+            <span />
+            <div className="col-span-2">
+              <Button
+                type="button"
+                variant="outline"
+                className="h-10 w-full border-dashed border-[#D1D5DB] text-[#4B5563] hover:border-[#B1070E] hover:text-[#B1070E]"
+                onClick={addItem}
+              >
+                <Plus className="mr-2 h-4 w-4" />
+                Tambah Item
+              </Button>
+            </div>
+          </div>
         )}
 
         {lockStockFields && (
@@ -325,9 +361,14 @@ export default function BarangKeluarForm({
             Merchandise dan jumlah tidak dapat diubah setelah ada pengembalian.
           </p>
         )}
-      </div>
+      </section>
 
-      <div className="grid gap-5 md:grid-cols-2">
+      <section className="space-y-4 border-t border-[#EFEAE5] pt-5">
+        <h3 className="text-sm font-semibold text-[#1A1C1C]">
+          Informasi Transaksi
+        </h3>
+
+      <div className="grid gap-4 md:grid-cols-2">
         <Field label="Tujuan">
           <select
             required
@@ -360,6 +401,7 @@ export default function BarangKeluarForm({
           </Field>
         </div>
       </div>
+      </section>
 
       <Field label="Catatan">
         <textarea

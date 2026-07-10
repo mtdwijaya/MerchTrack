@@ -74,12 +74,32 @@ export function isBarangKeluarBatchData(
   detail_teks?: string;
   tanggal_keluar?: string;
   keterangan?: string;
-  items: { id_merch: number; jumlah: number }[];
+  items: { id_keluar?: number; id_merch: number; jumlah: number }[];
 } {
   return (
     typeof data === "object" &&
     data !== null &&
     "items" in data &&
     Array.isArray((data as { items: unknown }).items)
+  );
+}
+
+export function isBarangKeluarEditBatchData(
+  data: unknown
+): data is {
+  id_tujuan: number;
+  id_stasiun?: number;
+  id_unit?: number;
+  detail_teks?: string;
+  tanggal_keluar?: string;
+  keterangan?: string;
+  items: { id_keluar: number; id_merch: number; jumlah: number }[];
+} {
+  if (!isBarangKeluarBatchData(data) || data.items.length < 2) {
+    return false;
+  }
+
+  return data.items.every(
+    (item) => typeof item.id_keluar === "number" && item.id_keluar > 0
   );
 }

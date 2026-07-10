@@ -7,9 +7,10 @@ import { parseFormDateWithNowTime } from "@/lib/relative-time";
 import { requireActionUser } from "@/lib/auth";
 import {
   createBarangKembali,
-  getBarangKembaliByKeluarId,
+  getBarangKembaliByKeluarIds,
   reconcileMissingBarangKembaliRecords,
 } from "@/lib/barang-kembali";
+import { asBarangKembaliWithMetaList } from "@/lib/barang-kembali-types";
 import {
   createBarangKeluar,
   createBarangKeluarBatch,
@@ -17,18 +18,22 @@ import {
   getBarangKeluarByGrup,
   getBarangKeluarById,
   updateBarangKeluar,
+  updateBarangKeluarBatch,
 } from "@/lib/barang-keluar";
 import { buildEditActivityPesan, buildEditChangeSummary } from "@/lib/edit-activity-summary";
 import { formatDetailTujuan } from "@/lib/detail-tujuan";
 import { formatTransaksiId } from "@/lib/format-transaksi";
 import { logEditAktivitas } from "@/lib/log-aktivitas";
 import { prisma } from "@/lib/prisma";
+import { aggregateGrupStatus } from "@/lib/barang-keluar-group";
 import { getBarangKeluarQuantities } from "@/lib/barang-keluar-quantities";
+import type { BarangKeluarWithRelations } from "@/lib/barang-keluar-types";
 import { revalidateMerchandiseListCache } from "@/lib/merchandise";
 import { revalidateAnalyticsPages } from "@/lib/revalidate-analytics";
 import {
   getTanggalFromForm,
   isBarangKeluarBatchData,
+  isBarangKeluarEditBatchData,
   parseBarangKeluarBukti,
   parseBarangKeluarFormData,
 } from "@/lib/parse-transaksi-form";
@@ -53,17 +58,29 @@ export async function getBarangKeluarFormData(id: number) {
   const data = await getBarangKeluarById(idParsed.data);
   if (!data) return null;
 
-  return {
-    id_merch: data.id_merch,
-    id_tujuan: data.id_tujuan,
-    id_stasiun: data.id_stasiun ?? 0,
-    id_unit: data.id_unit ?? 0,
-    detail_teks: data.detail_teks ?? "",
-    jumlah: data.jumlah,
-    jumlah_kembali: data.jumlah_kembali,
-    tanggal_keluar: data.tanggal_keluar.toISOString(),
-    keterangan: data.keterangan ?? "",
+  const allItems: BarangKeluarWithRelations[] = data.id_grup
+    ? await getBarangKeluarByGrup(data.id_grup)
+    : [data];
 
+  const first = allItems[0];
+  const hasReturns = allItems.some((item) => item.jumlah_kembali > 0);
+
+  return {
+    id_tujuan: first.id_tujuan,
+    id_stasiun: first.id_stasiun ?? 0,
+    id_unit: first.id_unit ?? 0,
+    detail_teks: first.detail_teks ?? "",
+    tanggal_keluar: first.tanggal_keluar.toISOString(),
+    keterangan: first.keterangan ?? "",
+    bukti_path: first.bukti_path,
+    bukti_nama: first.bukti_nama,
+    jumlah_kembali: hasReturns ? 1 : 0,
+    items: allItems.map((item) => ({
+      id_keluar: item.id_keluar,
+      id_merch: item.id_merch,
+      jumlah: item.jumlah,
+      jumlah_kembali: item.jumlah_kembali,
+    })),
   };
 }
 
@@ -98,26 +115,35 @@ export async function getBarangKeluarDetail(id: number) {
   const data = await getBarangKeluarById(idParsed.data);
   if (!data) return null;
 
+  const allItems: BarangKeluarWithRelations[] = data.id_grup
+    ? await getBarangKeluarByGrup(data.id_grup)
+    : [data];
+
   await reconcileMissingBarangKembaliRecords(data.id_keluar);
-  const riwayatKembali = await getBarangKembaliByKeluarId(data.id_keluar);
+  const riwayatKembali = asBarangKembaliWithMetaList(
+    await getBarangKembaliByKeluarIds(allItems.map((item) => item.id_keluar))
+  );
   const qty = getBarangKeluarQuantities(data.jumlah, data.jumlah_kembali);
 
-  const grupItems = data.id_grup
-    ? (await getBarangKeluarByGrup(data.id_grup)).map((item) => ({
-        id_keluar: item.id_keluar,
-        merchandise: item.merchandise.nama_merch,
-        qty: getBarangKeluarQuantities(item.jumlah, item.jumlah_kembali),
-        status: item.status,
-        sisa_return: item.jumlah,
-      }))
-    : [];
+  const grupItems = allItems.map((item) => ({
+    id_keluar: item.id_keluar,
+    merchandise: item.merchandise.nama_merch,
+    qty: getBarangKeluarQuantities(item.jumlah, item.jumlah_kembali),
+    status: item.status,
+    sisa_return: item.jumlah,
+  }));
+
+  const isMulti = grupItems.length > 1;
 
   return {
     id_keluar: data.id_keluar,
     id_grup: data.id_grup,
+    is_multi: isMulti,
     tanggal_keluar: data.tanggal_keluar.toISOString(),
     keterangan: data.keterangan,
-    status: data.status,
+    status: isMulti
+      ? aggregateGrupStatus(grupItems.map((item) => item.status))
+      : data.status,
     merchandise: data.merchandise.nama_merch,
     tujuan: data.tujuan.nama_tujuan,
     detail_tujuan: formatDetailTujuan(data),
@@ -131,6 +157,10 @@ export async function getBarangKeluarDetail(id: number) {
       id_kembali: item.id_kembali,
       jumlah_kembali: item.jumlah_kembali,
       tanggal_kembali: item.tanggal_kembali.toISOString(),
+      merchandise:
+        item.barangKeluar?.merchandise.nama_merch ?? data.merchandise.nama_merch,
+      pengembali: item.pengembali,
+      asal: item.asal,
       keterangan: item.keterangan,
       petugas: item.user.nama_user,
     })),
@@ -206,18 +236,50 @@ export async function updateBarangKeluarAction(
     const parsed = parseBarangKeluarFormData(formData);
     if (!parsed.ok) return parsed;
 
+    const bukti = await parseBarangKeluarBukti(formData);
+
+    if (isBarangKeluarEditBatchData(parsed.data)) {
+      if (!parsed.data.tanggal_keluar) {
+        return { ok: false, message: "Tanggal keluar wajib diisi" };
+      }
+
+      const existing = await getBarangKeluarById(idParsed.data);
+      if (!existing) {
+        return { ok: false, message: "Transaksi tidak ditemukan" };
+      }
+
+      await updateBarangKeluarBatch(
+        idParsed.data,
+        {
+          id_tujuan: parsed.data.id_tujuan,
+          id_stasiun: parsed.data.id_stasiun,
+          id_unit: parsed.data.id_unit,
+          detail_teks: parsed.data.detail_teks,
+          tanggal_keluar: getTanggalFromForm(parsed.data.tanggal_keluar),
+          keterangan: parsed.data.keterangan,
+          items: parsed.data.items,
+        },
+        bukti ?? undefined
+      );
+
+      revalidatePath("/barang-keluar");
+      revalidatePath("/laporan");
+      revalidatePath("/riwayat-transaksi");
+      revalidateMerchandiseListCache();
+      revalidateAnalyticsPages();
+      return { ok: true };
+    }
+
     if (isBarangKeluarBatchData(parsed.data)) {
       return {
         ok: false,
-        message: "Edit transaksi multi-merchandise belum didukung",
+        message: "Format edit transaksi tidak valid",
       };
     }
 
     if (!parsed.data.tanggal_keluar) {
       return { ok: false, message: "Tanggal keluar wajib diisi" };
     }
-
-    const bukti = await parseBarangKeluarBukti(formData);
 
     const existing = await getBarangKeluarById(idParsed.data);
     if (!existing) {
@@ -331,6 +393,8 @@ export async function returnBarangKeluarAction(
   data: {
     jumlah_kembali: number;
     tanggal_kembali: string;
+    pengembali: string;
+    asal: string;
     keterangan: string;
   }
 ): Promise<ActionResult> {
@@ -358,6 +422,8 @@ export async function returnBarangKeluarAction(
       id_user: auth.user.id_user,
       jumlah_kembali: parsed.data.jumlah_kembali,
       tanggal_kembali: tanggalKembali,
+      pengembali: parsed.data.pengembali,
+      asal: parsed.data.asal,
       keterangan: parsed.data.keterangan,
     });
 

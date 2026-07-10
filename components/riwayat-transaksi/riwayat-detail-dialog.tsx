@@ -129,14 +129,64 @@ export default function RiwayatDetailDialog({
               Memuat detail...
             </p>
           ) : jenis === "KELUAR" && keluarDetail ? (
-            <div className="space-y-3 text-sm">
-              <InfoRow label="ID" value={`#TRX-${String(keluarDetail.id_keluar).padStart(5, "0")}`} />
-              <InfoRow label="Tanggal" value={formatTransaksiDate(keluarDetail.tanggal_keluar)} />
-              <InfoRow label="Merchandise" value={keluarDetail.merchandise} />
-              <InfoRow label="Tujuan" value={`${keluarDetail.tujuan} · ${keluarDetail.detail_tujuan}`} />
-              <InfoRow label="Barang Keluar" value={`${keluarDetail.qty.keluar} pcs`} />
-              <InfoRow label="Barang Dikembalikan" value={`${keluarDetail.qty.dikembalikan} pcs`} />
-              <InfoRow label="Barang Terpakai" value={`${keluarDetail.qty.terpakai} pcs`} />
+            <div className="space-y-4 text-sm">
+              <InfoRow
+                label="ID"
+                value={
+                  keluarDetail.is_multi
+                    ? `${keluarDetail.grup_items.length} merchandise · #TRX-${String(keluarDetail.id_keluar).padStart(5, "0")}`
+                    : `#TRX-${String(keluarDetail.id_keluar).padStart(5, "0")}`
+                }
+              />
+              <InfoRow
+                label="Tanggal"
+                value={formatTransaksiDate(keluarDetail.tanggal_keluar)}
+              />
+              {keluarDetail.is_multi ? (
+                <div className="overflow-x-auto rounded-xl border border-[#E8E4DF]">
+                  <table className="min-w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-[#E8E4DF] bg-[#FAFAF8] text-left text-xs text-[#6B7280]">
+                        <th className="px-3 py-2 font-medium">Merchandise</th>
+                        <th className="px-3 py-2 font-medium">Keluar</th>
+                        <th className="px-3 py-2 font-medium">Kembali</th>
+                        <th className="px-3 py-2 font-medium">Terpakai</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {keluarDetail.grup_items.map((item) => (
+                        <tr
+                          key={item.id_keluar}
+                          className="border-b border-[#F3F4F6] last:border-b-0"
+                        >
+                          <td className="px-3 py-2 font-medium">{item.merchandise}</td>
+                          <td className="px-3 py-2">{item.qty.keluar} pcs</td>
+                          <td className="px-3 py-2">{item.qty.dikembalikan} pcs</td>
+                          <td className="px-3 py-2">{item.qty.terpakai} pcs</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <InfoRow label="Merchandise" value={keluarDetail.merchandise} />
+              )}
+              <InfoRow
+                label="Tujuan"
+                value={`${keluarDetail.tujuan} · ${keluarDetail.detail_tujuan}`}
+              />
+              <InfoRow
+                label="Barang Keluar"
+                value={`${keluarDetail.grup_items.reduce((sum, item) => sum + item.qty.keluar, 0)} pcs`}
+              />
+              <InfoRow
+                label="Barang Dikembalikan"
+                value={`${keluarDetail.grup_items.reduce((sum, item) => sum + item.qty.dikembalikan, 0)} pcs`}
+              />
+              <InfoRow
+                label="Barang Terpakai"
+                value={`${keluarDetail.grup_items.reduce((sum, item) => sum + item.qty.terpakai, 0)} pcs`}
+              />
               <InfoRow label="Petugas" value={keluarDetail.petugas} />
               {keluarDetail.keterangan && (
                 <InfoRow label="Keterangan" value={keluarDetail.keterangan} />

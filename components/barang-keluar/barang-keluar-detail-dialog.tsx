@@ -92,7 +92,18 @@ export default function BarangKeluarDetailDialog({
     };
   }, [open, id]);
 
-  const canReturn = detail ? detail.sisa_return > 0 : false;
+  const totalKeluar = detail?.grup_items.reduce(
+    (sum, item) => sum + item.qty.keluar,
+    0
+  );
+  const totalKembali = detail?.grup_items.reduce(
+    (sum, item) => sum + item.qty.dikembalikan,
+    0
+  );
+  const totalTerpakai = detail?.grup_items.reduce(
+    (sum, item) => sum + item.qty.terpakai,
+    0
+  );
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -107,19 +118,19 @@ export default function BarangKeluarDetailDialog({
         ) : (
           <>
             <div className="border-b border-[#EFEAE5] px-6 py-5">
-              <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between mr-4 mt-4">
+              <div className="mr-4 mt-4 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                 <div className="flex items-start gap-3">
                   <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#FFF2F2]">
                     <Package className="h-5 w-5 text-[#B1070E]" />
                   </div>
                   <div>
                     <DialogTitle className="text-lg font-semibold text-[#1A1C1C]">
-                      {detail.grup_items.length > 1
+                      {detail.is_multi
                         ? "Detail Transaksi Barang"
                         : `Detail Barang Keluar — ${detail.merchandise}`}
                     </DialogTitle>
                     <p className="mt-1 text-sm text-[#6B7280]">
-                      {detail.grup_items.length > 1
+                      {detail.is_multi
                         ? `${detail.grup_items.length} merchandise · ${formatTransaksiId(detail.id_keluar)}`
                         : formatTransaksiId(detail.id_keluar)}
                     </p>
@@ -132,68 +143,66 @@ export default function BarangKeluarDetailDialog({
             </div>
 
             <div className="space-y-6 px-6 py-6">
-              {detail.grup_items.length > 1 && (
-                <div className="rounded-xl border border-[#E5E7EB] bg-white p-5">
-                  <h3 className="text-xs font-semibold uppercase tracking-wide text-[#6B7280]">
-                    Daftar Merchandise
-                  </h3>
-                  <div className="mt-4 overflow-x-auto">
-                    <table className="min-w-full text-sm">
-                      <thead>
-                        <tr className="border-b border-[#EFEAE5] text-left text-xs text-[#6B7280]">
-                          <th className="pb-2 pr-4 font-medium">Merchandise</th>
-                          <th className="pb-2 pr-4 font-medium">Keluar</th>
-                          <th className="pb-2 pr-4 font-medium">Kembali</th>
-                          <th className="pb-2 font-medium">Terpakai</th>
+              <div className="rounded-xl border border-[#E5E7EB] bg-white p-5">
+                <h3 className="text-xs font-semibold uppercase tracking-wide text-[#6B7280]">
+                  Daftar Merchandise
+                </h3>
+                <div className="mt-4 overflow-x-auto">
+                  <table className="min-w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-[#EFEAE5] text-left text-xs text-[#6B7280]">
+                        <th className="pb-2 pr-4 font-medium">Merchandise</th>
+                        <th className="pb-2 pr-4 font-medium">Keluar</th>
+                        <th className="pb-2 pr-4 font-medium">Kembali</th>
+                        <th className="pb-2 pr-4 font-medium">Terpakai</th>
+                        {onReturn && (
+                          <th className="pb-2 font-medium text-right">Aksi</th>
+                        )}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {detail.grup_items.map((item) => (
+                        <tr
+                          key={item.id_keluar}
+                          className="border-b border-[#F3F4F6] last:border-b-0"
+                        >
+                          <td className="py-2.5 pr-4 font-medium text-[#1A1C1C]">
+                            {item.merchandise}
+                          </td>
+                          <td className="py-2.5 pr-4 text-[#4B5563]">
+                            {item.qty.keluar.toLocaleString("id-ID")} pcs
+                          </td>
+                          <td className="py-2.5 pr-4 text-[#4B5563]">
+                            {item.qty.dikembalikan.toLocaleString("id-ID")} pcs
+                          </td>
+                          <td className="py-2.5 pr-4 text-[#4B5563]">
+                            {item.qty.terpakai.toLocaleString("id-ID")} pcs
+                          </td>
+                          {onReturn && (
+                            <td className="py-2.5 text-right">
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                disabled={item.sisa_return <= 0}
+                                onClick={() => {
+                                  onReturn(item.id_keluar);
+                                  onOpenChange(false);
+                                }}
+                              >
+                                <RotateCcw className="mr-1.5 h-3.5 w-3.5" />
+                                Kembalikan
+                              </Button>
+                            </td>
+                          )}
                         </tr>
-                      </thead>
-                      <tbody>
-                        {detail.grup_items.map((item) => (
-                          <tr
-                            key={item.id_keluar}
-                            className={`border-b border-[#F3F4F6] last:border-b-0 ${
-                              item.id_keluar === detail.id_keluar
-                                ? "bg-[#FFF8F8]"
-                                : ""
-                            }`}
-                          >
-                            <td className="py-2.5 pr-4 font-medium text-[#1A1C1C]">
-                              {item.merchandise}
-                            </td>
-                            <td className="py-2.5 pr-4 text-[#4B5563]">
-                              {item.qty.keluar.toLocaleString("id-ID")} pcs
-                            </td>
-                            <td className="py-2.5 pr-4 text-[#4B5563]">
-                              {item.qty.dikembalikan.toLocaleString("id-ID")} pcs
-                            </td>
-                            <td className="py-2.5 text-[#4B5563]">
-                              {item.qty.terpakai.toLocaleString("id-ID")} pcs
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
-              )}
+              </div>
 
-              <div className="grid gap-4 md:grid-cols-3">
-                <InfoCard title="Informasi Merchandise">
-                  <InfoRow label="Nama Merchandise" value={detail.merchandise} />
-                  <InfoRow
-                    label="Barang Keluar"
-                    value={`${detail.qty.keluar.toLocaleString("id-ID")} pcs`}
-                  />
-                  <InfoRow
-                    label="Barang Dikembalikan"
-                    value={`${detail.qty.dikembalikan.toLocaleString("id-ID")} pcs`}
-                  />
-                  <InfoRow
-                    label="Barang Terpakai"
-                    value={`${detail.qty.terpakai.toLocaleString("id-ID")} pcs`}
-                  />
-                </InfoCard>
-
+              <div className="grid gap-4 md:grid-cols-2">
                 <InfoCard title="Informasi Tujuan">
                   <InfoRow label="Tujuan" value={detail.tujuan} />
                   <InfoRow label="Detail Tujuan" value={detail.detail_tujuan} />
@@ -206,6 +215,18 @@ export default function BarangKeluarDetailDialog({
                       </span>
                     }
                   />
+                  {detail.is_multi && (
+                    <>
+                      <InfoRow
+                        label="Total Barang Keluar"
+                        value={`${(totalKeluar ?? 0).toLocaleString("id-ID")} pcs`}
+                      />
+                      <InfoRow
+                        label="Total Terpakai"
+                        value={`${(totalTerpakai ?? 0).toLocaleString("id-ID")} pcs`}
+                      />
+                    </>
+                  )}
                 </InfoCard>
 
                 <InfoCard title="Informasi Petugas">
@@ -222,10 +243,24 @@ export default function BarangKeluarDetailDialog({
                     label="Total Pengembalian"
                     value={`${detail.riwayat_kembali.length} kali`}
                   />
-                  <InfoRow
-                    label="Sisa Bisa Dikembalikan"
-                    value={`${detail.sisa_return.toLocaleString("id-ID")} pcs`}
-                  />
+                  {!detail.is_multi && (
+                    <>
+                      <InfoRow
+                        label="Barang Dikembalikan"
+                        value={`${(totalKembali ?? 0).toLocaleString("id-ID")} pcs`}
+                      />
+                      <InfoRow
+                        label="Sisa Bisa Dikembalikan"
+                        value={`${detail.sisa_return.toLocaleString("id-ID")} pcs`}
+                      />
+                    </>
+                  )}
+                  {detail.is_multi && (
+                    <InfoRow
+                      label="Total Dikembalikan"
+                      value={`${(totalKembali ?? 0).toLocaleString("id-ID")} pcs`}
+                    />
+                  )}
                 </InfoCard>
               </div>
 
@@ -273,14 +308,16 @@ export default function BarangKeluarDetailDialog({
                         <div className="min-w-0 flex-1 pb-5">
                           <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
                             <p className="text-sm font-medium text-[#1A1C1C]">
-                              Dikembalikan {item.jumlah_kembali.toLocaleString("id-ID")} pcs
+                              {item.merchandise} dikembalikan{" "}
+                              {item.jumlah_kembali.toLocaleString("id-ID")} pcs
                             </p>
                             <p className="text-xs text-[#6B7280]">
                               {formatTransaksiDate(item.tanggal_kembali)}
                             </p>
                           </div>
                           <p className="mt-0.5 text-xs text-[#6B7280]">
-                            oleh {item.petugas}
+                            oleh {item.pengembali ?? item.petugas}
+                            {item.asal ? ` · dari ${item.asal}` : ""}
                           </p>
                           {item.keterangan && (
                             <p className="mt-1.5 text-sm text-[#4B5563]">
@@ -297,19 +334,6 @@ export default function BarangKeluarDetailDialog({
 
             <div className="flex flex-col-reverse gap-2 border-t border-[#E8E4DF] bg-[#FAFAF8] px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
               <div className="flex flex-wrap gap-2">
-                {onReturn && (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    disabled={!canReturn}
-                    onClick={() => {
-                      onOpenChange(false);
-                      onReturn(detail.id_keluar);
-                    }}
-                  >
-                    Kembalikan Barang
-                  </Button>
-                )}
                 {onEdit && (
                   <Button
                     type="button"

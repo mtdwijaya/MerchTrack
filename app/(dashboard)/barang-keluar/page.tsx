@@ -1,8 +1,8 @@
 import { Suspense } from "react";
 
 import BarangKeluarPageClient from "./barang-keluar-page-client";
+import { getBarangKeluarGroupedPaginated } from "@/lib/barang-keluar-group";
 import {
-  getBarangKeluarPaginated,
   getBarangKeluarSummary,
   parseBarangKeluarSort,
 } from "@/lib/barang-keluar";
@@ -35,7 +35,7 @@ async function BarangKeluarContent({
 
   const [list, summary, merchandiseList, stasiunList, tujuanList, unitList] =
     await Promise.all([
-      getBarangKeluarPaginated({
+      getBarangKeluarGroupedPaginated({
         page,
         limit: PAGE_SIZE,
         search,

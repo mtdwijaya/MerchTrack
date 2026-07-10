@@ -33,19 +33,26 @@ export default function FormDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className={cn("sm:max-w-xl", contentClassName)}>
-        <DialogHeader>
+      <DialogContent
+        className={cn(
+          "flex max-h-[min(90dvh,920px)] max-w-[calc(100%-2rem)] flex-col gap-0 overflow-hidden p-0 sm:max-w-xl",
+          contentClassName
+        )}
+      >
+        <DialogHeader className="shrink-0 border-b border-[#EFEAE5] px-6 py-4 pr-12">
           <DialogTitle>{title}</DialogTitle>
           <DialogDescription>{description}</DialogDescription>
         </DialogHeader>
 
-        {loading ? (
-          <p className="py-8 text-center text-sm text-gray-500">
-            Memuat data...
-          </p>
-        ) : (
-          children
-        )}
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-y-contain px-6 py-4">
+          {loading ? (
+            <p className="py-8 text-center text-sm text-gray-500">
+              Memuat data...
+            </p>
+          ) : (
+            children
+          )}
+        </div>
       </DialogContent>
     </Dialog>
   );

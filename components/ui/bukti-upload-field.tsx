@@ -63,23 +63,7 @@ export default function BuktiUploadField({
       <p className="mt-1.5 text-xs text-[#9A9A9A]">
         PDF, JPG, atau PNG — maksimal 5MB
       </p>
-      {value ? (
-        <BuktiLocalPreview file={value} />
-      ) : null}
-      {!value && existingFileName && existingFilePath ? (
-        <div className="mt-3">
-          <BuktiDocumentPreview
-            path={existingFilePath}
-            name={existingFileName}
-            title="Bukti Saat Ini"
-          />
-        </div>
-      ) : !value && existingFileName ? (
-        <p className="mt-1 text-sm text-[#4A4A4A]">
-          File saat ini:{" "}
-          <span className="font-medium">{existingFileName}</span>
-        </p>
-      ) : null}
+     
     </Field>
   );
 }

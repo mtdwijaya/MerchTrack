@@ -188,6 +188,8 @@ model BarangKembali {
   jumlah_kembali  Int
   tanggal_kembali DateTime @default(now())
 
+  pengembali String?
+  asal       String?
   keterangan String?
 
   barangKeluar BarangKeluar @relation(fields: [id_keluar], references: [id_keluar], onDelete: Cascade)

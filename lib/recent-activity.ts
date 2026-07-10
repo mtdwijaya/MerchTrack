@@ -159,6 +159,8 @@ function buildRecentActivity(
     id_kembali: number;
     jumlah_kembali: number;
     tanggal_kembali: Date;
+    pengembali?: string | null;
+    asal?: string | null;
     user: { nama_user: string };
     barangKeluar: {
       id_keluar: number;
@@ -199,7 +201,7 @@ function buildRecentActivity(
     (item) => ({
       id: `bkb-${item.id_kembali}`,
       title: `${item.jumlah_kembali.toLocaleString("id-ID")} pcs · ${item.barangKeluar.merchandise.nama_merch}`,
-      meta: `${item.user.nama_user} · ${formatTransaksiId(item.barangKeluar.id_keluar)}`,
+      meta: `${item.pengembali ?? item.user.nama_user}${item.asal ? ` · ${item.asal}` : ""} · ${formatTransaksiId(item.barangKeluar.id_keluar)}`,
       occurredAt: toIso(item.tanggal_kembali),
       type: "Barang Dikembalikan",
       tone: "returned",
