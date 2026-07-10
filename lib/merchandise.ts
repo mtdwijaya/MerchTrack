@@ -62,6 +62,71 @@ function buildOrderBy(
   return { [sortBy]: sortOrder };
 }
 
+export type MerchandiseStockMovement = {
+  stokAwal: number;
+  stokKeluar: number;
+  stokDikembalikan: number;
+  restock: number;
+  stokAkhir: number;
+};
+
+async function getMerchandiseStockMovements(merchIds: number[]) {
+  if (merchIds.length === 0) {
+    return new Map<number, Omit<MerchandiseStockMovement, "stokAwal" | "stokAkhir">>();
+  }
+
+  const [keluarGroups, masukGroups] = await Promise.all([
+    prisma.barangKeluar.groupBy({
+      by: ["id_merch"],
+      where: { id_merch: { in: merchIds } },
+      _sum: { jumlah: true, jumlah_kembali: true },
+    }),
+    prisma.barangMasuk.groupBy({
+      by: ["id_merch"],
+      where: { id_merch: { in: merchIds } },
+      _sum: { jumlah: true },
+    }),
+  ]);
+
+  const keluarMap = new Map(keluarGroups.map((item) => [item.id_merch, item]));
+  const masukMap = new Map(masukGroups.map((item) => [item.id_merch, item]));
+
+  return new Map(
+    merchIds.map((id) => {
+      const keluar = keluarMap.get(id);
+      const masuk = masukMap.get(id);
+      const jumlahKeluar = keluar?._sum.jumlah ?? 0;
+      const jumlahKembali = keluar?._sum.jumlah_kembali ?? 0;
+
+      return [
+        id,
+        {
+          stokKeluar: jumlahKeluar + jumlahKembali,
+          stokDikembalikan: jumlahKembali,
+          restock: masuk?._sum.jumlah ?? 0,
+        },
+      ];
+    })
+  );
+}
+
+function buildStockMovement(
+  stokAkhir: number,
+  movement: Omit<MerchandiseStockMovement, "stokAwal" | "stokAkhir">
+): MerchandiseStockMovement {
+  return {
+    stokAwal:
+      stokAkhir -
+      movement.restock -
+      movement.stokDikembalikan +
+      movement.stokKeluar,
+    stokKeluar: movement.stokKeluar,
+    stokDikembalikan: movement.stokDikembalikan,
+    restock: movement.restock,
+    stokAkhir,
+  };
+}
+
 export async function getMerchandisePaginated({
   page,
   limit,
@@ -108,8 +173,28 @@ export async function getMerchandisePaginated({
     prisma.merchandise.count({ where }),
   ]);
 
+  const merchIds = data.map((item) => item.id_merch);
+  const movements = await getMerchandiseStockMovements(merchIds);
+
+  const enrichedData = data.map((item) => {
+    const stokAkhir = item.stok?.jumlah_stok ?? 0;
+    const movement = movements.get(item.id_merch) ?? {
+      stokKeluar: 0,
+      stokDikembalikan: 0,
+      restock: 0,
+    };
+
+    return {
+      id_merch: item.id_merch,
+      nama_merch: item.nama_merch,
+      deskripsi: item.deskripsi,
+      stok: item.stok,
+      movement: buildStockMovement(stokAkhir, movement),
+    };
+  });
+
   return {
-    data,
+    data: enrichedData,
     total,
     currentPage: page,
     totalPages: Math.ceil(total / limit) || 1,

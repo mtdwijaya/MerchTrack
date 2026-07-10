@@ -44,7 +44,13 @@ interface Props {
       id_merch: number;
       nama_merch: string;
       deskripsi: string | null;
-      stok: { jumlah_stok: number } | null;
+      movement: {
+        stokAwal: number;
+        stokKeluar: number;
+        stokDikembalikan: number;
+        restock: number;
+        stokAkhir: number;
+      };
     }[];
     total: number;
     totalPages: number;
@@ -258,18 +264,18 @@ export default function MerchandisePageClient({
             placeholder="Pilih urutan..."
             options={[
               { value: "nama_merch:asc", label: "Nama (A-Z)" },
-              { value: "jumlah_stok:desc", label: "Stok (Tertinggi)" },
-              { value: "jumlah_stok:asc", label: "Stok (Terendah)" },
+              { value: "jumlah_stok:desc", label: "Stok Akhir (Tertinggi)" },
+              { value: "jumlah_stok:asc", label: "Stok Akhir (Terendah)" },
             ]}
           />
         </FilterBar>
 
         <DataTableSection>
-          <table className="w-full">
+          <table className="w-full min-w-[1080px]">
             <thead>
               <tr className="border-b border-[#EFEAE5] bg-[#FAFAFA]">
                 <SortableTh
-                  label="Nama Merchandise"
+                  label="Nama"
                   field="nama_merch"
                   activeField={sortBy}
                   activeOrder={sortOrder}
@@ -280,8 +286,20 @@ export default function MerchandisePageClient({
                 <th className="px-5 py-4 text-left text-xs font-semibold uppercase tracking-wide text-[#6B7280]">
                   Deskripsi
                 </th>
+                <th className="px-5 py-4 text-center text-xs font-semibold uppercase tracking-wide text-[#6B7280]">
+                  Stok Awal
+                </th>
+                <th className="px-5 py-4 text-center text-xs font-semibold uppercase tracking-wide text-[#6B7280]">
+                  Stok Keluar
+                </th>
+                <th className="px-5 py-4 text-center text-xs font-semibold uppercase tracking-wide text-[#6B7280]">
+                  Stok Dikembalikan
+                </th>
+                <th className="px-5 py-4 text-center text-xs font-semibold uppercase tracking-wide text-[#6B7280]">
+                  Restock
+                </th>
                 <SortableTh
-                  label="Stok"
+                  label="Stok Akhir"
                   field="jumlah_stok"
                   activeField={sortBy}
                   activeOrder={sortOrder}
@@ -297,9 +315,9 @@ export default function MerchandisePageClient({
             </thead>
             <tbody>
               {isPending ? (
-                <TableEmptyRow colSpan={4} message="Memuat data..." />
+                <TableEmptyRow colSpan={8} message="Memuat data..." />
               ) : list.data.length === 0 ? (
-                <TableEmptyRow colSpan={4} message="Belum ada merchandise" />
+                <TableEmptyRow colSpan={8} message="Belum ada merchandise" />
               ) : (
                 list.data.map((item) => (
                   <tr
@@ -313,7 +331,29 @@ export default function MerchandisePageClient({
                       {item.deskripsi || "-"}
                     </Td>
                     <Td align="center" variant="numeric">
-                      {item.stok?.jumlah_stok.toLocaleString("id-ID") ?? 0}
+                     <span className="font-medium text-[#1A1C1C]">
+                        {item.movement.stokAwal.toLocaleString("id-ID")}
+                      </span>
+                    </Td>
+                    <Td align="center" variant="numeric">
+                    <span className="font-medium text-red-600">
+                       - {item.movement.stokKeluar.toLocaleString("id-ID")}
+                      </span>
+                    </Td>
+                    <Td align="center" variant="numeric">
+                    <span className="font-medium text-green-600">
+                       + {item.movement.stokDikembalikan.toLocaleString("id-ID")}
+                      </span>
+                    </Td>
+                    <Td align="center" variant="numeric">
+                      <span className="font-medium text-green-600">
+                       + {item.movement.restock.toLocaleString("id-ID")}
+                      </span>
+                    </Td>
+                    <Td align="center" variant="numeric">
+                      <span className="font-bold text-[#1A1C1C]">
+                        {item.movement.stokAkhir.toLocaleString("id-ID")}
+                      </span>
                     </Td>
                     <Td align="center" variant="action">
                       <div className="flex items-center justify-center gap-3">
