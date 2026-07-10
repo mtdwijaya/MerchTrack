@@ -4,6 +4,8 @@ import type { TujuanOption } from "@/components/barang-keluar/status-badge";
 import Field from "@/components/ui/field";
 import FormActions from "@/components/ui/form-actions";
 import BuktiUploadField from "@/components/ui/bukti-upload-field";
+import { Button } from "@/components/ui/button";
+import { Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
 
 interface Merchandise {
@@ -22,6 +24,21 @@ interface Unit {
   nama_unit: string;
 }
 
+type MerchItemRow = {
+  id_merch: number;
+  jumlah: number;
+};
+
+export type BarangKeluarFormSubmitData = {
+  id_tujuan: number;
+  id_stasiun?: number;
+  id_unit?: number;
+  detail_teks?: string;
+  tanggal_keluar: string;
+  keterangan: string;
+  items: MerchItemRow[];
+};
+
 interface BarangKeluarFormProps {
   initialData?: {
     id_merch: number;
@@ -37,16 +54,7 @@ interface BarangKeluarFormProps {
     bukti_nama?: string | null;
   };
   onSubmit: (
-    data: {
-      id_merch: number;
-      id_tujuan: number;
-      id_stasiun?: number;
-      id_unit?: number;
-      detail_teks?: string;
-      jumlah: number;
-      tanggal_keluar: string;
-      keterangan: string;
-    },
+    data: BarangKeluarFormSubmitData,
     bukti?: File | null
   ) => Promise<void>;
   loading?: boolean;
@@ -56,6 +64,11 @@ interface BarangKeluarFormProps {
   stasiunList: Stasiun[];
   unitList: Unit[];
   tujuanList: TujuanOption[];
+  isEdit?: boolean;
+}
+
+function createEmptyItem(): MerchItemRow {
+  return { id_merch: 0, jumlah: 1 };
 }
 
 export default function BarangKeluarForm({
@@ -68,39 +81,61 @@ export default function BarangKeluarForm({
   stasiunList,
   unitList,
   tujuanList,
+  isEdit = false,
 }: BarangKeluarFormProps) {
-  const [form, setForm] = useState({
-    id_merch: initialData?.id_merch || 0,
+  const [header, setHeader] = useState({
     id_tujuan: initialData?.id_tujuan || 0,
     id_stasiun: initialData?.id_stasiun || 0,
     id_unit: initialData?.id_unit || 0,
     detail_teks: initialData?.detail_teks || "",
-    jumlah: initialData?.jumlah || 1,
     tanggal_keluar: initialData?.tanggal_keluar?.split("T")[0] || "",
     keterangan: initialData?.keterangan || "",
   });
+  const [items, setItems] = useState<MerchItemRow[]>(
+    initialData
+      ? [{ id_merch: initialData.id_merch, jumlah: initialData.jumlah }]
+      : [createEmptyItem()]
+  );
   const [bukti, setBukti] = useState<File | null>(null);
 
   const selectedTujuan = tujuanList.find(
-    (item) => item.id_tujuan === form.id_tujuan
+    (item) => item.id_tujuan === header.id_tujuan
   );
 
   const lockStockFields = (initialData?.jumlah_kembali ?? 0) > 0;
-
-  const stokSaatIni =
-    form.id_merch > 0
-      ? merchandiseList.find((item) => item.id_merch === form.id_merch)
-          ?.jumlah_stok
-      : undefined;
+  const canManageItems = !isEdit && !lockStockFields;
 
   function handleTujuanChange(id_tujuan: number) {
-    setForm({
-      ...form,
+    setHeader({
+      ...header,
       id_tujuan,
       id_stasiun: 0,
       id_unit: 0,
       detail_teks: "",
     });
+  }
+
+  function updateItem(index: number, patch: Partial<MerchItemRow>) {
+    setItems((current) =>
+      current.map((item, itemIndex) =>
+        itemIndex === index ? { ...item, ...patch } : item
+      )
+    );
+  }
+
+  function addItem() {
+    setItems((current) => [...current, createEmptyItem()]);
+  }
+
+  function removeItem(index: number) {
+    setItems((current) =>
+      current.length <= 1 ? current : current.filter((_, i) => i !== index)
+    );
+  }
+
+  function getStokSaatIni(id_merch: number) {
+    return merchandiseList.find((item) => item.id_merch === id_merch)
+      ?.jumlah_stok;
   }
 
   function renderDetailField() {
@@ -112,9 +147,9 @@ export default function BarangKeluarForm({
           <Field label={selectedTujuan.label_detail ?? "Pilih Stasiun"}>
             <select
               required
-              value={form.id_stasiun}
+              value={header.id_stasiun}
               onChange={(e) =>
-                setForm({ ...form, id_stasiun: Number(e.target.value) })
+                setHeader({ ...header, id_stasiun: Number(e.target.value) })
               }
               className="input-field"
             >
@@ -132,9 +167,9 @@ export default function BarangKeluarForm({
           <Field label={selectedTujuan.label_detail ?? "Pilih Unit"}>
             <select
               required
-              value={form.id_unit}
+              value={header.id_unit}
               onChange={(e) =>
-                setForm({ ...form, id_unit: Number(e.target.value) })
+                setHeader({ ...header, id_unit: Number(e.target.value) })
               }
               className="input-field"
             >
@@ -153,12 +188,12 @@ export default function BarangKeluarForm({
             <input
               required
               type="text"
-              value={form.detail_teks}
+              value={header.detail_teks}
               onChange={(e) =>
-                setForm({ ...form, detail_teks: e.target.value })
+                setHeader({ ...header, detail_teks: e.target.value })
               }
               className="input-field"
-              placeholder="Isi detail tujuan"
+              placeholder="Contoh: Fun Run LRT 2026"
             />
           </Field>
         );
@@ -171,48 +206,132 @@ export default function BarangKeluarForm({
     <form
       onSubmit={(e) => {
         e.preventDefault();
-        onSubmit({
-          id_merch: form.id_merch,
-          id_tujuan: form.id_tujuan,
-          id_stasiun: form.id_stasiun || undefined,
-          id_unit: form.id_unit || undefined,
-          detail_teks: form.detail_teks || undefined,
-          jumlah: form.jumlah,
-          tanggal_keluar: form.tanggal_keluar,
-          keterangan: form.keterangan,
-        }, bukti);
+        onSubmit(
+          {
+            id_tujuan: header.id_tujuan,
+            id_stasiun: header.id_stasiun || undefined,
+            id_unit: header.id_unit || undefined,
+            detail_teks: header.detail_teks || undefined,
+            tanggal_keluar: header.tanggal_keluar,
+            keterangan: header.keterangan,
+            items: items.filter((item) => item.id_merch > 0),
+          },
+          bukti
+        );
       }}
-      className="space-y-5"
+      className="space-y-6"
     >
-      <div className="grid gap-5 md:grid-cols-2">
-        <Field label="Merchandise">
-          <select
-            required
-            disabled={lockStockFields}
-            value={form.id_merch}
-            onChange={(e) =>
-              setForm({ ...form, id_merch: Number(e.target.value) })
-            }
-            className="input-field"
-          >
-            <option value="">Pilih Merchandise</option>
-            {merchandiseList.map((item) => (
-              <option key={item.id_merch} value={item.id_merch}>
-                {item.nama_merch}
-              </option>
-            ))}
-          </select>
-          {lockStockFields && (
-            <p className="mt-1.5 text-sm text-[#6B7280]">
-              Merchandise tidak dapat diubah setelah ada pengembalian.
-            </p>
-          )}
-        </Field>
+      <div className="space-y-4">
+        <div className="grid grid-cols-[2rem_1fr_7rem_2.5rem] items-center gap-3 text-xs font-semibold uppercase tracking-wide text-[#6B7280]">
+          <span>#</span>
+          <span>Pilih Merchandise</span>
+          <span>Jumlah</span>
+          <span className="sr-only">Aksi</span>
+        </div>
 
+        <div className="space-y-3">
+          {items.map((item, index) => {
+            const stokSaatIni = getStokSaatIni(item.id_merch);
+
+            return (
+              <div
+                key={index}
+                className="grid grid-cols-[2rem_1fr_7rem_2.5rem] items-start gap-3"
+              >
+                <span className="pt-2.5 text-sm font-medium text-[#6B7280]">
+                  {index + 1}
+                </span>
+
+                <div>
+                  <select
+                    required
+                    disabled={lockStockFields}
+                    value={item.id_merch || ""}
+                    onChange={(e) =>
+                      updateItem(index, { id_merch: Number(e.target.value) })
+                    }
+                    className="input-field"
+                  >
+                    <option value="">Pilih Merchandise</option>
+                    {merchandiseList.map((merch) => (
+                      <option key={merch.id_merch} value={merch.id_merch}>
+                        {merch.nama_merch}
+                      </option>
+                    ))}
+                  </select>
+                  {!lockStockFields && stokSaatIni !== undefined && (
+                    <p className="mt-1.5 text-xs text-[#6B7280]">
+                      Stok:{" "}
+                      <span
+                        className={`font-semibold ${
+                          stokSaatIni === 0
+                            ? "text-[#B1070E]"
+                            : "text-[#1A1C1C]"
+                        }`}
+                      >
+                        {stokSaatIni.toLocaleString("id-ID")}
+                      </span>{" "}
+                      pcs
+                    </p>
+                  )}
+                </div>
+
+                <input
+                  required
+                  min={1}
+                  type="number"
+                  disabled={lockStockFields}
+                  value={item.jumlah}
+                  onChange={(e) =>
+                    updateItem(index, { jumlah: Number(e.target.value) })
+                  }
+                  className="input-field"
+                />
+
+                {canManageItems ? (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="mt-0.5 text-[#B1070E] hover:bg-[#FFF2F2] hover:text-[#B1070E]"
+                    disabled={items.length <= 1}
+                    onClick={() => removeItem(index)}
+                    aria-label={`Hapus item ${index + 1}`}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                ) : (
+                  <span />
+                )}
+              </div>
+            );
+          })}
+        </div>
+
+        {canManageItems && (
+          <Button
+            type="button"
+            variant="outline"
+            className="w-full border-dashed"
+            onClick={addItem}
+          >
+            <Plus className="mr-2 h-4 w-4" />
+            Tambah Item
+          </Button>
+        )}
+
+        {lockStockFields && (
+          <p className="text-sm text-[#6B7280]">
+            Merchandise dan jumlah tidak dapat diubah setelah ada pengembalian.
+          </p>
+        )}
+      </div>
+
+      <div className="grid gap-5 md:grid-cols-2">
         <Field label="Tujuan">
           <select
             required
-            value={form.id_tujuan}
+            value={header.id_tujuan}
             onChange={(e) => handleTujuanChange(Number(e.target.value))}
             className="input-field"
           >
@@ -225,59 +344,29 @@ export default function BarangKeluarForm({
           </select>
         </Field>
 
-        {renderDetailField()}
+        {renderDetailField() ?? <div className="hidden md:block" />}
 
-        <Field label="Jumlah">
-          <input
-            required
-            min={1}
-            type="number"
-            disabled={lockStockFields}
-            value={form.jumlah}
-            onChange={(e) =>
-              setForm({ ...form, jumlah: Number(e.target.value) })
-            }
-            className="input-field"
-          />
-          {lockStockFields && (
-            <p className="mt-1.5 text-sm text-[#6B7280]">
-              Jumlah tidak dapat diubah setelah ada pengembalian.
-            </p>
-          )}
-          {!lockStockFields && stokSaatIni !== undefined && (
-            <p className="mt-1.5 text-sm text-[#6B7280]">
-              Stok saat ini:{" "}
-              <span
-                className={`font-semibold ${
-                  stokSaatIni === 0 ? "text-[#B1070E]" : "text-[#1A1C1C]"
-                }`}
-              >
-                {stokSaatIni.toLocaleString("id-ID")}
-              </span>{" "}
-              pcs
-            </p>
-          )}
-        </Field>
-
-        <Field label="Tanggal Keluar">
-          <input
-            required
-            type="date"
-            value={form.tanggal_keluar}
-            onChange={(e) =>
-              setForm({ ...form, tanggal_keluar: e.target.value })
-            }
-            className="input-field"
-          />
-        </Field>
+        <div className="md:col-span-2">
+          <Field label="Tanggal Transaksi">
+            <input
+              required
+              type="date"
+              value={header.tanggal_keluar}
+              onChange={(e) =>
+                setHeader({ ...header, tanggal_keluar: e.target.value })
+              }
+              className="input-field"
+            />
+          </Field>
+        </div>
       </div>
 
-      <Field label="Keterangan">
+      <Field label="Catatan">
         <textarea
           rows={4}
-          value={form.keterangan}
+          value={header.keterangan}
           onChange={(e) =>
-            setForm({ ...form, keterangan: e.target.value })
+            setHeader({ ...header, keterangan: e.target.value })
           }
           className="input-field"
           placeholder="Keterangan transaksi (opsional)"
@@ -295,6 +384,7 @@ export default function BarangKeluarForm({
         loading={loading}
         cancelHref={cancelHref}
         onCancel={onCancel}
+        submitLabel={isEdit ? "Simpan" : "Lanjut"}
       />
     </form>
   );

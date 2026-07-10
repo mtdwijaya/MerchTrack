@@ -141,6 +141,8 @@ model BarangMasuk {
 model BarangKeluar {
   id_keluar Int @id @default(autoincrement())
 
+  id_grup String?
+
   id_merch Int
   id_tujuan Int
   id_user   Int
@@ -170,6 +172,7 @@ model BarangKeluar {
 
   @@index([tanggal_keluar])
   @@index([dicatat_pada(sort: Desc)])
+  @@index([id_grup])
   @@index([id_merch])
   @@index([id_stasiun])
   @@index([id_tujuan])

@@ -114,10 +114,14 @@ export default function BarangKeluarDetailDialog({
                   </div>
                   <div>
                     <DialogTitle className="text-lg font-semibold text-[#1A1C1C]">
-                      Detail Barang Keluar — {detail.merchandise}
+                      {detail.grup_items.length > 1
+                        ? "Detail Transaksi Barang"
+                        : `Detail Barang Keluar — ${detail.merchandise}`}
                     </DialogTitle>
                     <p className="mt-1 text-sm text-[#6B7280]">
-                      {formatTransaksiId(detail.id_keluar)}
+                      {detail.grup_items.length > 1
+                        ? `${detail.grup_items.length} merchandise · ${formatTransaksiId(detail.id_keluar)}`
+                        : formatTransaksiId(detail.id_keluar)}
                     </p>
                   </div>
                 </div>
@@ -128,6 +132,51 @@ export default function BarangKeluarDetailDialog({
             </div>
 
             <div className="space-y-6 px-6 py-6">
+              {detail.grup_items.length > 1 && (
+                <div className="rounded-xl border border-[#E5E7EB] bg-white p-5">
+                  <h3 className="text-xs font-semibold uppercase tracking-wide text-[#6B7280]">
+                    Daftar Merchandise
+                  </h3>
+                  <div className="mt-4 overflow-x-auto">
+                    <table className="min-w-full text-sm">
+                      <thead>
+                        <tr className="border-b border-[#EFEAE5] text-left text-xs text-[#6B7280]">
+                          <th className="pb-2 pr-4 font-medium">Merchandise</th>
+                          <th className="pb-2 pr-4 font-medium">Keluar</th>
+                          <th className="pb-2 pr-4 font-medium">Kembali</th>
+                          <th className="pb-2 font-medium">Terpakai</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {detail.grup_items.map((item) => (
+                          <tr
+                            key={item.id_keluar}
+                            className={`border-b border-[#F3F4F6] last:border-b-0 ${
+                              item.id_keluar === detail.id_keluar
+                                ? "bg-[#FFF8F8]"
+                                : ""
+                            }`}
+                          >
+                            <td className="py-2.5 pr-4 font-medium text-[#1A1C1C]">
+                              {item.merchandise}
+                            </td>
+                            <td className="py-2.5 pr-4 text-[#4B5563]">
+                              {item.qty.keluar.toLocaleString("id-ID")} pcs
+                            </td>
+                            <td className="py-2.5 pr-4 text-[#4B5563]">
+                              {item.qty.dikembalikan.toLocaleString("id-ID")} pcs
+                            </td>
+                            <td className="py-2.5 text-[#4B5563]">
+                              {item.qty.terpakai.toLocaleString("id-ID")} pcs
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+
               <div className="grid gap-4 md:grid-cols-3">
                 <InfoCard title="Informasi Merchandise">
                   <InfoRow label="Nama Merchandise" value={detail.merchandise} />

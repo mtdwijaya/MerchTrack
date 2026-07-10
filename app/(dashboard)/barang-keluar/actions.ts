@@ -12,7 +12,9 @@ import {
 } from "@/lib/barang-kembali";
 import {
   createBarangKeluar,
+  createBarangKeluarBatch,
   deleteBarangKeluar,
+  getBarangKeluarByGrup,
   getBarangKeluarById,
   updateBarangKeluar,
 } from "@/lib/barang-keluar";
@@ -26,6 +28,7 @@ import { revalidateMerchandiseListCache } from "@/lib/merchandise";
 import { revalidateAnalyticsPages } from "@/lib/revalidate-analytics";
 import {
   getTanggalFromForm,
+  isBarangKeluarBatchData,
   parseBarangKeluarBukti,
   parseBarangKeluarFormData,
 } from "@/lib/parse-transaksi-form";
@@ -99,8 +102,19 @@ export async function getBarangKeluarDetail(id: number) {
   const riwayatKembali = await getBarangKembaliByKeluarId(data.id_keluar);
   const qty = getBarangKeluarQuantities(data.jumlah, data.jumlah_kembali);
 
+  const grupItems = data.id_grup
+    ? (await getBarangKeluarByGrup(data.id_grup)).map((item) => ({
+        id_keluar: item.id_keluar,
+        merchandise: item.merchandise.nama_merch,
+        qty: getBarangKeluarQuantities(item.jumlah, item.jumlah_kembali),
+        status: item.status,
+        sisa_return: item.jumlah,
+      }))
+    : [];
+
   return {
     id_keluar: data.id_keluar,
+    id_grup: data.id_grup,
     tanggal_keluar: data.tanggal_keluar.toISOString(),
     keterangan: data.keterangan,
     status: data.status,
@@ -112,6 +126,7 @@ export async function getBarangKeluarDetail(id: number) {
     bukti_nama: data.bukti_nama,
     qty,
     sisa_return: data.jumlah,
+    grup_items: grupItems,
     riwayat_kembali: riwayatKembali.map((item) => ({
       id_kembali: item.id_kembali,
       jumlah_kembali: item.jumlah_kembali,
@@ -134,19 +149,34 @@ export async function createBarangKeluarAction(
 
     const bukti = await parseBarangKeluarBukti(formData);
 
-    await createBarangKeluar({
-      id_merch: parsed.data.id_merch,
-      id_tujuan: parsed.data.id_tujuan,
-      id_stasiun: parsed.data.id_stasiun,
-      id_unit: parsed.data.id_unit,
-      detail_teks: parsed.data.detail_teks,
-      id_user: auth.user.id_user,
-      jumlah: parsed.data.jumlah,
-      tanggal_keluar: getTanggalFromForm(parsed.data.tanggal_keluar),
-      keterangan: parsed.data.keterangan,
-      bukti_path: bukti?.bukti_path ?? null,
-      bukti_nama: bukti?.bukti_nama ?? null,
-    });
+    if (isBarangKeluarBatchData(parsed.data)) {
+      await createBarangKeluarBatch({
+        id_tujuan: parsed.data.id_tujuan,
+        id_stasiun: parsed.data.id_stasiun,
+        id_unit: parsed.data.id_unit,
+        detail_teks: parsed.data.detail_teks,
+        id_user: auth.user.id_user,
+        items: parsed.data.items,
+        tanggal_keluar: getTanggalFromForm(parsed.data.tanggal_keluar),
+        keterangan: parsed.data.keterangan,
+        bukti_path: bukti?.bukti_path ?? null,
+        bukti_nama: bukti?.bukti_nama ?? null,
+      });
+    } else {
+      await createBarangKeluar({
+        id_merch: parsed.data.id_merch,
+        id_tujuan: parsed.data.id_tujuan,
+        id_stasiun: parsed.data.id_stasiun,
+        id_unit: parsed.data.id_unit,
+        detail_teks: parsed.data.detail_teks,
+        id_user: auth.user.id_user,
+        jumlah: parsed.data.jumlah,
+        tanggal_keluar: getTanggalFromForm(parsed.data.tanggal_keluar),
+        keterangan: parsed.data.keterangan,
+        bukti_path: bukti?.bukti_path ?? null,
+        bukti_nama: bukti?.bukti_nama ?? null,
+      });
+    }
 
     revalidatePath("/barang-keluar");
     revalidatePath("/laporan");
@@ -175,6 +205,13 @@ export async function updateBarangKeluarAction(
 
     const parsed = parseBarangKeluarFormData(formData);
     if (!parsed.ok) return parsed;
+
+    if (isBarangKeluarBatchData(parsed.data)) {
+      return {
+        ok: false,
+        message: "Edit transaksi multi-merchandise belum didukung",
+      };
+    }
 
     if (!parsed.data.tanggal_keluar) {
       return { ok: false, message: "Tanggal keluar wajib diisi" };

@@ -22,8 +22,7 @@ export const loginSchema = z.object({
   password: z.string().min(1, "Password wajib diisi"),
 });
 
-export const barangKeluarSchema = z.object({
-  id_merch: idParamSchema,
+const barangKeluarDetailFields = {
   id_tujuan: idParamSchema,
   id_stasiun: z
     .union([idParamSchema, z.literal(0), z.null()])
@@ -34,12 +33,47 @@ export const barangKeluarSchema = z.object({
     .optional()
     .transform((v) => (v === 0 || v == null ? undefined : v)),
   detail_teks: optionalText(500),
+  tanggal_keluar: z.string().optional().or(z.literal("")),
+  keterangan: optionalText(500),
+};
+
+export const barangKeluarItemSchema = z.object({
+  id_merch: idParamSchema,
   jumlah: z.coerce
     .number()
     .int("Jumlah harus bilangan bulat")
     .positive("Jumlah harus lebih dari 0"),
-  tanggal_keluar: z.string().optional().or(z.literal("")),
-  keterangan: optionalText(500),
+});
+
+export const barangKeluarBatchSchema = z
+  .object({
+    ...barangKeluarDetailFields,
+    items: z
+      .array(barangKeluarItemSchema)
+      .min(1, "Minimal 1 merchandise wajib diisi"),
+  })
+  .superRefine((data, ctx) => {
+    const merchIds = data.items.map((item) => item.id_merch);
+    const duplicates = merchIds.filter(
+      (id, index) => merchIds.indexOf(id) !== index
+    );
+
+    if (duplicates.length > 0) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Merchandise tidak boleh duplikat dalam satu transaksi",
+        path: ["items"],
+      });
+    }
+  });
+
+export const barangKeluarSchema = z.object({
+  id_merch: idParamSchema,
+  ...barangKeluarDetailFields,
+  jumlah: z.coerce
+    .number()
+    .int("Jumlah harus bilangan bulat")
+    .positive("Jumlah harus lebih dari 0"),
 });
 
 export const barangKembaliSchema = z.object({

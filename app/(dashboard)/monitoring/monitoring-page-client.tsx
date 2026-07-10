@@ -14,7 +14,9 @@ import {
   updateBarangKeluarAction,
 } from "@/app/(dashboard)/barang-keluar/actions";
 import BarangKeluarDetailDialog from "@/components/barang-keluar/barang-keluar-detail-dialog";
-import BarangKeluarForm from "@/components/barang-keluar/barang-keluar-form";
+import BarangKeluarForm, {
+  type BarangKeluarFormSubmitData,
+} from "@/components/barang-keluar/barang-keluar-form";
 import BarangKembaliForm from "@/components/barang-keluar/barang-kembali-form";
 import StatusBarangKeluarBadge, {
   type TujuanOption,
@@ -33,7 +35,7 @@ import PageHeader from "@/components/ui/page-header";
 import { DetailsAction } from "@/components/ui/table-actions";
 import { useFormModal } from "@/hooks/use-form-modal";
 import { useSyncedPanelHeight } from "@/hooks/use-synced-panel-height";
-import { buildBarangKeluarFormData } from "@/lib/build-transaksi-form-data";
+import { buildBarangKeluarEditFormData } from "@/lib/build-transaksi-form-data";
 import { getBarangKeluarQuantities } from "@/lib/barang-keluar-quantities";
 import { showError, showSuccess } from "@/lib/toast";
 import type {
@@ -133,16 +135,7 @@ export default function MonitoringPageClient({
   }
 
   async function handleSubmit(
-    data: {
-      id_merch: number;
-      id_tujuan: number;
-      id_stasiun?: number;
-      id_unit?: number;
-      detail_teks?: string;
-      jumlah: number;
-      tanggal_keluar: string;
-      keterangan: string;
-    },
+    data: BarangKeluarFormSubmitData,
     bukti?: File | null
   ) {
     if (!modal.editId) return;
@@ -150,7 +143,19 @@ export default function MonitoringPageClient({
     modal.setSaving(true);
     const result = await updateBarangKeluarAction(
       modal.editId,
-      buildBarangKeluarFormData(data, bukti)
+      buildBarangKeluarEditFormData(
+        {
+          id_merch: data.items[0]?.id_merch ?? 0,
+          id_tujuan: data.id_tujuan,
+          id_stasiun: data.id_stasiun,
+          id_unit: data.id_unit,
+          detail_teks: data.detail_teks,
+          jumlah: data.items[0]?.jumlah ?? 1,
+          tanggal_keluar: data.tanggal_keluar,
+          keterangan: data.keterangan,
+        },
+        bukti
+      )
     );
     modal.setSaving(false);
 
@@ -425,6 +430,7 @@ export default function MonitoringPageClient({
         onSubmit={handleSubmit}
         loading={modal.saving}
         onCancel={modal.close}
+        isEdit
         merchandiseList={merchandiseList}
         stasiunList={stasiunList}
         unitList={unitList}

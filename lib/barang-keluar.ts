@@ -1,3 +1,5 @@
+import { randomUUID } from "crypto";
+
 import { prisma } from "@/lib/prisma";
 import { deleteEditLogsForTransaksi } from "@/lib/aktivitas-log-db";
 import {
@@ -149,20 +151,27 @@ export async function getBarangKeluarById(id: number) {
   });
 }
 
-type BarangKeluarInput = {
-  id_merch: number;
+type BarangKeluarHeaderInput = {
   id_tujuan: number;
   id_stasiun?: number | null;
   id_unit?: number | null;
   detail_teks?: string | null;
-  jumlah: number;
   tanggal_keluar?: Date;
   keterangan?: string;
   bukti_path?: string | null;
   bukti_nama?: string | null;
 };
 
-async function validateBarangKeluarInput(data: BarangKeluarInput) {
+type BarangKeluarInput = BarangKeluarHeaderInput & {
+  id_merch: number;
+  jumlah: number;
+};
+
+type BarangKeluarBatchInput = BarangKeluarHeaderInput & {
+  items: { id_merch: number; jumlah: number }[];
+};
+
+async function validateBarangKeluarInput(data: BarangKeluarHeaderInput) {
   // cek tujuan valid + detail stasiun/unit sesuai jenis tujuan
   const tujuan = await getTujuanById(data.id_tujuan);
   if (!tujuan) {
@@ -175,6 +184,90 @@ async function validateBarangKeluarInput(data: BarangKeluarInput) {
   }
 
   return { tujuan, detail: normalizeDetailTujuan(tujuan.jenis_detail, data) };
+}
+
+async function assertStockAvailable(
+  tx: Prisma.TransactionClient,
+  items: { id_merch: number; jumlah: number }[]
+) {
+  for (const item of items) {
+    const [stok, merch] = await Promise.all([
+      tx.stok.findUnique({ where: { id_merch: item.id_merch } }),
+      tx.merchandise.findUnique({
+        where: { id_merch: item.id_merch },
+        select: { nama_merch: true },
+      }),
+    ]);
+
+    if (!stok) {
+      throw new Error("Data stok tidak ditemukan");
+    }
+
+    if (stok.jumlah_stok < item.jumlah) {
+      throw new Error(
+        `Stok ${merch?.nama_merch ?? "merchandise"} tidak mencukupi`
+      );
+    }
+  }
+}
+
+export async function createBarangKeluarBatch(
+  data: BarangKeluarBatchInput & { id_user: number }
+) {
+  const { detail } = await validateBarangKeluarInput(data);
+
+  const merchIds = data.items.map((item) => item.id_merch);
+  if (new Set(merchIds).size !== merchIds.length) {
+    throw new Error("Merchandise tidak boleh duplikat dalam satu transaksi");
+  }
+
+  const id_grup = data.items.length > 1 ? randomUUID() : null;
+  const tanggalKeluar = data.tanggal_keluar ?? new Date();
+
+  return prisma.$transaction(async (tx) => {
+    await assertStockAvailable(tx, data.items);
+
+    const created = [];
+
+    for (const item of data.items) {
+      const transaksi = await tx.barangKeluar.create({
+        data: {
+          id_grup,
+          id_merch: item.id_merch,
+          id_tujuan: data.id_tujuan,
+          id_user: data.id_user,
+          id_stasiun: detail.id_stasiun,
+          id_unit: detail.id_unit,
+          detail_teks: detail.detail_teks,
+          jumlah: item.jumlah,
+          tanggal_keluar: tanggalKeluar,
+          dicatat_pada: tanggalKeluar,
+          keterangan: data.keterangan,
+          bukti_path: data.bukti_path ?? null,
+          bukti_nama: data.bukti_nama ?? null,
+        },
+      });
+
+      await tx.stok.update({
+        where: { id_merch: item.id_merch },
+        data: {
+          jumlah_stok: { decrement: item.jumlah },
+        },
+      });
+
+      created.push(transaksi);
+    }
+
+    return created;
+  });
+}
+
+export async function getBarangKeluarByGrup(id_grup: string) {
+  return prisma.barangKeluar.findMany({
+    where: { id_grup },
+    include: barangKeluarListInclude,
+    orderBy: { id_keluar: "asc" },
+  });
 }
 
 export async function createBarangKeluar(

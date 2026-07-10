@@ -183,24 +183,7 @@ export function BuktiLocalPreview({ file }: BuktiLocalPreviewProps) {
 
   return (
     <div className="mt-3 overflow-hidden rounded-lg border border-[#E5E7EB] bg-[#FAFAFA]">
-      <p className="border-b border-[#E5E7EB] px-3 py-2 text-xs text-[#6B7280]">
-        Pratinjau:{" "}
-        <span className="font-medium text-[#1A1C1C]">{file.name}</span>
-      </p>
-      {kind === "image" ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          src={previewUrl}
-          alt={file.name}
-          className="max-h-48 w-full bg-white object-contain"
-        />
-      ) : (
-        <iframe
-          src={previewUrl}
-          title={file.name}
-          className="h-48 w-full bg-white"
-        />
-      )}
+
     </div>
   );
 }

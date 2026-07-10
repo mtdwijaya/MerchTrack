@@ -32,7 +32,7 @@ import { useFormModal } from "@/hooks/use-form-modal";
 import { useListFilters } from "@/hooks/use-list-filters";
 import TujuanCell from "@/components/barang-keluar/tujuan-cell";
 import { getBarangKeluarQuantities } from "@/lib/barang-keluar-quantities";
-import { buildBarangKeluarFormData } from "@/lib/build-transaksi-form-data";
+import { buildBarangKeluarEditFormData, buildBarangKeluarFormData } from "@/lib/build-transaksi-form-data";
 import { parseSortValue, toggleSortValue } from "@/lib/sort";
 import { showError, showSuccess } from "@/lib/toast";
 import type { StatusBarangKeluar } from "@prisma/client";
@@ -208,19 +208,34 @@ export default function BarangKeluarPageClient({
 
   async function handleSubmit(
     data: {
-      id_merch: number;
       id_tujuan: number;
       id_stasiun?: number;
       id_unit?: number;
       detail_teks?: string;
-      jumlah: number;
       tanggal_keluar: string;
       keterangan: string;
+      items: { id_merch: number; jumlah: number }[];
     },
     bukti?: File | null
   ) {
     modal.setSaving(true);
-    const formData = buildBarangKeluarFormData(data, bukti);
+
+    const formData = modal.editId
+      ? buildBarangKeluarEditFormData(
+          {
+            id_merch: data.items[0]?.id_merch ?? 0,
+            id_tujuan: data.id_tujuan,
+            id_stasiun: data.id_stasiun,
+            id_unit: data.id_unit,
+            detail_teks: data.detail_teks,
+            jumlah: data.items[0]?.jumlah ?? 1,
+            tanggal_keluar: data.tanggal_keluar,
+            keterangan: data.keterangan,
+          },
+          bukti
+        )
+      : buildBarangKeluarFormData(data, bukti);
+
     const result = modal.editId
       ? await updateBarangKeluarAction(modal.editId, formData)
       : await createBarangKeluarAction(formData);
@@ -234,7 +249,9 @@ export default function BarangKeluarPageClient({
     showSuccess(
       modal.isEdit
         ? "Data berhasil diperbarui"
-        : "Barang keluar berhasil ditambahkan"
+        : data.items.length > 1
+          ? `${data.items.length} merchandise berhasil dicatat dalam satu transaksi`
+          : "Barang keluar berhasil ditambahkan"
     );
     modal.close();
     startTransition(() => router.refresh());
@@ -420,14 +437,14 @@ export default function BarangKeluarPageClient({
       <FormDialog
         open={modal.open}
         onOpenChange={modal.setOpen}
-        title={modal.isEdit ? "Edit Barang Keluar" : "Tambah Barang Keluar"}
+        title={modal.isEdit ? "Edit Transaksi Barang" : "Transaksi Barang"}
         description={
           modal.isEdit
             ? "Perbarui data transaksi barang keluar."
-            : "Catat transaksi barang keluar baru."
+            : "Catat satu atau lebih merchandise untuk acara/tujuan yang sama."
         }
         loading={modal.loading}
-        contentClassName="sm:max-w-2xl"
+        contentClassName="sm:max-w-3xl"
       >
         <BarangKeluarForm
           key={modal.editId ?? "new"}
@@ -435,6 +452,7 @@ export default function BarangKeluarPageClient({
           onSubmit={handleSubmit}
           loading={modal.saving}
           onCancel={modal.close}
+          isEdit={modal.isEdit}
           merchandiseList={merchandiseList}
           stasiunList={stasiunList}
           unitList={unitList}
