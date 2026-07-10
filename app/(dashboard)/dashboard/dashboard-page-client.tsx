@@ -188,7 +188,7 @@ export default function DashboardPageClient({
 
         <RecentActivityPanel
           items={recentActivity}
-          href="/riwayat-transaksi"
+          href="/monitoring#aktivitas-terbaru"
           className="h-full"
         />
       </section>

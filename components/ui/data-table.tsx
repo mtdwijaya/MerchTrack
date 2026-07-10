@@ -18,9 +18,23 @@ const thBase =
 const tdBase =
   "px-4 py-4 text-sm leading-relaxed text-[#1A1C1C] first:pl-6 last:pr-6";
 
-export function DataTableSection({ children }: { children: ReactNode }) {
+export function DataTableSection({
+  children,
+  id,
+  className,
+}: {
+  children: ReactNode;
+  id?: string;
+  className?: string;
+}) {
   return (
-    <section className="overflow-hidden rounded-2xl border border-[#EFEAE5] bg-white shadow-sm">
+    <section
+      id={id}
+      className={cn(
+        "overflow-hidden rounded-2xl border border-[#EFEAE5] bg-white shadow-sm",
+        className
+      )}
+    >
       <div className="overflow-x-auto">{children}</div>
     </section>
   );

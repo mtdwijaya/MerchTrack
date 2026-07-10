@@ -30,7 +30,9 @@ export function useListFilters(defaults?: {
       });
 
       const query = params.toString();
-      router.replace(query ? `${pathname}?${query}` : pathname);
+      router.replace(query ? `${pathname}?${query}` : pathname, {
+        scroll: false,
+      });
     },
     [pathname, router, searchParams]
   );

@@ -1,6 +1,7 @@
 import type { Role } from "@prisma/client";
 
 import {
+  fetchAllEditLogs,
   fetchRecentEditLogs,
   type AktivitasLogRow,
 } from "@/lib/aktivitas-log-db";
@@ -27,6 +28,7 @@ export type RecentActivityItem = {
   audience: ActivityAudience;
   title: string;
   meta: string;
+  detailId?: number;
 };
 
 const DASHBOARD_ACTIVITY_LIMIT = 5;
@@ -112,6 +114,25 @@ function shouldReplaceEditLog(
   return candidate.log.id_aktivitas > current.log.id_aktivitas;
 }
 
+function buildEditActivitiesAll(recentLogs: AktivitasLogRow[]) {
+  return recentLogs.map((log) => {
+    const parsed = parseEditActivityPesan(log.pesan);
+    const trxNum =
+      parseTransaksiNumber(parsed.trx) ?? parseTransaksiNumber(log.pesan);
+
+    return {
+      id: `edit-${log.id_aktivitas}`,
+      title: parsed.trx ? `${parsed.merch} · ${parsed.trx}` : parsed.merch,
+      meta: `${parsed.actor} · ${parsed.changes}`,
+      occurredAt: resolveEditOccurredAt(log, parsed),
+      type: "Edit Transaksi" as const,
+      tone: "edit" as const,
+      audience: "all" as const,
+      detailId: trxNum ?? undefined,
+    };
+  });
+}
+
 function buildEditActivities(recentLogs: AktivitasLogRow[]) {
   const latestByTrx = new Map<
     number,
@@ -142,6 +163,10 @@ function buildEditActivities(recentLogs: AktivitasLogRow[]) {
     type: "Edit Transaksi" as const,
     tone: "edit" as const,
     audience: "all" as const,
+    detailId:
+      parseTransaksiNumber(parsed.trx) ??
+      parseTransaksiNumber(log.pesan) ??
+      undefined,
   }));
 }
 
@@ -174,7 +199,8 @@ function buildRecentActivity(
       detail_teks: string | null;
     };
   }[],
-  recentLogs: AktivitasLogRow[]
+  recentLogs: AktivitasLogRow[],
+  options?: { limit?: number; includeAllEditLogs?: boolean }
 ): RecentActivityItem[] {
   const totalKeluar = (item: { jumlah: number; jumlah_kembali: number }) =>
     item.jumlah + item.jumlah_kembali;
@@ -193,6 +219,7 @@ function buildRecentActivity(
         type: "Barang Keluar",
         tone: qty >= 50 ? "urgent" : "processing",
         audience: "all",
+        detailId: item.id_keluar,
       };
     }
   );
@@ -206,6 +233,7 @@ function buildRecentActivity(
       type: "Barang Dikembalikan",
       tone: "returned",
       audience: "all",
+      detailId: item.barangKeluar.id_keluar,
     })
   );
 
@@ -222,19 +250,43 @@ function buildRecentActivity(
         }))
       : [];
 
-  const activityFromEdit = buildEditActivities(recentLogs);
+  const activityFromEdit = options?.includeAllEditLogs
+    ? buildEditActivitiesAll(recentLogs)
+    : buildEditActivities(recentLogs);
 
-  return [
+  const sorted = [
     ...activityFromKeluar,
     ...activityFromKembali,
     ...activityFromMasuk,
     ...activityFromEdit,
-  ]
-    .sort(compareActivity)
-    .slice(0, DASHBOARD_ACTIVITY_LIMIT);
+  ].sort(compareActivity);
+
+  if (options?.limit) {
+    return sorted.slice(0, options.limit);
+  }
+
+  return sorted;
 }
 
 // aktivitas terbaru tidak di-cache supaya waktu & urutan selalu fresh
+async function fetchAllBarangKeluar(): Promise<RecentKeluarRow[]> {
+  const query = {
+    include: recentBarangKeluarInclude,
+  };
+
+  try {
+    return prisma.barangKeluar.findMany({
+      ...query,
+      orderBy: { dicatat_pada: "desc" },
+    }) as Promise<RecentKeluarRow[]>;
+  } catch {
+    return (await prisma.barangKeluar.findMany({
+      ...query,
+      orderBy: { tanggal_keluar: "desc" },
+    })) as RecentKeluarRow[];
+  }
+}
+
 async function fetchRecentBarangKeluar(limit: number): Promise<RecentKeluarRow[]> {
   const query = {
     take: limit,
@@ -252,6 +304,54 @@ async function fetchRecentBarangKeluar(limit: number): Promise<RecentKeluarRow[]
       orderBy: { tanggal_keluar: "desc" },
     })) as RecentKeluarRow[];
   }
+}
+
+async function fetchAllActivitySources(user: MonitoringUser) {
+  const isAdmin = user.role === "ADMIN";
+
+  const [recentBarangKeluar, recentBarangMasuk, recentBarangKembali, recentLogs] =
+    await Promise.all([
+      fetchAllBarangKeluar(),
+      isAdmin
+        ? prisma.barangMasuk.findMany({
+            orderBy: { tanggal_masuk: "desc" },
+            include: recentBarangMasukInclude,
+          })
+        : Promise.resolve([]),
+      prisma.barangKembali.findMany({
+        orderBy: [{ tanggal_kembali: "desc" }, { id_kembali: "desc" }],
+        include: recentBarangKembaliInclude,
+      }),
+      fetchAllEditLogs(),
+    ]);
+
+  return buildRecentActivity(
+    user,
+    recentBarangKeluar,
+    recentBarangMasuk,
+    recentBarangKembali,
+    recentLogs,
+    { includeAllEditLogs: true }
+  );
+}
+
+export async function getActivityPaginated(
+  user: MonitoringUser,
+  page: number,
+  pageSize: number
+) {
+  const all = await fetchAllActivitySources(user);
+  const total = all.length;
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
+  const safePage = Math.min(Math.max(1, page), totalPages);
+  const start = (safePage - 1) * pageSize;
+
+  return {
+    data: all.slice(start, start + pageSize),
+    total,
+    totalPages,
+    page: safePage,
+  };
 }
 
 export async function getRecentActivity(user: MonitoringUser) {
@@ -280,7 +380,8 @@ export async function getRecentActivity(user: MonitoringUser) {
     recentBarangKeluar,
     recentBarangMasuk,
     recentBarangKembali,
-    recentLogs
+    recentLogs,
+    { limit: DASHBOARD_ACTIVITY_LIMIT }
   );
 }
 

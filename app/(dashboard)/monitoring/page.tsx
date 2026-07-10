@@ -3,30 +3,43 @@ import { Suspense } from "react";
 
 import { getCurrentUser } from "@/lib/auth";
 import { getAllMerchandiseNames } from "@/lib/merchandise";
-import {
-  getMonitoringOverview,
-  getMonitoringRecentTransactions,
-} from "@/lib/monitoring-overview";
+import { getMonitoringOverview } from "@/lib/monitoring-overview";
+import { getActivityPaginated } from "@/lib/recent-activity";
 import { getAllStasiun } from "@/lib/stasiun";
 import { getAllTujuan } from "@/lib/tujuan";
 import { getAllUnit } from "@/lib/unit";
 
 import MonitoringPageClient from "./monitoring-page-client";
 
-async function MonitoringContent() {
+const PAGE_SIZE = 10;
+
+async function MonitoringContent({
+  searchParams,
+}: {
+  searchParams: Promise<{ page?: string }>;
+}) {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
 
+  const params = await searchParams;
+  const page = Number(params.page || "1");
+
+  const monitoringUser = {
+    id_user: user.id_user,
+    id_stasiun: user.id_stasiun,
+    role: user.role,
+  };
+
   const [
     data,
-    recentTransactions,
+    activityList,
     merchandiseList,
     stasiunList,
     unitList,
     tujuanList,
   ] = await Promise.all([
-    getMonitoringOverview(user),
-    getMonitoringRecentTransactions(),
+    getMonitoringOverview(monitoringUser),
+    getActivityPaginated(monitoringUser, page, PAGE_SIZE),
     getAllMerchandiseNames(),
     getAllStasiun(),
     getAllUnit(),
@@ -36,7 +49,8 @@ async function MonitoringContent() {
   return (
     <MonitoringPageClient
       data={data}
-      recentTransactions={recentTransactions}
+      activityList={activityList}
+      pageSize={PAGE_SIZE}
       role={user.role}
       merchandiseList={merchandiseList}
       stasiunList={stasiunList}
@@ -46,7 +60,11 @@ async function MonitoringContent() {
   );
 }
 
-export default function MonitoringPage() {
+export default function MonitoringPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ page?: string }>;
+}) {
   return (
     <Suspense
       fallback={
@@ -55,7 +73,7 @@ export default function MonitoringPage() {
         </div>
       }
     >
-      <MonitoringContent />
+      <MonitoringContent searchParams={searchParams} />
     </Suspense>
   );
 }

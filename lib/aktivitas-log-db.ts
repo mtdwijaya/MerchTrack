@@ -10,7 +10,7 @@ export type AktivitasLogRow = {
 
 export type AktivitasLogClient = {
   findMany(args: {
-    take: number;
+    take?: number;
     where?: { jenis?: "EDIT" };
     orderBy: { created_at: "desc" } | { id_aktivitas: "desc" };
     select: {
@@ -47,6 +47,19 @@ export async function fetchRecentEditLogs(
 ): Promise<AktivitasLogRow[]> {
   return getAktivitasLogClient().findMany({
     take: limit,
+    where: { jenis: "EDIT" },
+    orderBy: { created_at: "desc" },
+    select: {
+      id_aktivitas: true,
+      jenis: true,
+      pesan: true,
+      created_at: true,
+    },
+  });
+}
+
+export async function fetchAllEditLogs(): Promise<AktivitasLogRow[]> {
+  return getAktivitasLogClient().findMany({
     where: { jenis: "EDIT" },
     orderBy: { created_at: "desc" },
     select: {

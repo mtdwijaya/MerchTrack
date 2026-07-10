@@ -18,30 +18,21 @@ import BarangKeluarForm, {
   type BarangKeluarFormSubmitData,
 } from "@/components/barang-keluar/barang-keluar-form";
 import BarangKembaliForm from "@/components/barang-keluar/barang-kembali-form";
-import StatusBarangKeluarBadge, {
-  type TujuanOption,
-} from "@/components/barang-keluar/status-badge";
-import TujuanCell from "@/components/barang-keluar/tujuan-cell";
 import MerchandiseStockCard from "@/components/monitoring/merchandise-stock-card";
+import MonitoringActivityTable from "@/components/monitoring/monitoring-activity-table";
 import {
-  DataTable,
   DataTableSection,
-  TableEmptyRow,
-  Td,
-  Th,
 } from "@/components/ui/data-table";
 import FormDialog from "@/components/ui/form-dialog";
 import PageHeader from "@/components/ui/page-header";
-import { DetailsAction } from "@/components/ui/table-actions";
+import Pagination from "@/components/ui/pagination";
 import { useFormModal } from "@/hooks/use-form-modal";
+import { useListFilters } from "@/hooks/use-list-filters";
 import { useSyncedPanelHeight } from "@/hooks/use-synced-panel-height";
 import { buildBarangKeluarEditFormData, buildBarangKeluarEditBatchFormData } from "@/lib/build-transaksi-form-data";
-import { getBarangKeluarQuantities } from "@/lib/barang-keluar-quantities";
 import { showError, showSuccess } from "@/lib/toast";
-import type {
-  MonitoringOverview,
-  MonitoringRecentTransactions,
-} from "@/lib/monitoring-overview";
+import type { MonitoringOverview } from "@/lib/monitoring-overview";
+import type { RecentActivityItem } from "@/lib/recent-activity";
 
 const REFRESH_INTERVAL_MS = 15_000;
 
@@ -73,18 +64,25 @@ interface ReturnInfo {
 
 interface Props {
   data: MonitoringOverview;
-  recentTransactions: MonitoringRecentTransactions;
+  activityList: {
+    data: RecentActivityItem[];
+    total: number;
+    totalPages: number;
+    page: number;
+  };
+  pageSize: number;
   role: Role;
   merchandiseList: MerchandiseOption[];
   stasiunList: StasiunOption[];
   unitList: UnitOption[];
-  tujuanList: TujuanOption[];
+  tujuanList: import("@/components/barang-keluar/status-badge").TujuanOption[];
 }
 
 // halaman monitoring — auto refresh tiap 15 detik + panel stok sinkron tinggi
 export default function MonitoringPageClient({
   data,
-  recentTransactions,
+  activityList,
+  pageSize,
   role,
   merchandiseList,
   stasiunList,
@@ -93,6 +91,21 @@ export default function MonitoringPageClient({
 }: Props) {
   const router = useRouter();
   const [, startTransition] = useTransition();
+  const { setPage } = useListFilters();
+
+  useEffect(() => {
+    if (window.location.hash !== "#aktivitas-terbaru") return;
+
+    const scrollToActivity = () => {
+      document
+        .getElementById("aktivitas-terbaru")
+        ?.scrollIntoView({ behavior: "smooth", block: "start" });
+    };
+
+    scrollToActivity();
+    const frame = requestAnimationFrame(scrollToActivity);
+    return () => cancelAnimationFrame(frame);
+  }, []);
   const distribusiPanelRef = useRef<HTMLDivElement>(null);
   const stockPanelHeight = useSyncedPanelHeight(distribusiPanelRef);
   const [detailId, setDetailId] = useState<number | null>(null);
@@ -380,72 +393,36 @@ export default function MonitoringPageClient({
         </div>
       </section>
 
-      <DataTableSection>
+      <DataTableSection id="aktivitas-terbaru" className="scroll-mt-20">
         <div className="flex items-center justify-between border-b border-[#EFEAE5] px-5 py-4">
           <div>
             <h2 className="text-lg font-semibold text-[#1A1C1C]">
-              Transaksi Terbaru
+              Aktivitas Terbaru
             </h2>
             <p className="mt-1 text-sm text-[#6B7280]">
-              10 transaksi terakhir — bisa return & edit dari detail
+              Semua log barang keluar, pengembalian, restock, dan edit transaksi
             </p>
           </div>
         </div>
 
-        <DataTable>
-          <thead>
-            <tr className="border-b border-[#EFEAE5] bg-[#FAFAFA]">
-              <Th>Tanggal</Th>
-              <Th>Merchandise</Th>
-              <Th align="center">Terpakai</Th>
-              <Th>Tujuan</Th>
-              <Th align="center">Status</Th>
-              <Th align="center">Aksi</Th>
-            </tr>
-          </thead>
-          <tbody>
-            {returnLoading ? (
-              <TableEmptyRow colSpan={6} message="Memuat data..." />
-            ) : recentTransactions.length === 0 ? (
-              <TableEmptyRow colSpan={6} message="Belum ada transaksi" />
-            ) : (
-              recentTransactions.map((item) => {
-                const qty = getBarangKeluarQuantities(
-                  item.jumlah,
-                  item.jumlah_kembali
-                );
+        <MonitoringActivityTable
+          items={activityList.data}
+          loading={returnLoading}
+          onOpenDetail={setDetailId}
+        />
 
-                return (
-                <tr
-                  key={item.id_keluar}
-                  className="border-b border-[#EFEAE5] last:border-b-0 hover:bg-gray-50/60"
-                >
-                  <Td variant="numeric" align="left">
-                    {new Date(item.tanggal_keluar).toLocaleDateString("id-ID")}
-                  </Td>
-                  <Td variant="truncate">{item.merchandise.nama_merch}</Td>
-                  <Td variant="numeric" align="center">
-                    {qty.terpakai.toLocaleString("id-ID")}
-                  </Td>
-                  <Td>
-                    <TujuanCell item={item} />
-                  </Td>
-                  <Td align="center">
-                    <StatusBarangKeluarBadge
-                      status={item.status as StatusBarangKeluar}
-                    />
-                  </Td>
-                  <Td variant="action" align="center">
-                    <DetailsAction
-                      onClick={() => setDetailId(item.id_keluar)}
-                    />
-                  </Td>
-                </tr>
-                );
-              })
-            )}
-          </tbody>
-        </DataTable>
+        {activityList.total > 0 && (
+          <div className="border-t border-[#EFEAE5] px-6 py-4">
+            <Pagination
+              currentPage={activityList.page}
+              totalPages={activityList.totalPages}
+              totalItems={activityList.total}
+              pageSize={pageSize}
+              itemLabel="aktivitas"
+              onPageChange={setPage}
+            />
+          </div>
+        )}
       </DataTableSection>
     </div>
 
