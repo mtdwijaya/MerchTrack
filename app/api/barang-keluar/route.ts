@@ -9,17 +9,30 @@ import {
 import {
   createBarangKeluar,
   createBarangKeluarBatch,
-  getBarangKeluarPaginated,
   getBarangKeluarSummary,
   parseBarangKeluarSort,
 } from "@/lib/barang-keluar";
+import { getBarangKeluarGroupedPaginated } from "@/lib/barang-keluar-group";
 import { revalidateMerchandiseListCache } from "@/lib/merchandise";
 import { revalidateAnalyticsPages } from "@/lib/revalidate-analytics";
 import { parseSortValue } from "@/lib/sort";
-import { barangKeluarBatchSchema, barangKeluarSchema, parseSchema } from "@/lib/validations";
+import {
+  barangKeluarBatchSchema,
+  barangKeluarSchema,
+  parseSchema,
+} from "@/lib/validations";
 import { revalidatePath } from "next/cache";
 
+function refreshTransaksiPages() {
+  revalidatePath("/barang-keluar");
+  revalidatePath("/laporan");
+  revalidatePath("/riwayat-transaksi");
+  revalidateMerchandiseListCache();
+  revalidateAnalyticsPages();
+}
+
 // GET /api/barang-keluar?page=&limit=&search=&sort=tanggal_keluar:desc&id_tujuan=
+// List dikelompokkan per transaksi (sama seperti UI barang keluar)
 export const GET = route(async (req) => {
   requireUser(req);
   const q = getQuery(req);
@@ -31,7 +44,7 @@ export const GET = route(async (req) => {
   const parsed = parseBarangKeluarSort(sortBy, sortOrder);
 
   const [list, summary] = await Promise.all([
-    getBarangKeluarPaginated({
+    getBarangKeluarGroupedPaginated({
       page: q.num("page", 1),
       limit: q.num("limit", 10),
       search: q.str("search") || undefined,
@@ -45,7 +58,7 @@ export const GET = route(async (req) => {
   return jsonOk({ ...list, summary });
 });
 
-// POST /api/barang-keluar
+// POST /api/barang-keluar — single atau batch (body punya "items")
 export const POST = route(async (req) => {
   const user = requireUser(req);
   let body: unknown;
@@ -76,11 +89,7 @@ export const POST = route(async (req) => {
       keterangan: parsed.data.keterangan || undefined,
     });
 
-    revalidatePath("/barang-keluar");
-    revalidatePath("/laporan");
-    revalidatePath("/riwayat-transaksi");
-    revalidateMerchandiseListCache();
-    revalidateAnalyticsPages();
+    refreshTransaksiPages();
     return jsonOk(created, 201);
   }
 
@@ -99,10 +108,6 @@ export const POST = route(async (req) => {
     keterangan: parsedSingle.data.keterangan || undefined,
   });
 
-  revalidatePath("/barang-keluar");
-  revalidatePath("/laporan");
-  revalidatePath("/riwayat-transaksi");
-  revalidateMerchandiseListCache();
-  revalidateAnalyticsPages();
+  refreshTransaksiPages();
   return jsonOk(created, 201);
 });

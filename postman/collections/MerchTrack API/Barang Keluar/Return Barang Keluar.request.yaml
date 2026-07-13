@@ -1,0 +1,16 @@
+$kind: http-request
+url: "{{baseUrl}}/api/barang-keluar/1/return"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: text
+  content: |-
+    {
+      "jumlah_kembali": 2,
+      "tanggal_kembali": "2026-07-03",
+      "pengembali": "Budi Santoso",
+      "asal": "Stasiun Bekasi",
+      "keterangan": "Sisa event dikembalikan"
+    }
+order: 3500

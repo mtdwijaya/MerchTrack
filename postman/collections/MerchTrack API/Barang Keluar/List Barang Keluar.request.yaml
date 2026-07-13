@@ -12,10 +12,7 @@ queryParams:
   - key: sort
     value: tanggal_keluar:desc
     disabled: true
-  - key: id_stasiun
-    value: "1"
-    disabled: true
-  - key: id_kategori
+  - key: id_tujuan
     value: "1"
     disabled: true
 order: 1000

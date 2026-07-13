@@ -50,6 +50,24 @@ export const barangKeluarEditItemSchema = barangKeluarItemSchema.extend({
   id_keluar: idParamSchema,
 });
 
+function refineNoDuplicateMerch(
+  data: { items: { id_merch: number }[] },
+  ctx: z.RefinementCtx
+) {
+  const merchIds = data.items.map((item) => item.id_merch);
+  const duplicates = merchIds.filter(
+    (id, index) => merchIds.indexOf(id) !== index
+  );
+
+  if (duplicates.length > 0) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Merchandise tidak boleh duplikat dalam satu transaksi",
+      path: ["items"],
+    });
+  }
+}
+
 export const barangKeluarBatchSchema = z
   .object({
     ...barangKeluarDetailFields,
@@ -57,20 +75,16 @@ export const barangKeluarBatchSchema = z
       .array(barangKeluarItemSchema)
       .min(1, "Minimal 1 merchandise wajib diisi"),
   })
-  .superRefine((data, ctx) => {
-    const merchIds = data.items.map((item) => item.id_merch);
-    const duplicates = merchIds.filter(
-      (id, index) => merchIds.indexOf(id) !== index
-    );
+  .superRefine(refineNoDuplicateMerch);
 
-    if (duplicates.length > 0) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: "Merchandise tidak boleh duplikat dalam satu transaksi",
-        path: ["items"],
-      });
-    }
-  });
+export const barangKeluarEditBatchSchema = z
+  .object({
+    ...barangKeluarDetailFields,
+    items: z
+      .array(barangKeluarEditItemSchema)
+      .min(1, "Minimal 1 merchandise wajib diisi"),
+  })
+  .superRefine(refineNoDuplicateMerch);
 
 export const barangKeluarSchema = z.object({
   id_merch: idParamSchema,

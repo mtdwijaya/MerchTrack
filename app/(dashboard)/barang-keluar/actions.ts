@@ -5,12 +5,7 @@ import { revalidatePath } from "next/cache";
 import { parseFormDateWithNowTime } from "@/lib/relative-time";
 
 import { requireActionUser } from "@/lib/auth";
-import {
-  createBarangKembali,
-  getBarangKembaliByKeluarIds,
-  reconcileMissingBarangKembaliRecords,
-} from "@/lib/barang-kembali";
-import { asBarangKembaliWithMetaList } from "@/lib/barang-kembali-types";
+import { createBarangKembali } from "@/lib/barang-kembali";
 import {
   createBarangKeluar,
   createBarangKeluarBatch,
@@ -20,13 +15,11 @@ import {
   updateBarangKeluar,
   updateBarangKeluarBatch,
 } from "@/lib/barang-keluar";
+import { getBarangKeluarDetailPayload } from "@/lib/barang-keluar-detail";
 import { buildEditActivityPesan, buildEditChangeSummary } from "@/lib/edit-activity-summary";
-import { formatDetailTujuan } from "@/lib/detail-tujuan";
 import { formatTransaksiId } from "@/lib/format-transaksi";
 import { logEditAktivitas } from "@/lib/log-aktivitas";
 import { prisma } from "@/lib/prisma";
-import { aggregateGrupStatus } from "@/lib/barang-keluar-group";
-import { getBarangKeluarQuantities } from "@/lib/barang-keluar-quantities";
 import type { BarangKeluarWithRelations } from "@/lib/barang-keluar-types";
 import { revalidateMerchandiseListCache } from "@/lib/merchandise";
 import { revalidateAnalyticsPages } from "@/lib/revalidate-analytics";
@@ -112,59 +105,7 @@ export async function getBarangKeluarDetail(id: number) {
   const idParsed = parseSchema(idParamSchema, id);
   if (!idParsed.ok) return null;
 
-  const data = await getBarangKeluarById(idParsed.data);
-  if (!data) return null;
-
-  const allItems: BarangKeluarWithRelations[] = data.id_grup
-    ? await getBarangKeluarByGrup(data.id_grup)
-    : [data];
-
-  await reconcileMissingBarangKembaliRecords(data.id_keluar);
-  const riwayatKembali = asBarangKembaliWithMetaList(
-    await getBarangKembaliByKeluarIds(allItems.map((item) => item.id_keluar))
-  );
-  const qty = getBarangKeluarQuantities(data.jumlah, data.jumlah_kembali);
-
-  const grupItems = allItems.map((item) => ({
-    id_keluar: item.id_keluar,
-    merchandise: item.merchandise.nama_merch,
-    qty: getBarangKeluarQuantities(item.jumlah, item.jumlah_kembali),
-    status: item.status,
-    sisa_return: item.jumlah,
-  }));
-
-  const isMulti = grupItems.length > 1;
-
-  return {
-    id_keluar: data.id_keluar,
-    id_grup: data.id_grup,
-    is_multi: isMulti,
-    tanggal_keluar: data.tanggal_keluar.toISOString(),
-    keterangan: data.keterangan,
-    status: isMulti
-      ? aggregateGrupStatus(grupItems.map((item) => item.status))
-      : data.status,
-    merchandise: data.merchandise.nama_merch,
-    tujuan: data.tujuan.nama_tujuan,
-    detail_tujuan: formatDetailTujuan(data),
-    petugas: data.user.nama_user,
-    bukti_path: data.bukti_path,
-    bukti_nama: data.bukti_nama,
-    qty,
-    sisa_return: data.jumlah,
-    grup_items: grupItems,
-    riwayat_kembali: riwayatKembali.map((item) => ({
-      id_kembali: item.id_kembali,
-      jumlah_kembali: item.jumlah_kembali,
-      tanggal_kembali: item.tanggal_kembali.toISOString(),
-      merchandise:
-        item.barangKeluar?.merchandise.nama_merch ?? data.merchandise.nama_merch,
-      pengembali: item.pengembali,
-      asal: item.asal,
-      keterangan: item.keterangan,
-      petugas: item.user.nama_user,
-    })),
-  };
+  return getBarangKeluarDetailPayload(idParsed.data);
 }
 
 export async function createBarangKeluarAction(

@@ -1,61 +1,24 @@
 import { Suspense } from "react";
 
 import LaporanPageClient from "./laporan-page-client";
-import { getAllTujuan } from "@/lib/tujuan";
-import {
-  getOptionalNumberParam,
-  getPageParam,
-  getParam,
-  type SearchParams,
-} from "@/lib/list-params";
-import {
-  getRiwayatTransaksiPaginated,
-  getRiwayatTransaksiSummary,
-} from "@/lib/riwayat-transaksi";
+import { getAllMerchandiseNames } from "@/lib/merchandise";
+import { getRiwayatTransaksiSummary } from "@/lib/riwayat-transaksi";
 
-const PAGE_SIZE = 5;
-
-async function LaporanContent({
-  searchParams,
-}: {
-  searchParams: SearchParams;
-}) {
-  const page = getPageParam(searchParams);
-  const search = getParam(searchParams, "search");
-  const tanggal = getParam(searchParams, "tanggal");
-  const idTujuan = getOptionalNumberParam(searchParams, "id_tujuan");
-
-  const [list, summary, tujuanList] = await Promise.all([
-    getRiwayatTransaksiPaginated({
-      page,
-      limit: PAGE_SIZE,
-      search,
-      sortBy: "tanggal_keluar",
-      sortOrder: "desc",
-      idTujuan,
-      tanggal: tanggal || undefined,
-    }),
+async function LaporanContent() {
+  const [summary, merchandiseList] = await Promise.all([
     getRiwayatTransaksiSummary(),
-    getAllTujuan(),
+    getAllMerchandiseNames(),
   ]);
 
   return (
     <LaporanPageClient
-      list={list}
       summary={summary}
-      tujuanList={tujuanList}
-      pageSize={PAGE_SIZE}
+      merchandiseList={merchandiseList}
     />
   );
 }
 
-export default async function LaporanPage({
-  searchParams,
-}: {
-  searchParams: Promise<SearchParams>;
-}) {
-  const params = await searchParams;
-
+export default function LaporanPage() {
   return (
     <Suspense
       fallback={
@@ -64,7 +27,7 @@ export default async function LaporanPage({
         </div>
       }
     >
-      <LaporanContent searchParams={params} />
+      <LaporanContent />
     </Suspense>
   );
 }

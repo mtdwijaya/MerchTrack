@@ -7,11 +7,13 @@ body:
   type: text
   content: |-
     {
-      "id_merch": 1,
       "id_tujuan": 1,
       "id_stasiun": 1,
-      "jumlah": 5,
       "tanggal_keluar": "2026-07-02",
-      "keterangan": "Dibagikan saat event"
+      "keterangan": "Distribusi batch multi merchandise",
+      "items": [
+        { "id_merch": 1, "jumlah": 5 },
+        { "id_merch": 2, "jumlah": 3 }
+      ]
     }
-order: 3000
+order: 3100

@@ -7,11 +7,13 @@ body:
   type: text
   content: |-
     {
-      "id_merch": 1,
       "id_tujuan": 1,
-      "id_stasiun": 2,
-      "jumlah": 3,
+      "id_stasiun": 1,
       "tanggal_keluar": "2026-07-02",
-      "keterangan": "Koreksi jumlah"
+      "keterangan": "Koreksi batch",
+      "items": [
+        { "id_keluar": 1, "id_merch": 1, "jumlah": 4 },
+        { "id_keluar": 2, "id_merch": 2, "jumlah": 2 }
+      ]
     }
-order: 4000
+order: 4100

@@ -1,5 +1,5 @@
 $kind: collection
-description: REST API MerchTrack (PostgreSQL + Prisma). Jalankan request 'Auth > Login' dulu — token otomatis tersimpan ke variabel {{token}}.
+description: REST API MerchTrack (PostgreSQL + Prisma). Jalankan Auth > Login dulu. Domain memakai id_tujuan (bukan id_kategori).
 variables:
   baseUrl: http://localhost:3000
   token: ""

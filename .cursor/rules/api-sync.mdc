@@ -1,0 +1,31 @@
+---
+description: Selaraskan app/api, Postman, dan docs/API.md setiap ada perubahan domain/UI
+alwaysApply: true
+---
+
+# API harus selalu sinkron dengan sistem
+
+Saat mengubah fitur domain (schema, lib, actions, validasi, UI list/form), **ikutkan** lapisan REST API testing.
+
+## Checklist wajib
+
+1. **`app/api/**`** — route pakai fungsi `lib/` yang sama dengan UI; shape response ikut UI (grup, unified, overview, dll.)
+2. **`postman/`** — update body/query/request (JSON collection + YAML request jika ada)
+3. **`docs/API.md`** — dokumentasi endpoint, query, body contoh
+
+## Aturan domain
+
+- Pakai `id_tujuan`, bukan `id_kategori` (endpoint `/api/kategori` sudah dihapus)
+- Barang keluar: list **grup**, create/update support **batch** (`items`), ada **return**
+- Riwayat: **unified** masuk + keluar (`jenis`)
+- Monitoring: `/api/monitoring` = overview; stok di `/api/monitoring/stok`; aktivitas di `/api/monitoring/aktivitas`
+- Auth API = Bearer JWT; UI = cookie — jangan campur transport
+
+## Contoh
+
+```text
+❌ Ubah form barang keluar ke id_tujuan, tapi Postman masih id_kategori
+✅ Ubah form + validations + app/api + Postman + docs/API.md sekaligus
+```
+
+Jika fitur UI baru belum butuh REST, dokumentasikan gap-nya di `docs/API.md` (jangan biarkan Postman menunjuk kontrak basi).

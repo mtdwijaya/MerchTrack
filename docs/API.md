@@ -6,7 +6,7 @@ Dokumentasi REST API untuk pengujian di Postman. Semua endpoint diawali prefix `
 - **Format data:** JSON (request & response)
 - **Autentikasi:** JWT **Bearer token** (kecuali `POST /api/auth/login`)
 
-> Catatan: aplikasi web-nya sendiri tetap memakai Server Components + Server Actions (cookie httpOnly). Endpoint REST di bawah ini adalah lapisan tambahan khusus supaya bisa dites lewat Postman / integrasi eksternal. Keduanya memakai database & aturan bisnis (validasi, transaksi stok) yang sama.
+> Catatan: aplikasi web memakai Server Components + Server Actions (cookie httpOnly). Endpoint REST ini untuk Postman / integrasi eksternal. Keduanya memakai database & aturan bisnis yang sama. Domain saat ini memakai **`id_tujuan`** (bukan `id_kategori`).
 
 ---
 
@@ -23,8 +23,6 @@ Authorization: Bearer <token>
 Token berlaku **1 hari** (`expiresIn: 1d`).
 
 ### Format response standar
-Semua endpoint mengembalikan bentuk konsisten:
-
 ```jsonc
 // sukses
 { "success": true, "data": { /* ... */ } }
@@ -38,15 +36,15 @@ Semua endpoint mengembalikan bentuk konsisten:
 |--------|------|
 | 200 | Sukses |
 | 201 | Data berhasil dibuat |
-| 400 | Input tidak valid / aturan bisnis dilanggar (mis. stok kurang) |
+| 400 | Input tidak valid / aturan bisnis dilanggar |
 | 401 | Token tidak ada / tidak valid / login salah |
 | 403 | Butuh role ADMIN |
 | 404 | Data tidak ditemukan |
 | 500 | Error server |
 
 ### Role
-- **PETUGAS / ADMIN (semua user login):** dashboard, monitoring, kategori, merchandise (baca), stasiun (baca), barang-keluar (semua), riwayat-transaksi.
-- **ADMIN saja:** buat/ubah/hapus merchandise, restock, buat/ubah/hapus stasiun, semua endpoint pengguna.
+- **PETUGAS / ADMIN:** dashboard, monitoring, tujuan, unit, merchandise (baca), stasiun (baca), barang-keluar, riwayat.
+- **ADMIN saja:** CRUD merchandise + restock, CRUD stasiun, semua endpoint pengguna.
 
 ---
 
@@ -58,70 +56,49 @@ Semua endpoint mengembalikan bentuk konsisten:
 | POST | `/api/auth/login` | Publik | Login, balikin token + user |
 | GET | `/api/auth/me` | User | Info user dari token |
 
-#### `POST /api/auth/login`
-Akun default (dari seed): `admin@lrt.co.id` / `password123` (ADMIN), `petugas@lrt.co.id` / `password123` (PETUGAS).
-
-Request body:
-```json
-{ "email": "admin@lrt.co.id", "password": "password123" }
-```
-Response `200`:
-```json
-{
-  "success": true,
-  "data": {
-    "token": "eyJhbGciOiJI...",
-    "user": {
-      "id_user": 1,
-      "email": "admin@lrt.co.id",
-      "role": "ADMIN",
-      "nama_user": "Administrator",
-      "id_stasiun": null
-    }
-  }
-}
-```
+Akun seed: `admin@lrt.co.id` / `password123`, `petugas@lrt.co.id` / `password123`.
 
 ---
 
 ### Dashboard & Monitoring
 | Method | Endpoint | Role | Keterangan |
 |--------|----------|------|------------|
-| GET | `/api/dashboard` | User | Statistik ringkas, top merchandise, distribusi stasiun, stok gudang |
-| GET | `/api/monitoring` | User | Daftar stok + status (habis/rendah/normal) |
+| GET | `/api/dashboard` | User | Statistik dashboard |
+| GET | `/api/monitoring` | User | Overview monitoring (sama ringkasan UI) |
+| GET | `/api/monitoring/stok` | User | List stok paginasi + filter status |
+| GET | `/api/monitoring/aktivitas` | User | Feed aktivitas terbaru (paginated) |
 
-**Query `/api/monitoring`:** `page`, `limit`, `search`, `sort` (`jumlah_stok:asc` / `nama_merch:desc`), `status` (`habis` \| `rendah` \| `normal`).
+**Query `/api/monitoring/stok`:** `page`, `limit`, `search`, `sort`, `status` (`habis` \| `rendah` \| `normal`).
+
+**Query `/api/monitoring/aktivitas`:** `page`, `limit`.
 
 ---
 
-### Kategori
+### Tujuan & Unit
 | Method | Endpoint | Role | Keterangan |
 |--------|----------|------|------------|
-| GET | `/api/kategori` | User | Semua kategori penggunaan |
+| GET | `/api/tujuan` | User | Daftar tujuan (dropdown barang keluar) |
+| GET | `/api/unit` | User | Daftar unit (detail tujuan jenis UNIT) |
 
 ---
 
 ### Merchandise
 | Method | Endpoint | Role | Keterangan |
 |--------|----------|------|------------|
-| GET | `/api/merchandise` | User | List paginasi + summary |
+| GET | `/api/merchandise` | User | List + summary (+ pergerakan stok) |
 | POST | `/api/merchandise` | Admin | Tambah merchandise (+ stok awal) |
 | GET | `/api/merchandise/:id` | User | Detail |
 | PUT | `/api/merchandise/:id` | Admin | Ubah nama/deskripsi |
 | DELETE | `/api/merchandise/:id` | Admin | Hapus (gagal jika ada transaksi) |
 | POST | `/api/merchandise/:id/restock` | Admin | Tambah stok + catat barang masuk |
 
-**Query GET list:** `page`, `limit`, `search`, `sort` (`nama_merch:asc` \| `jumlah_stok:desc` \| `id_merch:asc`).
+**Query GET list:** `page`, `limit`, `search`, `sort` (`nama_merch:asc` \| `jumlah_stok:desc`).
 
-Body `POST /api/merchandise`:
+Body create:
 ```json
 { "nama_merch": "Topi LRT", "deskripsi": "Topi katun", "jumlah_stok": 100 }
 ```
-Body `PUT /api/merchandise/:id`:
-```json
-{ "nama_merch": "Topi LRT Premium", "deskripsi": "Bahan premium" }
-```
-Body `POST /api/merchandise/:id/restock`:
+Body restock:
 ```json
 { "jumlah": 50, "keterangan": "Restock gudang pusat" }
 ```
@@ -131,113 +108,97 @@ Body `POST /api/merchandise/:id/restock`:
 ### Stasiun
 | Method | Endpoint | Role | Keterangan |
 |--------|----------|------|------------|
-| GET | `/api/stasiun` | User | List paginasi + summary |
-| POST | `/api/stasiun` | Admin | Tambah stasiun |
+| GET | `/api/stasiun` | User | List + summary |
+| POST | `/api/stasiun` | Admin | Tambah |
 | GET | `/api/stasiun/:id` | User | Detail |
 | PUT | `/api/stasiun/:id` | Admin | Ubah |
-| DELETE | `/api/stasiun/:id` | Admin | Hapus (gagal jika masih dipakai) |
-
-**Query GET list:** `page`, `limit`, `search`, `sort` (`nama_stasiun:asc` \| `kode_stasiun:desc`).
-
-Body `POST/PUT`:
-```json
-{
-  "kode_stasiun": "LRT-DKK",
-  "nama_stasiun": "Dukuh Atas",
-  "alamat": "Jakarta Pusat",
-  "kontak": "08123456789"
-}
-```
+| DELETE | `/api/stasiun/:id` | Admin | Hapus |
 
 ---
 
 ### Pengguna (Admin)
 | Method | Endpoint | Role | Keterangan |
 |--------|----------|------|------------|
-| GET | `/api/pengguna` | Admin | List paginasi + summary |
-| POST | `/api/pengguna` | Admin | Tambah pengguna |
-| GET | `/api/pengguna/:id` | Admin | Detail (tanpa password) |
-| PUT | `/api/pengguna/:id` | Admin | Ubah (password opsional) |
+| GET | `/api/pengguna` | Admin | List + summary |
+| POST | `/api/pengguna` | Admin | Tambah |
+| GET | `/api/pengguna/:id` | Admin | Detail |
+| PUT | `/api/pengguna/:id` | Admin | Ubah |
 | DELETE | `/api/pengguna/:id` | Admin | Hapus |
-
-**Query GET list:** `page`, `limit`, `search`, `sort` (`nama_user:asc` \| `email` \| `role`), `role` (`ADMIN` \| `PETUGAS`).
-
-Body `POST /api/pengguna`:
-```json
-{
-  "nama_user": "Budi",
-  "email": "budi@merchtrack.com",
-  "password": "rahasia123",
-  "role": "PETUGAS",
-  "id_stasiun": 1
-}
-```
-Body `PUT /api/pengguna/:id` (kosongkan `password` jika tidak diubah):
-```json
-{
-  "nama_user": "Budi Santoso",
-  "email": "budi@merchtrack.com",
-  "password": "",
-  "role": "PETUGAS",
-  "id_stasiun": 2
-}
-```
 
 ---
 
 ### Barang Keluar
 | Method | Endpoint | Role | Keterangan |
 |--------|----------|------|------------|
-| GET | `/api/barang-keluar` | User | List paginasi + summary |
-| POST | `/api/barang-keluar` | User | Catat barang keluar (stok otomatis berkurang) |
-| GET | `/api/barang-keluar/:id` | User | Detail |
-| PUT | `/api/barang-keluar/:id` | User | Ubah (stok lama dikembalikan, dipotong ulang) |
-| DELETE | `/api/barang-keluar/:id` | User | Hapus (stok otomatis dikembalikan) |
+| GET | `/api/barang-keluar` | User | List **grup** transaksi + summary |
+| POST | `/api/barang-keluar` | User | Single atau batch (`items`) |
+| GET | `/api/barang-keluar/:id` | User | Detail grup + riwayat kembali |
+| PUT | `/api/barang-keluar/:id` | User | Update single atau batch |
+| DELETE | `/api/barang-keluar/:id` | User | Hapus (grup ikut terhapus jika ada) |
+| POST | `/api/barang-keluar/:id/return` | User | Catat pengembalian |
 
-**Query GET list:** `page`, `limit`, `search`, `sort` (`tanggal_keluar:desc` \| `jumlah` \| `nama_merch` \| `nama_stasiun` \| `nama_kategori`), `id_stasiun`, `id_kategori`.
+**Query GET list:** `page`, `limit`, `search`, `sort`, `id_tujuan`.
 
-Body `POST` (`tanggal_keluar` opsional, format `YYYY-MM-DD`; kosong = hari ini):
+Body create single:
 ```json
 {
   "id_merch": 1,
+  "id_tujuan": 1,
   "id_stasiun": 1,
-  "id_kategori": 1,
   "jumlah": 5,
   "tanggal_keluar": "2026-07-02",
   "keterangan": "Dibagikan saat event"
 }
 ```
-Body `PUT` sama seperti di atas, tetapi `tanggal_keluar` **wajib** diisi.
 
-> Aturan bisnis: jika stok tidak mencukupi, response `400` dengan pesan `"Stok tidak mencukupi"`.
+Body create batch:
+```json
+{
+  "id_tujuan": 1,
+  "id_stasiun": 1,
+  "tanggal_keluar": "2026-07-02",
+  "items": [
+    { "id_merch": 1, "jumlah": 5 },
+    { "id_merch": 2, "jumlah": 3 }
+  ]
+}
+```
+
+Body return:
+```json
+{
+  "jumlah_kembali": 2,
+  "tanggal_kembali": "2026-07-03",
+  "pengembali": "Budi Santoso",
+  "asal": "Stasiun Bekasi",
+  "keterangan": "Sisa event dikembalikan"
+}
+```
+
+> Field detail (`id_stasiun` / `id_unit` / `detail_teks`) tergantung `jenis_detail` tujuan. Stok kurang → `400`.
 
 ---
 
 ### Riwayat Transaksi
 | Method | Endpoint | Role | Keterangan |
 |--------|----------|------|------------|
-| GET | `/api/riwayat-transaksi` | User | List barang keluar + filter |
+| GET | `/api/riwayat-transaksi` | User | Unified masuk + keluar |
 
-**Query:** `page`, `limit`, `search`, `sort`, `id_kategori`, `tanggal` (`YYYY-MM-DD`).
+**Query:** `page`, `limit`, `search`, `jenis` (`KELUAR` \| `MASUK`), `tanggal` (`YYYY-MM-DD`).
 
 ---
 
 ## 3. Cara Testing di Postman
 
-1. Import file `postman/MerchTrack.postman_collection.json`.
-2. Di collection ada variabel:
-   - `baseUrl` → `http://localhost:3000`
-   - `token` → otomatis terisi setelah menjalankan request **Login** (ada script di tab *Tests*).
-3. Jalankan `npm run dev` lalu jalankan request **Login** dulu, baru endpoint lainnya.
+1. Import `postman/MerchTrack.postman_collection.json`.
+2. Variabel collection: `baseUrl` = `http://localhost:3000`, `token` terisi otomatis setelah **Login**.
+3. Jalankan `npm run dev`, lalu **Auth > Login**, baru endpoint lain.
 
-Contoh manual dengan cURL:
 ```bash
-# 1. login
 curl -X POST http://localhost:3000/api/auth/login \
   -H "Content-Type: application/json" \
   -d '{"email":"admin@lrt.co.id","password":"password123"}'
 
-# 2. pakai token
 curl http://localhost:3000/api/barang-keluar \
   -H "Authorization: Bearer <token>"
 ```

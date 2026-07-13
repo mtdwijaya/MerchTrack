@@ -13,7 +13,7 @@ export const sidebarMenus = {
         icon: "/icons/icon-dashboard.svg",
       },
       {
-        name: "Barang Keluar",
+        name: "Transaksi Barang Keluar",
         href: "/barang-keluar",
         icon: "/icons/icon-barangkeluar.svg",
       },
