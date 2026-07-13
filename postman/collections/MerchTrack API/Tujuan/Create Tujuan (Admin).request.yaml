@@ -1,0 +1,15 @@
+$kind: http-request
+url: "{{baseUrl}}/api/tujuan"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: text
+  content: |-
+    {
+      "nama_tujuan": "Event Uji",
+      "jenis_detail": "TEKS",
+      "label_detail": "Nama event",
+      "boleh_return": false
+    }
+order: 3000

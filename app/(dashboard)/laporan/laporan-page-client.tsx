@@ -20,7 +20,6 @@ import {
   FilterSelect,
 } from "@/components/ui/filter-bar";
 import PageHeader, { PrimaryButton } from "@/components/ui/page-header";
-import { downloadLaporanExcel } from "@/lib/laporan-excel";
 import type { LaporanGenerateResult } from "@/lib/laporan-generate";
 import { showError, showSuccess } from "@/lib/toast";
 
@@ -224,7 +223,7 @@ export default function LaporanPageClient({
     setPreviewOpen(true);
   }
 
-  function handleExportExcel(id: string) {
+  async function handleExportExcel(id: string) {
     const item = reports.find((report) => report.id === id);
     if (!item) return;
 
@@ -233,6 +232,7 @@ export default function LaporanPageClient({
       return;
     }
 
+    const { downloadLaporanExcel } = await import("@/lib/laporan-excel");
     downloadLaporanExcel(item.data);
     showSuccess("File Excel berhasil diunduh");
   }

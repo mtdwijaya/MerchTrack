@@ -1,10 +1,9 @@
 import bcrypt from "bcrypt";
-import jwt from "jsonwebtoken";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import type { Role } from "@prisma/client";
 
-import { env } from "@/lib/env";
+import { signAuthToken, verifyAuthToken } from "@/lib/jwt";
 import { prisma } from "@/lib/prisma";
 import { parseFormDateWithNowTime } from "@/lib/relative-time";
 
@@ -73,7 +72,7 @@ export async function authenticate(email: string, password: string) {
     id_stasiun: user.id_stasiun,
   };
 
-  const token = jwt.sign(payload, env.JWT_SECRET, { expiresIn: "1d" });
+  const token = signAuthToken(payload);
   return { token, user: payload };
 }
 
@@ -99,25 +98,44 @@ export function requireUser(req: NextRequest): ApiTokenPayload {
   }
 
   try {
-    return jwt.verify(token, env.JWT_SECRET) as ApiTokenPayload;
+    return verifyAuthToken<ApiTokenPayload>(token);
   } catch {
     throw new ApiError("Token tidak valid atau sudah kadaluarsa", 401);
   }
 }
 
-// wajib admin — role dibaca ulang dari db supaya tidak pakai role basi di token
-export async function requireAdmin(req: NextRequest): Promise<ApiTokenPayload> {
+/** User aktif — role & stasiun dari DB (bukan JWT basi). */
+export async function requireActiveUser(
+  req: NextRequest
+): Promise<ApiTokenPayload> {
   const user = requireUser(req);
 
   const fresh = await prisma.user.findUnique({
     where: { id_user: user.id_user },
-    select: { role: true },
+    select: {
+      role: true,
+      id_stasiun: true,
+      nama_user: true,
+      email: true,
+    },
   });
 
   if (!fresh) throw new ApiError("Pengguna tidak ditemukan", 401);
-  if (fresh.role !== "ADMIN") throw new ApiError("Akses khusus admin", 403);
 
-  return { ...user, role: fresh.role };
+  return {
+    id_user: user.id_user,
+    email: fresh.email,
+    role: fresh.role,
+    nama_user: fresh.nama_user,
+    id_stasiun: fresh.id_stasiun,
+  };
+}
+
+// wajib admin — role dibaca ulang dari db supaya tidak pakai role basi di token
+export async function requireAdmin(req: NextRequest): Promise<ApiTokenPayload> {
+  const user = await requireActiveUser(req);
+  if (user.role !== "ADMIN") throw new ApiError("Akses khusus admin", 403);
+  return user;
 }
 
 // ---------- parsing input ----------

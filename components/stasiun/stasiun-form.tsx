@@ -26,7 +26,7 @@ export default function StasiunForm({
   initialData,
   onSubmit,
   loading,
-  cancelHref = "/stasiun",
+  cancelHref = "/tujuan/stasiun",
   onCancel,
 }: StasiunFormProps) {
   const [form, setForm] = useState({

@@ -19,6 +19,7 @@ export function proxy(request: NextRequest) {
     "/merchandise",
     "/pengguna",
     "/stasiun",
+    "/tujuan",
     "/laporan",
     "/riwayat-transaksi",
   ];
@@ -42,6 +43,7 @@ export const config = {
     "/merchandise/:path*",
     "/pengguna/:path*",
     "/stasiun/:path*",
+    "/tujuan/:path*",
     "/laporan/:path*",
     "/riwayat-transaksi/:path*",
     "/login",

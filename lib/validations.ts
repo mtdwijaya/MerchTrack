@@ -159,6 +159,45 @@ export const stasiunSchema = z.object({
   kontak: optionalText(100),
 });
 
+export const unitSchema = z.object({
+  kode_unit: z
+    .string()
+    .trim()
+    .min(1, "Kode unit wajib diisi")
+    .max(20, "Kode unit terlalu panjang"),
+  nama_unit: z
+    .string()
+    .trim()
+    .min(1, "Nama unit wajib diisi")
+    .max(200, "Nama unit terlalu panjang"),
+});
+
+export const tujuanSchema = z
+  .object({
+    nama_tujuan: z
+      .string()
+      .trim()
+      .min(1, "Nama tujuan wajib diisi")
+      .max(200, "Nama tujuan terlalu panjang"),
+    jenis_detail: z.enum(["STASIUN", "UNIT", "TEKS", "TIDAK_ADA"]),
+    label_detail: optionalText(200),
+    boleh_return: z.coerce.boolean(),
+  })
+  .superRefine((data, ctx) => {
+    if (
+      (data.jenis_detail === "STASIUN" ||
+        data.jenis_detail === "UNIT" ||
+        data.jenis_detail === "TEKS") &&
+      !data.label_detail?.trim()
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Label detail wajib diisi untuk jenis ini",
+        path: ["label_detail"],
+      });
+    }
+  });
+
 export const penggunaCreateSchema = z.object({
   nama_user: z
     .string()
@@ -188,7 +227,10 @@ export const penggunaUpdateSchema = z.object({
     .string()
     .max(128, "Password terlalu panjang")
     .optional()
-    .or(z.literal("")),
+    .or(z.literal(""))
+    .refine((v) => !v || v.length >= 6, {
+      message: "Password minimal 6 karakter",
+    }),
   role: z.enum(["ADMIN", "PETUGAS"]),
   id_stasiun: z
     .union([idParamSchema, z.null(), z.literal("")])

@@ -1,10 +1,9 @@
-import type { Role } from "@prisma/client";
 import { unstable_cache } from "next/cache";
 
 import { ANALYTICS_CACHE_TAG } from "@/lib/analytics-cache-tag";
 import { getStockStatus, lowStockWhere } from "@/lib/monitoring";
 import { prisma } from "@/lib/prisma";
-import { riwayatListInclude } from "@/lib/prisma-selects";
+import type { Role } from "@prisma/client";
 
 export type MonitoringUser = {
   id_user: number;
@@ -20,7 +19,7 @@ function monthRange(offset = 0) {
   return { start, end };
 }
 
-async function fetchMonitoringOverview(role: Role) {
+async function fetchMonitoringOverview() {
   const thisMonth = monthRange(0);
 
   // semua query paralel biar load halaman monitoring cepet
@@ -55,10 +54,9 @@ async function fetchMonitoringOverview(role: Role) {
     prisma.stok.findMany({
       include: { merchandise: true },
       orderBy: [{ jumlah_stok: "desc" }, { id_merch: "asc" }],
+      take: 48,
     }),
   ]);
-
-  void role;
 
   const stockMap = new Map(
     merchandiseStock.map((item) => [item.id_merch, item.jumlah_stok])
@@ -119,19 +117,8 @@ const getCachedMonitoringOverview = unstable_cache(
   { tags: [ANALYTICS_CACHE_TAG], revalidate: 30 }
 );
 
-export async function getMonitoringOverview(user: MonitoringUser) {
-  return getCachedMonitoringOverview(user.role);
-}
-
-export async function getMonitoringRecentTransactions() {
-  return prisma.barangKeluar.findMany({
-    take: 10,
-    orderBy: { tanggal_keluar: "desc" },
-    include: riwayatListInclude,
-  });
+export async function getMonitoringOverview(_user: MonitoringUser) {
+  return getCachedMonitoringOverview();
 }
 
 export type MonitoringOverview = Awaited<ReturnType<typeof getMonitoringOverview>>;
-export type MonitoringRecentTransactions = Awaited<
-  ReturnType<typeof getMonitoringRecentTransactions>
->;

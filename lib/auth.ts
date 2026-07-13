@@ -1,11 +1,10 @@
 import { cache } from "react";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import jwt from "jsonwebtoken";
 import type { Role } from "@prisma/client";
 
 import { prisma } from "@/lib/prisma";
-import { env } from "@/lib/env";
+import { verifyAuthToken } from "@/lib/jwt";
 
 export interface JwtPayload {
   id_user: number;
@@ -35,7 +34,7 @@ export async function verifyToken() {
     }
 
     // verifikasi jwt dari cookie httpOnly "token"
-    return jwt.verify(token, env.JWT_SECRET) as JwtPayload;
+    return verifyAuthToken<JwtPayload>(token);
   } catch {
     return null;
   }
@@ -113,12 +112,19 @@ export type ActionAuthResult =
   | { ok: false; message: string };
 
 // wajib dipanggil di awal server action — proxy tidak melindungi action
+// role selalu dibaca ulang dari DB agar demote/promote langsung berlaku
 export async function requireActionUser(): Promise<ActionAuthResult> {
   const user = await getCurrentUser();
   if (!user) {
     return { ok: false, message: "Unauthorized" };
   }
-  return { ok: true, user };
+
+  const freshUser = await getFreshUserFromDb(user.id_user);
+  if (!freshUser) {
+    return { ok: false, message: "Unauthorized" };
+  }
+
+  return { ok: true, user: freshUser };
 }
 
 // untuk action master data: stasiun, merchandise, pengguna
@@ -126,15 +132,11 @@ export async function requireActionAdmin(): Promise<ActionAuthResult> {
   const auth = await requireActionUser();
   if (!auth.ok) return auth;
 
-  const freshUser = await getFreshUserFromDb(auth.user.id_user);
-  if (!freshUser) {
-    return { ok: false, message: "Unauthorized" };
-  }
-  if (freshUser.role !== "ADMIN") {
+  if (auth.user.role !== "ADMIN") {
     return { ok: false, message: "Forbidden" };
   }
 
-  return { ok: true, user: freshUser };
+  return auth;
 }
 
 // guard halaman master data — redirect jika bukan admin (dipakai di page.tsx)

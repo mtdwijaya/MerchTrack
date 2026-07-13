@@ -36,8 +36,8 @@ export const sidebarMenus = {
 
     master: [
       {
-        name: "Stasiun",
-        href: "/stasiun",
+        name: "Tujuan",
+        href: "/tujuan",
         icon: "/icons/icon-stasiun.svg",
       },
       {

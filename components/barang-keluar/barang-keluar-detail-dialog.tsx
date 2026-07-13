@@ -70,6 +70,7 @@ export default function BarangKeluarDetailDialog({
 }: BarangKeluarDetailDialogProps) {
   const [loading, setLoading] = useState(false);
   const [detail, setDetail] = useState<BarangKeluarDetailData | null>(null);
+  const canReturn = Boolean(onReturn && detail?.boleh_return);
 
   useEffect(() => {
     if (!open || !id) {
@@ -155,7 +156,7 @@ export default function BarangKeluarDetailDialog({
                         <th className="pb-2 pr-4 font-medium">Keluar</th>
                         <th className="pb-2 pr-4 font-medium">Kembali</th>
                         <th className="pb-2 pr-4 font-medium">Terpakai</th>
-                        {onReturn && (
+                        {canReturn && (
                           <th className="pb-2 font-medium text-right">Aksi</th>
                         )}
                       </tr>
@@ -178,7 +179,7 @@ export default function BarangKeluarDetailDialog({
                           <td className="py-2.5 pr-4 text-[#4B5563]">
                             {item.qty.terpakai.toLocaleString("id-ID")} pcs
                           </td>
-                          {onReturn && (
+                          {canReturn && (
                             <td className="py-2.5 text-right">
                               <Button
                                 type="button"
@@ -186,7 +187,7 @@ export default function BarangKeluarDetailDialog({
                                 size="sm"
                                 disabled={item.sisa_return <= 0}
                                 onClick={() => {
-                                  onReturn(item.id_keluar);
+                                  onReturn?.(item.id_keluar);
                                   onOpenChange(false);
                                 }}
                               >

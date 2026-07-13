@@ -19,6 +19,8 @@ type ActionResult =
 
 function revalidateStasiunPages() {
   updateTag(STASIUN_CACHE_TAG);
+  revalidatePath("/tujuan");
+  revalidatePath("/tujuan/stasiun");
   revalidatePath("/stasiun");
   revalidatePath("/barang-keluar");
   revalidatePath("/pengguna");

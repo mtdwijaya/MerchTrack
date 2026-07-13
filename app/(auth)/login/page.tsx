@@ -119,7 +119,7 @@ export default function LoginPage() {
                 type={showPassword ? "text" : "password"}
                 name="password"
                 autoComplete="current-password"
-                placeholder="password123"
+                placeholder="Masukkan password"
                 disabled={isPending}
                 required
                 className="
@@ -181,20 +181,6 @@ export default function LoginPage() {
               <input type="checkbox" />
               Remember me
             </label>
-
-            <span
-              role="button"
-              tabIndex={0}
-              className="
-                text-sm
-                text-[#0B66C3]
-                font-medium
-                hover:underline
-                cursor-pointer
-              "
-            >
-              Forgot password?
-            </span>
           </div>
 
           <button

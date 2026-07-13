@@ -1,9 +1,8 @@
 import bcrypt from "bcrypt";
-import jwt from "jsonwebtoken";
 import { cookies } from "next/headers";
 
 import { getAuthCookieOptions } from "@/lib/auth";
-import { env } from "@/lib/env";
+import { signAuthToken } from "@/lib/jwt";
 import { prisma } from "@/lib/prisma";
 
 type LoginResult =
@@ -32,17 +31,13 @@ export async function loginUser(
     return { ok: false, message: "Email atau password salah" };
   }
 
-  const token = jwt.sign(
-    {
-      id_user: user.id_user,
-      email: user.email,
-      role: user.role,
-      nama_user: user.nama_user,
-      id_stasiun: user.id_stasiun,
-    },
-    env.JWT_SECRET,
-    { expiresIn: "1d" }
-  );
+  const token = signAuthToken({
+    id_user: user.id_user,
+    email: user.email,
+    role: user.role,
+    nama_user: user.nama_user,
+    id_stasiun: user.id_stasiun,
+  });
 
   const cookieStore = await cookies();
   cookieStore.set({

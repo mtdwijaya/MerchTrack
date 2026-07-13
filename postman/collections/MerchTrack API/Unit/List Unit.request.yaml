@@ -1,4 +1,4 @@
 $kind: http-request
-url: "{{baseUrl}}/api/unit"
+url: "{{baseUrl}}/api/unit?page=1&limit=10"
 method: GET
 order: 1000

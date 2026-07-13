@@ -1,8 +1,11 @@
 "use client";
 
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { ArrowLeft } from "lucide-react";
 import { useState, useTransition } from "react";
 
-import StasiunForm from "@/components/stasiun/stasiun-form";
+import UnitForm from "@/components/unit/unit-form";
 import ConfirmDialog from "@/components/ui/confirm-dialog";
 import {
   DataTableSection,
@@ -20,48 +23,48 @@ import PageHeader, { PrimaryButton } from "@/components/ui/page-header";
 import Pagination from "@/components/ui/pagination";
 import SummaryCards from "@/components/ui/summary-cards";
 import { DeleteAction, TextOutlineAction } from "@/components/ui/table-actions";
-import { useListFilters } from "@/hooks/use-list-filters";
 import { useFormModal } from "@/hooks/use-form-modal";
+import { useListFilters } from "@/hooks/use-list-filters";
 import { parseSortValue, toggleSortValue } from "@/lib/sort";
 import { showError, showSuccess } from "@/lib/toast";
 
 import {
-  createStasiunAction,
-  deleteStasiunAction,
-  getStasiunFormData,
-  updateStasiunAction,
+  createUnitAction,
+  deleteUnitAction,
+  getUnitFormData,
+  updateUnitAction,
 } from "./actions";
 
-interface StasiunItem {
-  id_stasiun: number;
-  kode_stasiun: string;
-  nama_stasiun: string;
+interface UnitItem {
+  id_unit: number;
+  kode_unit: string;
+  nama_unit: string;
 }
 
-type SortField = "kode_stasiun" | "nama_stasiun";
+type SortField = "kode_unit" | "nama_unit";
 
 interface Props {
   list: {
-    data: StasiunItem[];
+    data: UnitItem[];
     total: number;
     currentPage: number;
     totalPages: number;
   };
   summary: {
-    totalStasiun: number;
-    stasiunAktif: number;
-    totalPetugas: number;
+    totalUnit: number;
+    unitAktif: number;
   };
   pageSize: number;
   defaultSort: string;
 }
 
-export default function StasiunPageClient({
+export default function TujuanUnitPageClient({
   list,
   summary,
   pageSize,
   defaultSort,
 }: Props) {
+  const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const {
     search,
@@ -74,40 +77,26 @@ export default function StasiunPageClient({
   } = useListFilters({ sort: defaultSort });
 
   const modal = useFormModal<{
-    kode_stasiun: string;
-    nama_stasiun: string;
-    alamat: string;
-    kontak: string;
-  }>(getStasiunFormData);
+    kode_unit: string;
+    nama_unit: string;
+  }>(getUnitFormData);
 
   const [deleteId, setDeleteId] = useState<number | null>(null);
 
   const currentSort = sort || defaultSort;
   const { sortBy, sortOrder } = parseSortValue<SortField>(
     currentSort,
-    "nama_stasiun"
+    "nama_unit"
   );
 
-  function openAddModal() {
-    modal.openAdd();
-  }
-
-  function openEditModal(id: number) {
-    modal.openEdit(id);
-  }
-
   async function handleSubmit(data: {
-    kode_stasiun: string;
-    nama_stasiun: string;
-    alamat: string;
-    kontak: string;
+    kode_unit: string;
+    nama_unit: string;
   }) {
     modal.setSaving(true);
-
     const result = modal.editId
-      ? await updateStasiunAction(modal.editId, data)
-      : await createStasiunAction(data);
-
+      ? await updateUnitAction(modal.editId, data)
+      : await createUnitAction(data);
     modal.setSaving(false);
 
     if (!result.ok) {
@@ -116,81 +105,79 @@ export default function StasiunPageClient({
     }
 
     showSuccess(
-      modal.isEdit ? "Stasiun berhasil diperbarui" : "Stasiun berhasil ditambahkan"
+      modal.isEdit ? "Unit berhasil diperbarui" : "Unit berhasil ditambahkan"
     );
     modal.close();
-    startTransition(() => {});
+    startTransition(() => router.refresh());
   }
 
   async function handleDelete() {
     if (!deleteId) return;
-
-    const result = await deleteStasiunAction(deleteId);
-
+    const result = await deleteUnitAction(deleteId);
     if (!result.ok) {
       showError(result.message);
       return;
     }
-
     setDeleteId(null);
-    showSuccess("Stasiun berhasil dihapus");
-    startTransition(() => {});
+    showSuccess("Unit berhasil dihapus");
+    startTransition(() => router.refresh());
   }
 
   return (
     <>
       <div className="space-y-6">
+        <Link
+          href="/tujuan"
+          className="inline-flex items-center gap-1.5 text-sm font-medium text-[#6B7280] hover:text-[#B1070E]"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Kembali ke Tujuan
+        </Link>
+
         <PageHeader
-          title="Manajemen Stasiun"
-          description="Kelola data stasiun penerima distribusi merchandise."
+          title="Daftar Unit"
+          description="Sub daftar untuk kategori tujuan berjenis Unit."
           actions={
-            <PrimaryButton onClick={openAddModal}>
-              + Tambah Stasiun Baru
+            <PrimaryButton onClick={() => modal.openAdd()}>
+              + Tambah Unit
             </PrimaryButton>
           }
         />
 
         <SummaryCards
+          columns={2}
           items={[
             {
-              title: "Total Stasiun",
-              value: summary.totalStasiun,
+              title: "Total Unit",
+              value: summary.totalUnit,
               iconSrc: "/icons/icon-red-stasiun.svg",
-              subtitle: "Seluruh stasiun terdaftar",
+              subtitle: "Seluruh unit terdaftar",
             },
             {
-              title: "Stasiun Aktif",
-              value: summary.stasiunAktif,
+              title: "Unit Aktif",
+              value: summary.unitAktif,
               iconSrc: "/icons/icon-barangkeluar-merah.svg",
-              subtitle: "Stasiun dengan transaksi",
-            },
-            {
-              title: "Petugas Terdaftar",
-              value: summary.totalPetugas,
-              iconSrc: "/icons/icon-kelolapengguna-merah.svg",
-              subtitle: "Petugas dengan stasiun",
+              subtitle: "Unit dengan transaksi",
             },
           ]}
         />
 
-        <FilterBar
-          onReset={() => resetParams(["search", "sort"])}
-        >
+        <FilterBar onReset={() => resetParams(["search", "sort"])}>
           <FilterSearch
             value={search}
             onChange={setSearch}
-            placeholder="Cari stasiun berdasarkan nama atau kode..."
+            placeholder="Cari unit berdasarkan nama atau kode..."
           />
           <FilterSelect
-            id="sort-stasiun"
+            id="sort-unit"
             label="Urutkan"
             value={currentSort}
             onChange={(value) => setParam("sort", value)}
             placeholder="Pilih urutan..."
             options={[
-              { value: "nama_stasiun:asc", label: "Nama (A-Z)" },
-              { value: "nama_stasiun:desc", label: "Nama (Z-A)" },
-              { value: "kode_stasiun:asc", label: "Kode (A-Z)" },
+              { value: "nama_unit:asc", label: "Nama (A-Z)" },
+              { value: "nama_unit:desc", label: "Nama (Z-A)" },
+              { value: "kode_unit:asc", label: "Kode (A-Z)" },
             ]}
           />
         </FilterBar>
@@ -200,8 +187,8 @@ export default function StasiunPageClient({
             <thead>
               <tr className="border-b border-[#EFEAE5] bg-[#FAFAFA]">
                 <SortableTh
-                  label="Kode Stasiun"
-                  field="kode_stasiun"
+                  label="Kode Unit"
+                  field="kode_unit"
                   activeField={sortBy}
                   activeOrder={sortOrder}
                   onSort={(f) =>
@@ -209,8 +196,8 @@ export default function StasiunPageClient({
                   }
                 />
                 <SortableTh
-                  label="Nama Stasiun"
-                  field="nama_stasiun"
+                  label="Nama Unit"
+                  field="nama_unit"
                   activeField={sortBy}
                   activeOrder={sortOrder}
                   onSort={(f) =>
@@ -226,25 +213,25 @@ export default function StasiunPageClient({
               {isPending ? (
                 <TableEmptyRow colSpan={3} message="Memuat data..." />
               ) : list.data.length === 0 ? (
-                <TableEmptyRow colSpan={3} message="Belum ada data stasiun" />
+                <TableEmptyRow colSpan={3} message="Belum ada data unit" />
               ) : (
                 list.data.map((item) => (
                   <tr
-                    key={item.id_stasiun}
+                    key={item.id_unit}
                     className="border-b border-[#EFEAE5] hover:bg-gray-50/60"
                   >
                     <Td>
-                      <span className="font-medium">{item.kode_stasiun}</span>
+                      <span className="font-medium">{item.kode_unit}</span>
                     </Td>
-                    <Td>{item.nama_stasiun}</Td>
+                    <Td>{item.nama_unit}</Td>
                     <Td align="center" variant="action">
                       <div className="flex items-center justify-center gap-3">
                         <TextOutlineAction
                           label="Edit"
-                          onClick={() => openEditModal(item.id_stasiun)}
+                          onClick={() => modal.openEdit(item.id_unit)}
                         />
                         <DeleteAction
-                          onClick={() => setDeleteId(item.id_stasiun)}
+                          onClick={() => setDeleteId(item.id_unit)}
                         />
                       </div>
                     </Td>
@@ -260,7 +247,7 @@ export default function StasiunPageClient({
                 totalPages={list.totalPages}
                 totalItems={list.total}
                 pageSize={pageSize}
-                itemLabel="stasiun"
+                itemLabel="unit"
                 onPageChange={setPage}
               />
             </div>
@@ -271,15 +258,11 @@ export default function StasiunPageClient({
       <FormDialog
         open={modal.open}
         onOpenChange={modal.setOpen}
-        title={modal.isEdit ? "Edit Stasiun" : "Tambah Stasiun Baru"}
-        description={
-          modal.isEdit
-            ? "Perbarui data stasiun penerima distribusi merchandise."
-            : "Tambahkan stasiun penerima distribusi merchandise."
-        }
+        title={modal.isEdit ? "Edit Unit" : "Tambah Unit"}
+        description="Kelola unit sebagai detail tujuan distribusi."
         loading={modal.loading}
       >
-        <StasiunForm
+        <UnitForm
           key={modal.editId ?? "new"}
           initialData={modal.editData ?? undefined}
           onSubmit={handleSubmit}
@@ -290,8 +273,8 @@ export default function StasiunPageClient({
 
       <ConfirmDialog
         open={deleteId !== null}
-        title="Hapus Stasiun"
-        message="Apakah Anda yakin ingin menghapus stasiun ini?"
+        title="Hapus Unit"
+        message="Apakah Anda yakin ingin menghapus unit ini?"
         onConfirm={handleDelete}
         onCancel={() => setDeleteId(null)}
       />

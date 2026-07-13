@@ -77,8 +77,37 @@ Akun seed: `admin@lrt.co.id` / `password123`, `petugas@lrt.co.id` / `password123
 ### Tujuan & Unit
 | Method | Endpoint | Role | Keterangan |
 |--------|----------|------|------------|
-| GET | `/api/tujuan` | User | Daftar tujuan (dropdown barang keluar) |
-| GET | `/api/unit` | User | Daftar unit (detail tujuan jenis UNIT) |
+| GET | `/api/tujuan` | User | Tanpa `page`: semua (dropdown). Dengan `page`: list + summary |
+| POST | `/api/tujuan` | Admin | Tambah kategori tujuan |
+| GET | `/api/tujuan/:id` | User | Detail |
+| PUT | `/api/tujuan/:id` | Admin | Ubah |
+| DELETE | `/api/tujuan/:id` | Admin | Hapus (gagal jika masih dipakai transaksi) |
+| GET | `/api/unit` | User | Tanpa `page`: semua (dropdown). Dengan `page`: list + summary |
+| POST | `/api/unit` | Admin | Tambah unit |
+| GET | `/api/unit/:id` | User | Detail |
+| PUT | `/api/unit/:id` | Admin | Ubah |
+| DELETE | `/api/unit/:id` | Admin | Hapus (gagal jika masih dipakai transaksi) |
+
+**Query GET list tujuan (paginated):** `page`, `limit`, `search`, `sort` (`nama_tujuan:asc` \| `jenis_detail:asc`), `jenis_detail` (`STASIUN` \| `UNIT` \| `TEKS` \| `TIDAK_ADA`).
+
+**Query GET list unit (paginated):** `page`, `limit`, `search`, `sort` (`nama_unit:asc` \| `kode_unit:asc`).
+
+Body create/update tujuan:
+```json
+{
+  "nama_tujuan": "Event",
+  "jenis_detail": "TEKS",
+  "label_detail": "Nama event",
+  "boleh_return": false
+}
+```
+
+Body create/update unit:
+```json
+{ "kode_unit": "OPS", "nama_unit": "Operasi" }
+```
+
+> UI master: `/tujuan` (kategori), nested `/tujuan/stasiun` & `/tujuan/unit`. Endpoint REST stasiun tetap `/api/stasiun`.
 
 ---
 
@@ -113,6 +142,10 @@ Body restock:
 | GET | `/api/stasiun/:id` | User | Detail |
 | PUT | `/api/stasiun/:id` | Admin | Ubah |
 | DELETE | `/api/stasiun/:id` | Admin | Hapus |
+
+**Query GET list:** `page`, `limit`, `search`, `sort` (`nama_stasiun:asc` \| `kode_stasiun:asc`).
+
+> Halaman UI di `/tujuan/stasiun` (redirect `/stasiun` → `/tujuan/stasiun`).
 
 ---
 

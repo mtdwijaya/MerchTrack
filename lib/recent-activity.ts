@@ -1,7 +1,6 @@
 import type { Role } from "@prisma/client";
 
 import {
-  fetchAllEditLogs,
   fetchRecentEditLogs,
   type AktivitasLogRow,
 } from "@/lib/aktivitas-log-db";
@@ -33,6 +32,8 @@ export type RecentActivityItem = {
 
 const DASHBOARD_ACTIVITY_LIMIT = 5;
 const ACTIVITY_SOURCE_LIMIT = 25;
+/** Batas sumber untuk list aktivitas terpaginasi — hindari load seluruh tabel. */
+const ACTIVITY_PAGE_SOURCE_LIMIT = 400;
 
 type RecentKeluarRow = {
   id_keluar: number;
@@ -269,24 +270,6 @@ function buildRecentActivity(
 }
 
 // aktivitas terbaru tidak di-cache supaya waktu & urutan selalu fresh
-async function fetchAllBarangKeluar(): Promise<RecentKeluarRow[]> {
-  const query = {
-    include: recentBarangKeluarInclude,
-  };
-
-  try {
-    return prisma.barangKeluar.findMany({
-      ...query,
-      orderBy: { dicatat_pada: "desc" },
-    }) as Promise<RecentKeluarRow[]>;
-  } catch {
-    return (await prisma.barangKeluar.findMany({
-      ...query,
-      orderBy: { tanggal_keluar: "desc" },
-    })) as RecentKeluarRow[];
-  }
-}
-
 async function fetchRecentBarangKeluar(limit: number): Promise<RecentKeluarRow[]> {
   const query = {
     take: limit,
@@ -311,18 +294,20 @@ async function fetchAllActivitySources(user: MonitoringUser) {
 
   const [recentBarangKeluar, recentBarangMasuk, recentBarangKembali, recentLogs] =
     await Promise.all([
-      fetchAllBarangKeluar(),
+      fetchRecentBarangKeluar(ACTIVITY_PAGE_SOURCE_LIMIT),
       isAdmin
         ? prisma.barangMasuk.findMany({
+            take: ACTIVITY_PAGE_SOURCE_LIMIT,
             orderBy: { tanggal_masuk: "desc" },
             include: recentBarangMasukInclude,
           })
         : Promise.resolve([]),
       prisma.barangKembali.findMany({
+        take: ACTIVITY_PAGE_SOURCE_LIMIT,
         orderBy: [{ tanggal_kembali: "desc" }, { id_kembali: "desc" }],
         include: recentBarangKembaliInclude,
       }),
-      fetchAllEditLogs(),
+      fetchRecentEditLogs(ACTIVITY_PAGE_SOURCE_LIMIT),
     ]);
 
   return buildRecentActivity(

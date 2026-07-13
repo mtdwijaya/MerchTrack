@@ -1,0 +1,13 @@
+$kind: http-request
+url: "{{baseUrl}}/api/unit"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: text
+  content: |-
+    {
+      "kode_unit": "UJI",
+      "nama_unit": "Unit Uji"
+    }
+order: 3000

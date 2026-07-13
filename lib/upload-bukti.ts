@@ -1,5 +1,6 @@
 import { mkdir, writeFile } from "fs/promises";
 import path from "path";
+import { randomBytes } from "crypto";
 
 const MAX_SIZE_BYTES = 5 * 1024 * 1024;
 const ALLOWED_EXTENSIONS = new Set([".pdf", ".jpg", ".jpeg", ".png"]);
@@ -35,18 +36,36 @@ function resolveFileName(file: Blob, fallback = "bukti") {
   return fallback;
 }
 
+/** Wajib ext DAN mime cocok (bukan OR) agar upload lebih ketat. */
 function isAllowedBukti(file: Blob, filename: string) {
   const ext = getExtension(filename);
-  const mime = file.type || mimeFromExtension(ext);
+  if (!ALLOWED_EXTENSIONS.has(ext)) return false;
 
-  if (ext && ALLOWED_EXTENSIONS.has(ext)) {
-    return true;
+  const mime = (file.type || mimeFromExtension(ext)).toLowerCase();
+  if (!ALLOWED_MIME_TYPES.has(mime)) return false;
+
+  if (ext === ".jpg" || ext === ".jpeg") {
+    return mime === "image/jpeg" || mime === "image/jpg";
   }
 
-  if (mime && ALLOWED_MIME_TYPES.has(mime)) {
-    return true;
-  }
+  return mime === mimeFromExtension(ext);
+}
 
+function sniffMagic(buffer: Buffer, ext: string) {
+  if (ext === ".pdf") {
+    return buffer.subarray(0, 4).toString("ascii") === "%PDF";
+  }
+  if (ext === ".png") {
+    return (
+      buffer[0] === 0x89 &&
+      buffer[1] === 0x50 &&
+      buffer[2] === 0x4e &&
+      buffer[3] === 0x47
+    );
+  }
+  if (ext === ".jpg" || ext === ".jpeg") {
+    return buffer[0] === 0xff && buffer[1] === 0xd8 && buffer[2] === 0xff;
+  }
   return false;
 }
 
@@ -75,22 +94,22 @@ export async function saveBuktiFile(file: Blob, prefix: string, filename?: strin
     throw new Error("Format file harus PDF, JPG, atau PNG");
   }
 
-  const ext = getExtension(originalName) || ".pdf";
-  const safeBase = originalName
-    .replace(ext, "")
-    .replace(/[^a-zA-Z0-9-_]/g, "-")
-    .slice(0, 40) || "bukti";
-  const storedName = `${prefix}-${Date.now()}-${safeBase}${ext}`;
+  const ext = getExtension(originalName);
+  const buffer = Buffer.from(await file.arrayBuffer());
+
+  if (!sniffMagic(buffer, ext)) {
+    throw new Error("Isi file tidak sesuai format yang diizinkan");
+  }
+
+  const storedName = `${prefix}-${Date.now()}-${randomBytes(8).toString("hex")}${ext}`;
   const uploadDir = path.join(process.cwd(), "public", "uploads", "bukti");
 
   await mkdir(uploadDir, { recursive: true });
-
-  const buffer = Buffer.from(await file.arrayBuffer());
   await writeFile(path.join(uploadDir, storedName), buffer);
 
   return {
     bukti_path: `/uploads/bukti/${storedName}`,
-    bukti_nama: originalName,
+    bukti_nama: originalName.replace(/[^\w.\-()\s]/g, "_").slice(0, 120),
   };
 }
 

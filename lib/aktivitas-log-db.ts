@@ -58,19 +58,6 @@ export async function fetchRecentEditLogs(
   });
 }
 
-export async function fetchAllEditLogs(): Promise<AktivitasLogRow[]> {
-  return getAktivitasLogClient().findMany({
-    where: { jenis: "EDIT" },
-    orderBy: { created_at: "desc" },
-    select: {
-      id_aktivitas: true,
-      jenis: true,
-      pesan: true,
-      created_at: true,
-    },
-  });
-}
-
 /** Selalu buat log edit baru — tidak update log lama */
 export async function insertEditAktivitasLog(data: {
   id_user: number;

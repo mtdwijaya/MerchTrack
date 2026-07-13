@@ -16,10 +16,17 @@ export async function createBarangKembali(data: BarangKembaliCreateData) {
   return prisma.$transaction(async (tx) => {
     const transaksi = await tx.barangKeluar.findUnique({
       where: { id_keluar: data.id_keluar },
+      include: {
+        tujuan: { select: { boleh_return: true } },
+      },
     });
 
     if (!transaksi) {
       throw new Error("Transaksi tidak ditemukan");
+    }
+
+    if (!transaksi.tujuan.boleh_return) {
+      throw new Error("Tujuan ini tidak mengizinkan pengembalian");
     }
 
     if (data.jumlah_kembali > transaksi.jumlah) {
@@ -58,21 +65,6 @@ export async function createBarangKembali(data: BarangKembaliCreateData) {
     });
 
     return record;
-  });
-}
-
-export async function getBarangKembaliByKeluarId(id_keluar: number) {
-  return prisma.barangKembali.findMany({
-    where: { id_keluar },
-    include: {
-      user: { select: { id_user: true, nama_user: true } },
-      barangKeluar: {
-        include: {
-          merchandise: { select: { nama_merch: true } },
-        },
-      },
-    },
-    orderBy: { tanggal_kembali: "desc" },
   });
 }
 

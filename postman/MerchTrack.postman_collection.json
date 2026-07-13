@@ -138,9 +138,72 @@
             "method": "GET",
             "header": [],
             "url": {
+              "raw": "{{baseUrl}}/api/tujuan?page=1&limit=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "tujuan"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "10" },
+                { "key": "search", "value": "", "disabled": true },
+                { "key": "sort", "value": "nama_tujuan:asc", "disabled": true },
+                { "key": "jenis_detail", "value": "STASIUN", "disabled": true }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Detail Tujuan",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/tujuan/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "tujuan", "1"]
+            }
+          }
+        },
+        {
+          "name": "Create Tujuan (Admin)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nama_tujuan\": \"Event Uji\",\n  \"jenis_detail\": \"TEKS\",\n  \"label_detail\": \"Nama event\",\n  \"boleh_return\": false\n}"
+            },
+            "url": {
               "raw": "{{baseUrl}}/api/tujuan",
               "host": ["{{baseUrl}}"],
               "path": ["api", "tujuan"]
+            }
+          }
+        },
+        {
+          "name": "Update Tujuan (Admin)",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nama_tujuan\": \"Event Uji\",\n  \"jenis_detail\": \"TEKS\",\n  \"label_detail\": \"Nama event\",\n  \"boleh_return\": true\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/tujuan/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "tujuan", "1"]
+            }
+          }
+        },
+        {
+          "name": "Delete Tujuan (Admin)",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/tujuan/99",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "tujuan", "99"]
             }
           }
         }
@@ -155,9 +218,71 @@
             "method": "GET",
             "header": [],
             "url": {
+              "raw": "{{baseUrl}}/api/unit?page=1&limit=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "unit"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "10" },
+                { "key": "search", "value": "", "disabled": true },
+                { "key": "sort", "value": "nama_unit:asc", "disabled": true }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Detail Unit",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/unit/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "unit", "1"]
+            }
+          }
+        },
+        {
+          "name": "Create Unit (Admin)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"kode_unit\": \"UJI\",\n  \"nama_unit\": \"Unit Uji\"\n}"
+            },
+            "url": {
               "raw": "{{baseUrl}}/api/unit",
               "host": ["{{baseUrl}}"],
               "path": ["api", "unit"]
+            }
+          }
+        },
+        {
+          "name": "Update Unit (Admin)",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"kode_unit\": \"UJI\",\n  \"nama_unit\": \"Unit Uji Updated\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/unit/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "unit", "1"]
+            }
+          }
+        },
+        {
+          "name": "Delete Unit (Admin)",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/unit/99",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "unit", "99"]
             }
           }
         }

@@ -1,0 +1,15 @@
+$kind: http-request
+url: "{{baseUrl}}/api/tujuan/1"
+method: PUT
+headers:
+  Content-Type: application/json
+body:
+  type: text
+  content: |-
+    {
+      "nama_tujuan": "Event Uji",
+      "jenis_detail": "TEKS",
+      "label_detail": "Nama event",
+      "boleh_return": true
+    }
+order: 4000

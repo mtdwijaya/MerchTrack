@@ -1,4 +1,5 @@
 import { createBarangKembali } from "@/lib/barang-kembali";
+import { canMutateBarangKeluar } from "@/lib/barang-keluar-access";
 import { getBarangKeluarById } from "@/lib/barang-keluar";
 import {
   ApiError,
@@ -6,7 +7,7 @@ import {
   parseIdParam,
   parseJson,
   parseTanggalKeluar,
-  requireUser,
+  requireActiveUser,
   route,
 } from "@/lib/api";
 import { revalidateMerchandiseListCache } from "@/lib/merchandise";
@@ -26,12 +27,15 @@ function refreshTransaksiPages() {
 
 // POST /api/barang-keluar/:id/return
 export const POST = route<Ctx>(async (req, ctx) => {
-  const user = requireUser(req);
+  const user = await requireActiveUser(req);
   const id = await parseIdParam(ctx);
   const data = await parseJson(req, barangKembaliSchema);
 
   const transaksi = await getBarangKeluarById(id);
   if (!transaksi) throw new ApiError("Transaksi tidak ditemukan", 404);
+  if (!canMutateBarangKeluar(user, transaksi)) {
+    throw new ApiError("Anda tidak berhak mengubah transaksi ini", 403);
+  }
 
   const tanggalKembali = parseTanggalKeluar(data.tanggal_kembali);
 

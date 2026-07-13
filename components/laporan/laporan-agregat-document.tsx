@@ -138,6 +138,7 @@ export function LaporanAgregatDocument({
           </Text>
         </View>
 
+        {/* header document */}
         <View style={styles.metaRow}>
           <Text style={styles.metaLabel}>Jenis transaksi</Text>
           <Text style={styles.metaValue}>{data.filters.jenisLabel}</Text>

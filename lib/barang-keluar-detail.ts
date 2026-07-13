@@ -48,6 +48,7 @@ export async function getBarangKeluarDetailPayload(id: number) {
       : data.status,
     merchandise: data.merchandise.nama_merch,
     tujuan: data.tujuan.nama_tujuan,
+    boleh_return: data.tujuan.boleh_return,
     detail_tujuan: formatDetailTujuan(data),
     petugas: data.user.nama_user,
     bukti_path: data.bukti_path,

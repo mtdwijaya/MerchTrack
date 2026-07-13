@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { parseFormDateWithNowTime } from "@/lib/relative-time";
 
 import { requireActionUser } from "@/lib/auth";
+import { assertCanMutateBarangKeluar } from "@/lib/barang-keluar-access";
 import { createBarangKembali } from "@/lib/barang-kembali";
 import {
   createBarangKeluar,
@@ -189,6 +190,8 @@ export async function updateBarangKeluarAction(
         return { ok: false, message: "Transaksi tidak ditemukan" };
       }
 
+      assertCanMutateBarangKeluar(auth.user, existing);
+
       await updateBarangKeluarBatch(
         idParsed.data,
         {
@@ -226,6 +229,8 @@ export async function updateBarangKeluarAction(
     if (!existing) {
       return { ok: false, message: "Transaksi tidak ditemukan" };
     }
+
+    assertCanMutateBarangKeluar(auth.user, existing);
 
     const tanggalBaru =
       getTanggalFromForm(parsed.data.tanggal_keluar) ?? existing.tanggal_keluar;
@@ -354,6 +359,8 @@ export async function returnBarangKeluarAction(
       return { ok: false, message: "Transaksi tidak ditemukan" };
     }
 
+    assertCanMutateBarangKeluar(auth.user, keluar);
+
     const tanggalKembali = parsed.data.tanggal_kembali
       ? parseFormDateWithNowTime(parsed.data.tanggal_kembali)
       : new Date();
@@ -389,6 +396,13 @@ export async function deleteBarangKeluarAction(id: number): Promise<ActionResult
 
     const idParsed = parseSchema(idParamSchema, id);
     if (!idParsed.ok) return idParsed;
+
+    const existing = await getBarangKeluarById(idParsed.data);
+    if (!existing) {
+      return { ok: false, message: "Transaksi tidak ditemukan" };
+    }
+
+    assertCanMutateBarangKeluar(auth.user, existing);
 
     await deleteBarangKeluar(idParsed.data);
     revalidatePath("/barang-keluar");

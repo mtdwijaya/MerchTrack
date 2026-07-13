@@ -1,8 +1,6 @@
-import Link from "next/link";
-import { Eye, Pencil, SlidersHorizontal, Trash2, Undo2 } from "lucide-react";
+import { Eye, SlidersHorizontal, Trash2 } from "lucide-react";
 
-import { Button, buttonVariants } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
 
 // tombol teks outline kecil di tabel
 export function TextOutlineAction({
@@ -64,41 +62,6 @@ export function DeleteAction({ onClick }: { onClick: () => void }) {
       className="text-[#B71C1C] hover:text-[#D32F2F]"
     >
       <Trash2 className="h-4 w-4" />
-    </Button>
-  );
-}
-
-// aksi edit via link (halaman merchandise/stasiun dll)
-export function EditLinkAction({ href }: { href: string }) {
-  return (
-    <Link
-      href={href}
-      title="Edit"
-      className={cn(buttonVariants({ variant: "outline", size: "icon" }))}
-    >
-      <Pencil className="h-4 w-4" />
-    </Link>
-  );
-}
-
-// aksi kembalikan barang (barang keluar)
-export function ReturnAction({
-  onClick,
-  disabled,
-}: {
-  onClick: () => void;
-  disabled?: boolean;
-}) {
-  return (
-    <Button
-      type="button"
-      variant="outline"
-      size="icon"
-      onClick={onClick}
-      disabled={disabled}
-      title="Kembalikan Barang"
-    >
-      <Undo2 className="h-4 w-4" />
     </Button>
   );
 }

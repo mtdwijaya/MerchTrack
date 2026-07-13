@@ -70,7 +70,7 @@ export default function LaporanCard({
           <p className="text-sm font-medium text-[#1A1C1C]">
             {summary.totalKeluarTrx > 0 &&
               `${summary.totalKeluarTrx} Transaksi keluar`}
-            {summary.totalKeluarTrx > 0 && summary.totalMasukTrx > 0 && " · "}
+            {summary.totalKeluarTrx > 0 && summary.totalMasukTrx > 0 && " · " }
             {summary.totalMasukTrx > 0 && `${summary.totalMasukTrx} Transaksi masuk`}
             {summary.totalKeluarTrx === 0 &&
               summary.totalMasukTrx === 0 &&

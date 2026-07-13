@@ -4,11 +4,14 @@ import {
   jsonOk,
   parseIdParam,
   parseTanggalKeluar,
+  requireActiveUser,
   requireUser,
   route,
 } from "@/lib/api";
+import { canMutateBarangKeluar } from "@/lib/barang-keluar-access";
 import {
   deleteBarangKeluar,
+  getBarangKeluarById,
   updateBarangKeluar,
   updateBarangKeluarBatch,
 } from "@/lib/barang-keluar";
@@ -43,8 +46,14 @@ export const GET = route<Ctx>(async (req, ctx) => {
 
 // PUT /api/barang-keluar/:id — single atau batch edit (body punya "items" + id_keluar)
 export const PUT = route<Ctx>(async (req, ctx) => {
-  requireUser(req);
+  const user = await requireActiveUser(req);
   const id = await parseIdParam(ctx);
+
+  const existing = await getBarangKeluarById(id);
+  if (!existing) throw new ApiError("Transaksi tidak ditemukan", 404);
+  if (!canMutateBarangKeluar(user, existing)) {
+    throw new ApiError("Anda tidak berhak mengubah transaksi ini", 403);
+  }
 
   let body: unknown;
   try {
@@ -105,8 +114,15 @@ export const PUT = route<Ctx>(async (req, ctx) => {
 
 // DELETE /api/barang-keluar/:id — hapus 1 baris / seluruh grup (logika di lib)
 export const DELETE = route<Ctx>(async (req, ctx) => {
-  requireUser(req);
+  const user = await requireActiveUser(req);
   const id = await parseIdParam(ctx);
+
+  const existing = await getBarangKeluarById(id);
+  if (!existing) throw new ApiError("Transaksi tidak ditemukan", 404);
+  if (!canMutateBarangKeluar(user, existing)) {
+    throw new ApiError("Anda tidak berhak mengubah transaksi ini", 403);
+  }
+
   await deleteBarangKeluar(id);
   refreshTransaksiPages();
   return jsonOk({ message: "Transaksi berhasil dihapus" });

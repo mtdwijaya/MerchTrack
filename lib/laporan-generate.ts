@@ -163,6 +163,7 @@ export async function generateLaporanData(
           where: { ...merchWhere, ...dateKeluarWhere },
           include: recentBarangKeluarInclude,
           orderBy: { tanggal_keluar: "desc" },
+          take: 5000,
         })
       : Promise.resolve([]),
     includeMasuk
@@ -170,6 +171,7 @@ export async function generateLaporanData(
           where: { ...merchWhere, ...dateMasukWhere },
           include: recentBarangMasukInclude,
           orderBy: { tanggal_masuk: "desc" },
+          take: 5000,
         })
       : Promise.resolve([]),
   ]);
