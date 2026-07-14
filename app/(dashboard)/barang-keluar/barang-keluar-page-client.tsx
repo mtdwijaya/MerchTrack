@@ -332,7 +332,7 @@ export default function BarangKeluarPageClient({
     <>
       <div className="space-y-6">
         <PageHeader
-          title="Manajemen Barang Keluar"
+          title="Transaksi Barang Keluar"
           description="Kelola seluruh transaksi barang keluar."
           actions={
             <PrimaryButton onClick={openAddModal}>

@@ -34,7 +34,7 @@ export default function Footer() {
           "
         >
           © {new Date().getFullYear()} LRT
-          Jabodebek - Universitas Sriwijaya - mtdwijaya
+          Jabodebek - Universitas Sriwijaya - Muhammad Tias Djahfran Wijaya 
         </span>
       </div>
     </footer>

@@ -7,7 +7,6 @@ import { signAuthToken, verifyAuthToken } from "@/lib/jwt";
 import { prisma } from "@/lib/prisma";
 import { parseFormDateWithNowTime } from "@/lib/relative-time";
 
-// payload yang disimpan di dalam JWT Bearer token untuk REST API
 export interface ApiTokenPayload {
   id_user: number;
   email: string;
@@ -16,7 +15,6 @@ export interface ApiTokenPayload {
   id_stasiun: number | null;
 }
 
-// error yang membawa http status — ditangkap oleh wrapper route()
 export class ApiError extends Error {
   status: number;
   constructor(message: string, status = 400) {
@@ -25,7 +23,6 @@ export class ApiError extends Error {
   }
 }
 
-// ---------- response helper (bentuk konsisten: { success, data } / { success, message }) ----------
 export function jsonOk<T>(data: T, status = 200) {
   return NextResponse.json({ success: true, data }, { status });
 }
@@ -34,7 +31,6 @@ export function jsonError(message: string, status = 400) {
   return NextResponse.json({ success: false, message }, { status });
 }
 
-// bungkus handler agar semua error diterjemahkan ke response yang rapi
 type RouteHandler<Ctx> = (
   req: NextRequest,
   ctx: Ctx
@@ -49,14 +45,12 @@ export function route<Ctx = unknown>(handler: RouteHandler<Ctx>) {
       if (error instanceof z.ZodError) {
         return jsonError(error.issues[0]?.message ?? "Data tidak valid", 400);
       }
-      // error bisnis dari lib (mis. "Stok tidak mencukupi") dilempar sebagai Error biasa
       if (error instanceof Error) return jsonError(error.message, 400);
       return jsonError("Terjadi kesalahan server", 500);
     }
   };
 }
 
-// ---------- autentikasi ----------
 export async function authenticate(email: string, password: string) {
   const user = await prisma.user.findUnique({ where: { email } });
   if (!user) throw new ApiError("Email atau password salah", 401);
@@ -81,13 +75,13 @@ function getBearerToken(req: NextRequest): string | null {
     req.headers.get("authorization") ?? req.headers.get("Authorization");
   if (!header) return null;
 
+  // "Bearer abc.def.ghi" → scheme=Bearer, value=abc.def.ghi
   const [scheme, value] = header.split(" ");
   if (scheme?.toLowerCase() !== "bearer" || !value) return null;
 
   return value.trim() || null;
 }
 
-// wajib login — pakai di semua endpoint yang butuh auth
 export function requireUser(req: NextRequest): ApiTokenPayload {
   const token = getBearerToken(req);
   if (!token) {
@@ -104,7 +98,6 @@ export function requireUser(req: NextRequest): ApiTokenPayload {
   }
 }
 
-/** User aktif — role & stasiun dari DB (bukan JWT basi). */
 export async function requireActiveUser(
   req: NextRequest
 ): Promise<ApiTokenPayload> {
@@ -131,14 +124,12 @@ export async function requireActiveUser(
   };
 }
 
-// wajib admin — role dibaca ulang dari db supaya tidak pakai role basi di token
 export async function requireAdmin(req: NextRequest): Promise<ApiTokenPayload> {
   const user = await requireActiveUser(req);
   if (user.role !== "ADMIN") throw new ApiError("Akses khusus admin", 403);
   return user;
 }
 
-// ---------- parsing input ----------
 export async function parseJson<T>(
   req: NextRequest,
   schema: z.ZodType<T>
@@ -168,7 +159,6 @@ export async function parseIdParam(ctx: {
   return num;
 }
 
-// terima "YYYY-MM-DD" (dari form) atau ISO string; kosong = pakai waktu sekarang
 export function parseTanggalKeluar(value?: string): Date | undefined {
   const trimmed = value?.trim();
   if (!trimmed) return undefined;
@@ -180,7 +170,6 @@ export function parseTanggalKeluar(value?: string): Date | undefined {
   return date;
 }
 
-// helper baca query string (?page=&limit=&search=&sort=)
 export function getQuery(req: NextRequest) {
   const sp = req.nextUrl.searchParams;
   return {
