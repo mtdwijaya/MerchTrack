@@ -63,10 +63,14 @@ Akun seed: `admin@lrt.co.id` / `password123`, `petugas@lrt.co.id` / `password123
 ### Dashboard & Monitoring
 | Method | Endpoint | Role | Keterangan |
 |--------|----------|------|------------|
-| GET | `/api/dashboard` | User | Statistik dashboard |
-| GET | `/api/monitoring` | User | Overview monitoring (sama ringkasan UI) |
+| GET | `/api/dashboard` | User | Statistik dashboard (KPI all-time + chart) |
+| GET | `/api/monitoring` | User | Overview monitoring merchandise |
 | GET | `/api/monitoring/stok` | User | List stok paginasi + filter status |
 | GET | `/api/monitoring/aktivitas` | User | Feed aktivitas terbaru (paginated) |
+
+**Query `/api/dashboard`:** `chartTahun` (tahun stacked bar), `sankeyBulan` + `sankeyTahun` (opsional — kosong = sankey all-time).
+
+**Response monitoring overview (ringkas):** `summary.{totalStokAktif,jenisMerchandise,peringatanStokRendah}`, `merchandiseStock[]` (`stokDipakai`, `stokSisa`, `status`), `lowStockItems[]`.
 
 **Query `/api/monitoring/stok`:** `page`, `limit`, `search`, `sort`, `status` (`habis` \| `rendah` \| `normal`).
 
@@ -197,7 +201,7 @@ Body create batch:
 }
 ```
 
-Body return:
+Body return (single item):
 ```json
 {
   "jumlah_kembali": 2,
@@ -205,6 +209,20 @@ Body return:
   "pengembali": "Budi Santoso",
   "asal": "Stasiun Bekasi",
   "keterangan": "Sisa event dikembalikan"
+}
+```
+
+Body return (batch multi-merch dalam grup — `:id` = anchor transaksi):
+```json
+{
+  "tanggal_kembali": "2026-07-03",
+  "pengembali": "Budi Santoso",
+  "asal": "Unit IT",
+  "keterangan": "Pengembalian sisa",
+  "items": [
+    { "id_keluar": 12, "jumlah_kembali": 10 },
+    { "id_keluar": 13, "jumlah_kembali": 5 }
+  ]
 }
 ```
 
@@ -217,7 +235,9 @@ Body return:
 |--------|----------|------|------------|
 | GET | `/api/riwayat-transaksi` | User | Unified masuk + keluar |
 
-**Query:** `page`, `limit`, `search`, `jenis` (`KELUAR` \| `MASUK`), `tanggal` (`YYYY-MM-DD`).
+**Query:** `page`, `limit`, `search`, `jenis` (`KELUAR` \| `MASUK` \| `RESTOCK`), `id_merch`, `tanggal_dari`, `tanggal_sampai` (`YYYY-MM-DD`).
+
+Response: `{ data, total, currentPage, totalPages }` — item unified dengan `jenis`, `items[]` (grup keluar multi-merch), `tujuan`.
 
 ---
 

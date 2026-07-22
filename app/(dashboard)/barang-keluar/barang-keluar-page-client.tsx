@@ -7,7 +7,6 @@ import BarangKeluarDetailDialog from "@/components/barang-keluar/barang-keluar-d
 import BarangKeluarForm from "@/components/barang-keluar/barang-keluar-form";
 import BarangKeluarGroupTableRow from "@/components/barang-keluar/barang-keluar-group-table-row";
 import BarangKembaliForm from "@/components/barang-keluar/barang-kembali-form";
-import BarangKeluarSummary from "@/components/barang-keluar/barang-keluar-summary";
 import {
   type TujuanOption,
 } from "@/components/barang-keluar/status-badge";
@@ -27,36 +26,26 @@ import {
 } from "@/components/ui/filter-bar";
 import PageHeader, { PrimaryButton } from "@/components/ui/page-header";
 import Pagination from "@/components/ui/pagination";
+import {
+  BARANG_KELUAR_SORT_OPTIONS,
+} from "@/constants/barang-keluar-sort";
 import { useFormModal } from "@/hooks/use-form-modal";
 import { useListFilters } from "@/hooks/use-list-filters";
 import type { BarangKeluarGroupRow } from "@/lib/barang-keluar-group";
 import { buildBarangKeluarEditFormData, buildBarangKeluarEditBatchFormData, buildBarangKeluarFormData } from "@/lib/build-transaksi-form-data";
 import { parseSortValue, toggleSortValue } from "@/lib/sort";
 import { showError, showSuccess } from "@/lib/toast";
-import type { StatusBarangKeluar } from "@prisma/client";
 
 import {
   createBarangKeluarAction,
   deleteBarangKeluarAction,
   getBarangKeluarFormData,
-  getBarangKeluarReturnInfo,
-  returnBarangKeluarAction,
+  getBarangKeluarGroupReturnInfo,
+  returnBarangKeluarBatchAction,
   updateBarangKeluarAction,
 } from "./actions";
 
-type SortField =
-  | "tanggal_keluar"
-  | "nama_merch"
-  | "nama_tujuan"
-  | "jumlah";
-
-const SORT_OPTIONS = [
-  { value: "tanggal_keluar:desc", label: "Tanggal (Terbaru)" },
-  { value: "id_keluar:desc", label: "ID (Terbaru)" },
-  { value: "nama_merch:asc", label: "Merchandise (A-Z)" },
-  { value: "nama_tujuan:asc", label: "Tujuan (A-Z)" },
-  { value: "jumlah:desc", label: "Jumlah (Terbesar)" },
-];
+type SortField = "tanggal_keluar" | "jumlah";
 
 interface MerchandiseOption {
   id_merch: number;
@@ -74,14 +63,16 @@ interface UnitOption {
   nama_unit: string;
 }
 
-interface ReturnInfo {
-  id_keluar: number;
-  merchandise: string;
+interface GroupReturnInfo {
   tujuan: string;
-  jumlah: number;
-  jumlah_kembali: number;
-  sisa: number;
-  status: StatusBarangKeluar;
+  boleh_return: boolean;
+  items: {
+    id_keluar: number;
+    merchandise: string;
+    jumlah: number;
+    jumlah_kembali: number;
+    sisa: number;
+  }[];
 }
 
 interface Props {
@@ -91,14 +82,6 @@ interface Props {
     })[];
     total: number;
     totalPages: number;
-  };
-  summary: {
-    totalTransaksi: number;
-    totalBarangKeluar: number;
-    merchandiseTerbanyak: {
-      nama: string;
-      total: number;
-    } | null;
   };
   merchandiseList: MerchandiseOption[];
   stasiunList: StasiunOption[];
@@ -111,7 +94,6 @@ interface Props {
 
 export default function BarangKeluarPageClient({
   list,
-  summary,
   merchandiseList,
   stasiunList,
   unitList,
@@ -156,7 +138,7 @@ export default function BarangKeluarPageClient({
 
   const [detailId, setDetailId] = useState<number | null>(null);
   const [deleteId, setDeleteId] = useState<number | null>(null);
-  const [returnInfo, setReturnInfo] = useState<ReturnInfo | null>(null);
+  const [returnInfo, setReturnInfo] = useState<GroupReturnInfo | null>(null);
   const [returnSourceDetailId, setReturnSourceDetailId] = useState<
     number | null
   >(null);
@@ -187,7 +169,7 @@ export default function BarangKeluarPageClient({
 
   async function openReturnModal(id: number) {
     setReturnLoading(true);
-    const info = await getBarangKeluarReturnInfo(id);
+    const info = await getBarangKeluarGroupReturnInfo(id);
     setReturnLoading(false);
 
     if (!info) {
@@ -195,7 +177,12 @@ export default function BarangKeluarPageClient({
       return;
     }
 
-    if (info.sisa <= 0) {
+    if (!info.boleh_return) {
+      showError("Tujuan ini tidak mengizinkan pengembalian");
+      return;
+    }
+
+    if (info.items.length === 0) {
       showError("Semua barang sudah dikembalikan");
       return;
     }
@@ -212,11 +199,11 @@ export default function BarangKeluarPageClient({
     }
   }
 
-  function handleReturnFromDetail(itemId: number) {
+  function handleReturnFromDetail(groupId: number) {
     if (detailId) {
       setReturnSourceDetailId(detailId);
     }
-    void openReturnModal(itemId);
+    void openReturnModal(groupId);
   }
 
   async function handleSubmit(
@@ -293,16 +280,16 @@ export default function BarangKeluarPageClient({
   }
 
   async function handleReturn(data: {
-    jumlah_kembali: number;
     tanggal_kembali: string;
     pengembali: string;
     asal: string;
     keterangan: string;
+    items: { id_keluar: number; jumlah_kembali: number }[];
   }) {
     if (!returnInfo) return;
 
     setReturnSaving(true);
-    const result = await returnBarangKeluarAction(returnInfo.id_keluar, data);
+    const result = await returnBarangKeluarBatchAction(data);
     setReturnSaving(false);
 
     if (!result.ok) {
@@ -341,8 +328,6 @@ export default function BarangKeluarPageClient({
           }
         />
 
-        <BarangKeluarSummary {...summary} />
-
         <FilterBar
           onReset={() => resetParams(["search", "sort", "id_tujuan"])}
         >
@@ -368,7 +353,7 @@ export default function BarangKeluarPageClient({
             value={currentSort}
             onChange={(value) => setParam("sort", value)}
             placeholder="Pilih urutan..."
-            options={SORT_OPTIONS}
+            options={[...BARANG_KELUAR_SORT_OPTIONS]}
           />
         </FilterBar>
 
@@ -381,21 +366,23 @@ export default function BarangKeluarPageClient({
                   field="tanggal_keluar"
                   activeField={sortBy}
                   activeOrder={sortOrder}
+                  align="center"
                   onSort={(f) =>
                     setParam("sort", toggleSortValue(currentSort, f))
                   }
                 />
+                <Th align="center">Merchandise</Th>
                 <SortableTh
-                  label="Merchandise"
-                  field="nama_merch"
+                  label="Jumlah"
+                  field="jumlah"
                   activeField={sortBy}
                   activeOrder={sortOrder}
                   onSort={(f) =>
                     setParam("sort", toggleSortValue(currentSort, f))
                   }
+                  align="center"
                 />
-                <Th align="center">Barang Terpakai</Th>
-                <Th>Tujuan</Th>
+                <Th align="center">Tujuan</Th>
                 <Th align="center">Status</Th>
                 <Th align="center">Aksi</Th>
               </tr>
@@ -411,6 +398,7 @@ export default function BarangKeluarPageClient({
                     key={item.group_key}
                     item={item}
                     onManage={setDetailId}
+                    onReturn={(id) => void openReturnModal(id)}
                   />
                 ))
               )}
@@ -475,12 +463,12 @@ export default function BarangKeluarPageClient({
           if (!open) closeReturnModal();
         }}
         title="Kembalikan Barang"
-        description="Catat barang yang kembali ke gudang dari transaksi ini."
-        contentClassName="sm:max-w-xl"
+        description="Catat pengembalian satu atau lebih merchandise dari transaksi ini."
+        contentClassName="sm:max-w-2xl"
       >
         {returnInfo && (
           <BarangKembaliForm
-            key={returnInfo.id_keluar}
+            key={returnInfo.items.map((i) => i.id_keluar).join("-")}
             info={returnInfo}
             onSubmit={handleReturn}
             loading={returnSaving}

@@ -63,7 +63,7 @@ export default function RiwayatDetailDialog({
           setLoading(false);
         }
       });
-    } else {
+    } else if (jenis === "MASUK" || jenis === "RESTOCK") {
       getBarangMasukDetailAction(id).then((data) => {
         if (!cancelled) {
           setMasukDetail(data);
@@ -91,7 +91,7 @@ export default function RiwayatDetailDialog({
       return;
     }
 
-    if (jenis === "MASUK" && masukDetail) {
+    if ((jenis === "MASUK" || jenis === "RESTOCK") && masukDetail) {
       const blob = await pdf(
         <LaporanMasukDocument data={masukDetail} />
       ).toBlob();
@@ -109,7 +109,9 @@ export default function RiwayatDetailDialog({
       ? "Detail Barang Keluar"
       : jenis === "MASUK"
         ? "Detail Barang Masuk"
-        : "Detail Transaksi";
+        : jenis === "RESTOCK"
+          ? "Detail Restock"
+          : "Detail Transaksi";
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -198,12 +200,15 @@ export default function RiwayatDetailDialog({
                 />
               )}
             </div>
-          ) : jenis === "MASUK" && masukDetail ? (
+          ) : (jenis === "MASUK" || jenis === "RESTOCK") && masukDetail ? (
             <div className="space-y-3 text-sm">
               <InfoRow label="ID" value={`#IN-${String(masukDetail.id_masuk).padStart(5, "0")}`} />
               <InfoRow label="Tanggal" value={formatTransaksiDate(masukDetail.tanggal_masuk)} />
               <InfoRow label="Merchandise" value={masukDetail.merchandise} />
-              <InfoRow label="Jumlah Masuk" value={`${masukDetail.jumlah} pcs`} />
+              <InfoRow
+                label={jenis === "RESTOCK" ? "Jumlah Restock" : "Jumlah Masuk"}
+                value={`${masukDetail.jumlah} pcs`}
+              />
               <InfoRow label="Petugas" value={masukDetail.petugas} />
               {masukDetail.keterangan && (
                 <InfoRow label="Keterangan" value={masukDetail.keterangan} />

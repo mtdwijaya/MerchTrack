@@ -1,32 +1,21 @@
 "use client";
 
 import Link from "next/link";
-import {
-  ChevronRight,
-  Truck,
-} from "lucide-react";
+import { useRouter } from "next/navigation";
+import { ChevronRight, Truck } from "lucide-react";
 
-import CategoryPieChart from "@/components/charts/category-pie-chart";
 import DashboardBarChart from "@/components/charts/dashboard-bar-chart";
-import RecentActivityPanel from "@/components/dashboard/recent-activity-panel";
+import MerchTujuanSankeyChart from "@/components/charts/merch-tujuan-sankey-chart";
+import StackedMerchBarChart from "@/components/charts/stacked-merch-bar-chart";
 import IconImage from "@/components/ui/icon-image";
+import { MONTH_FULL } from "@/lib/dashboard-constants";
 import type { DashboardData } from "@/lib/dashboard-types";
-import type { RecentActivity } from "@/lib/recent-activity";
-
-import DashboardPeriodFilter from "./dashboard-period-filter";
 
 interface Props {
   dashboard: DashboardData;
-  recentActivity: RecentActivity;
-  selectedMonth: number;
-  selectedYear: number;
 }
 
-function formatDelta(
-    delta: number,
-  unit = "pcs",
-  compareLabel = "bulan lalu"
-) {
+function formatDelta(delta: number, unit = "pcs", compareLabel = "kemarin") {
   if (delta > 0) {
     return {
       text: `↑ +${delta.toLocaleString("id-ID")} ${unit} dibanding ${compareLabel}`,
@@ -42,83 +31,73 @@ function formatDelta(
   return { text: `Sama dengan ${compareLabel}`, tone: "neutral" as const };
 }
 
-export default function DashboardPageClient({
-  dashboard,
-  recentActivity,
-  selectedMonth,
-  selectedYear,
-}: Props) {
+export default function DashboardPageClient({ dashboard }: Props) {
+  const router = useRouter();
   const { chartMeta } = dashboard;
-  const periodLabel = `${chartMeta.bulan} ${chartMeta.tahun}`;
+  const hariIniDelta = formatDelta(dashboard.distribusiHariIniDelta);
 
-  const stokDelta = formatDelta(
-    dashboard.totalStokDelta,
-    "pcs",
-    chartMeta.bulanLalu
-  );
-  const keluarDelta = formatDelta(dashboard.barangKeluarDelta);
-  const transaksiDelta = formatDelta(
-    dashboard.transaksiBulanIni.delta,
-    "transaksi"
-  );
-  const hariIniDelta = formatDelta(
-    dashboard.distribusiHariIniDelta,
-    "pcs",
-    "kemarin"
-  );
-
-  const chartMerch = dashboard.top5Merchandise.map((item) => ({
+  const chartMerch = dashboard.topMerchandise.map((item) => ({
     label: item.nama,
     total: item.total,
   }));
 
-  const chartTrend = dashboard.trendDistribusi.map((item) => ({
-    label: item.label,
-    total: item.total,
-    isCurrent: item.isCurrent,
-  }));
-
   const topMerchSubtitle = dashboard.merchandiseTerbanyak
-    ? `Terbanyak: ${dashboard.merchandiseTerbanyak} (${dashboard.merchandiseTerbanyakQty} pcs)`
-    : `Belum ada distribusi ${periodLabel.toLowerCase()}`;
+    ? `Terbanyak: ${dashboard.merchandiseTerbanyak} (${dashboard.merchandiseTerbanyakQty.toLocaleString("id-ID")} pcs)`
+    : "Belum ada distribusi";
+
+  const yearOptions = Array.from({ length: 5 }, (_, i) => {
+    const year = new Date().getFullYear() - i;
+    return year;
+  });
+
+  function setChartYear(year: number) {
+    const params = new URLSearchParams(window.location.search);
+    params.set("chartTahun", String(year));
+    router.replace(`?${params.toString()}`);
+  }
+
+  function setSankeyPeriod(month: string, year: string) {
+    const params = new URLSearchParams(window.location.search);
+    if (!month || !year) {
+      params.delete("sankeyBulan");
+      params.delete("sankeyTahun");
+    } else {
+      params.set("sankeyBulan", month);
+      params.set("sankeyTahun", year);
+    }
+    router.replace(`?${params.toString()}`);
+  }
 
   return (
-    <div className="flex h-[calc(100dvh-7.75rem)] flex-col gap-2.5 overflow-hidden">
-      <div className="flex shrink-0 items-center justify-end">
-        <DashboardPeriodFilter month={selectedMonth} year={selectedYear} />
-      </div>
-      {/* KPI Cards — 5 kolom */}
-      <section className="grid shrink-0 grid-cols-2 gap-2.5 lg:grid-cols-3 xl:grid-cols-5">
+    <div className="flex h-[calc(100dvh-7.75rem)] flex-col gap-3 overflow-hidden">
+      <section className="grid shrink-0 grid-cols-2 gap-3 lg:grid-cols-3 xl:grid-cols-5">
         <KpiCard
           title="Total Stok Tersedia"
           value={dashboard.totalStokTersedia}
           suffix="pcs"
           iconSrc="/icons/icon-stok.svg"
-          delta={stokDelta}
         />
         <KpiCard
-          title={`Barang Keluar ${chartMeta.bulan}`}
-          value={dashboard.totalBarangKeluarBulanIni}
+          title="Barang Keluar"
+          value={dashboard.totalBarangKeluar}
           suffix="pcs"
           iconSrc="/icons/icon-barangkeluar-merah.svg"
           subtitle={topMerchSubtitle}
           subtitleTone="accent"
-          delta={keluarDelta}
         />
         <KpiCard
-          title={`Transaksi ${chartMeta.bulan}`}
-          value={dashboard.transaksiBulanIni.total}
+          title="Total Transaksi"
+          value={dashboard.totalTransaksi.total}
           suffix="transaksi"
           iconSrc="/icons/icon-transaksi-merah.svg"
-          delta={transaksiDelta}
           footer={
-            <p className="text-[10px] leading-snug">
+            <p className="text-[11px] leading-snug">
               <span className="font-medium text-[#059669]">
-                {dashboard.transaksiBulanIni.masuk} Masuk
+                {dashboard.totalTransaksi.masuk} Masuk
               </span>
               <span className="text-[#9CA3AF]"> · </span>
               <span className="font-medium text-[#D71920]">
-                {dashboard.transaksiBulanIni.keluar} Keluar
+                {dashboard.totalTransaksi.keluar} Keluar
               </span>
             </p>
           }
@@ -127,7 +106,7 @@ export default function DashboardPageClient({
           title="Distribusi Hari Ini"
           value={dashboard.distribusiHariIni}
           suffix="pcs"
-          icon={<Truck size={18} className="text-[#D71920]" />}
+          icon={<Truck size={20} className="text-[#D71920]" />}
           delta={hariIniDelta}
           subtitle={
             dashboard.distribusiHariIni > 0
@@ -147,15 +126,17 @@ export default function DashboardPageClient({
               : "Semua stok aman"
           }
           showChevron={dashboard.peringatanStokRendah > 0}
-          href={dashboard.peringatanStokRendah > 0 ? "/merchandise" : undefined}
+          href={
+            dashboard.peringatanStokRendah > 0 ? "/monitoring" : undefined
+          }
         />
       </section>
 
-      {/* Charts 2×2 */}
-      <section className="grid min-h-0 flex-1 grid-cols-1 gap-2.5 lg:grid-cols-2 lg:grid-rows-2">
+      {/* Kiri: Top merch + transaksi/bulan; kanan: sankey full height */}
+      <section className="grid min-h-0 flex-1 grid-cols-1 gap-3 lg:grid-cols-2 lg:grid-rows-2">
         <ChartPanel
-          title="Top 5 Merchandise Didistribusikan"
-          subtitle={`Distribusi ${periodLabel}`}
+          title="Top Merchandise Didistribusikan"
+          subtitle="All time"
           href="/barang-keluar"
         >
           <DashboardBarChart
@@ -166,31 +147,88 @@ export default function DashboardPageClient({
         </ChartPanel>
 
         <ChartPanel
-          title="Trend Distribusi per Bulan (pcs)"
-          subtitle={`Jan – Des ${chartMeta.tahun} · periode ${periodLabel}`}
-          href="/laporan"
+          title="Distribusi Merchandise ke Tujuan"
+          subtitle={
+            chartMeta.sankeyAllTime
+              ? "All time"
+              : `${MONTH_FULL[(chartMeta.sankeyMonth ?? 1) - 1]} ${chartMeta.sankeyYear}`
+          }
+          href="/riwayat-transaksi"
+          className="lg:row-span-2"
+          toolbar={
+            <div className="flex items-center gap-1.5">
+              <select
+                aria-label="Bulan sankey"
+                className="h-7 rounded-md border border-[#E8E4DF] bg-white px-2 text-[10px] text-[#374151]"
+                value={chartMeta.sankeyMonth ?? ""}
+                onChange={(e) =>
+                  setSankeyPeriod(
+                    e.target.value,
+                    e.target.value
+                      ? String(chartMeta.sankeyYear ?? chartMeta.chartYear)
+                      : ""
+                  )
+                }
+              >
+                <option value="">Semua bulan</option>
+                {MONTH_FULL.map((label, index) => (
+                  <option key={label} value={index + 1}>
+                    {label}
+                  </option>
+                ))}
+              </select>
+              <select
+                aria-label="Tahun sankey"
+                className="h-7 rounded-md border border-[#E8E4DF] bg-white px-2 text-[10px] text-[#374151]"
+                value={chartMeta.sankeyYear ?? ""}
+                onChange={(e) =>
+                  setSankeyPeriod(
+                    e.target.value
+                      ? String(
+                          chartMeta.sankeyMonth ?? new Date().getMonth() + 1
+                        )
+                      : "",
+                    e.target.value
+                  )
+                }
+              >
+                <option value="">All time</option>
+                {yearOptions.map((year) => (
+                  <option key={year} value={year}>
+                    {year}
+                  </option>
+                ))}
+              </select>
+            </div>
+          }
         >
-          <DashboardBarChart
-            data={chartTrend}
-            layout="vertical"
-            emptyMessage="Belum ada tren distribusi"
-            compactXLabels
-          />
+          <MerchTujuanSankeyChart links={dashboard.sankeyLinks} />
         </ChartPanel>
 
         <ChartPanel
-          title="Penggunaan Berdasarkan Tujuan"
-          subtitle={`Distribusi ${periodLabel}`}
-          href="/laporan"
+          title="Transaksi Barang Keluar per Bulan"
+          subtitle={`Berdasarkan jenis merchandise · ${chartMeta.chartYear}`}
+          href="/barang-keluar"
+          toolbar={
+            <select
+              aria-label="Tahun chart transaksi"
+              className="h-7 rounded-md border border-[#E8E4DF] bg-white px-2 text-[10px] text-[#374151]"
+              value={chartMeta.chartYear}
+              onChange={(e) => setChartYear(Number(e.target.value))}
+            >
+              {yearOptions.map((year) => (
+                <option key={year} value={year}>
+                  {year}
+                </option>
+              ))}
+            </select>
+          }
         >
-          <CategoryPieChart data={dashboard.penggunaanTujuan} />
+          <StackedMerchBarChart
+            data={dashboard.transaksiPerBulan}
+            emptyMessage="Belum ada tren transaksi"
+          />
         </ChartPanel>
-
-        <RecentActivityPanel
-          items={recentActivity}
-          href="/monitoring#aktivitas-terbaru"
-          className="h-full"
-        />
       </section>
     </div>
   );
@@ -245,7 +283,7 @@ function KpiCard({
 
   const content = (
     <div
-      className={`h-full rounded-xl border p-3 ${
+      className={`h-full rounded-xl border p-4 ${
         isDanger
           ? "border-[#B1070E] bg-[#B01B1C] text-white"
           : "border-[#EFEAE5] bg-white"
@@ -254,15 +292,15 @@ function KpiCard({
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0 flex-1">
           <p
-            className={`text-[10px] font-semibold uppercase tracking-wide ${
+            className={`text-[11px] font-semibold uppercase tracking-wide ${
               isDanger ? "text-white/90" : "text-[#6B7280]"
             }`}
           >
             {title}
           </p>
-          <div className="mt-1 flex items-end gap-1">
+          <div className="mt-1.5 flex items-end gap-1">
             <p
-              className={`text-xl font-bold ${
+              className={`text-2xl font-bold ${
                 isDanger ? "text-white" : "text-[#1A1A1A]"
               }`}
             >
@@ -272,7 +310,7 @@ function KpiCard({
             </p>
             {suffix && (
               <span
-                className={`pb-0.5 text-[11px] ${
+                className={`pb-0.5 text-xs ${
                   isDanger ? "text-white/80" : "text-[#6B7280]"
                 }`}
               >
@@ -282,14 +320,14 @@ function KpiCard({
           </div>
 
           {delta && (
-            <p className={`mt-0.5 text-[10px] leading-snug ${deltaColor}`}>
+            <p className={`mt-1 text-[11px] leading-snug ${deltaColor}`}>
               {delta.text}
             </p>
           )}
 
           {subtitle && (
             <p
-              className={`mt-0.5 line-clamp-1 text-[10px] leading-snug ${
+              className={`mt-1 line-clamp-2 text-[11px] leading-snug ${
                 isDanger
                   ? "text-white/85"
                   : subtitleTone === "accent"
@@ -304,18 +342,18 @@ function KpiCard({
             </p>
           )}
 
-          {footer && <div className="mt-0.5">{footer}</div>}
+          {footer && <div className="mt-1">{footer}</div>}
         </div>
 
         <div
-          className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${
+          className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ${
             isDanger ? "bg-white/20" : "bg-[#FFF2F2]"
           }`}
         >
           {iconSrc ? (
             <IconImage
               src={iconSrc}
-              size={17}
+              size={20}
               className={isDanger ? "brightness-0 invert" : ""}
             />
           ) : (
@@ -341,30 +379,39 @@ function ChartPanel({
   title,
   subtitle,
   href,
+  toolbar,
+  className,
   children,
 }: {
   title: string;
   subtitle?: string;
   href?: string;
+  toolbar?: React.ReactNode;
+  className?: string;
   children: React.ReactNode;
 }) {
   return (
-    <div className="flex min-h-0 flex-col overflow-hidden rounded-xl border border-[#EFEAE5] bg-white">
-      <div className="flex shrink-0 items-start justify-between px-4 pt-3 pb-1">
-        <div>
+    <div
+      className={`flex min-h-0 flex-col overflow-hidden rounded-xl border border-[#EFEAE5] bg-white ${className ?? ""}`}
+    >
+      <div className="flex shrink-0 items-start justify-between gap-2 px-4 pt-3 pb-1">
+        <div className="min-w-0">
           <h3 className="text-sm font-semibold text-[#1A1A1A]">{title}</h3>
           {subtitle && (
             <p className="text-[10px] text-[#9CA3AF]">{subtitle}</p>
           )}
         </div>
-        {href && (
-          <Link
-            href={href}
-            className="shrink-0 text-[10px] font-semibold text-[#D71920] hover:underline"
-          >
-            Lihat Semua
-          </Link>
-        )}
+        <div className="flex shrink-0 items-center gap-2">
+          {toolbar}
+          {href && (
+            <Link
+              href={href}
+              className="text-[10px] font-semibold text-[#D71920] hover:underline"
+            >
+              Lihat Semua
+            </Link>
+          )}
+        </div>
       </div>
       <div className="flex min-h-0 min-w-0 flex-1 flex-col px-3 pb-3 pt-1">
         {children}

@@ -228,7 +228,7 @@ export async function getRiwayatTransaksiSummary() {
   };
 }
 
-export type RiwayatJenis = "KELUAR" | "MASUK";
+export type RiwayatJenis = "KELUAR" | "MASUK" | "RESTOCK";
 
 export type RiwayatUnifiedItem = {
   key: string;
@@ -238,7 +238,9 @@ export type RiwayatUnifiedItem = {
   merchandise: string;
   jumlah: number;
   total_jenis?: number;
-  info: string;
+  items?: { id: number; nama_merch: string; jumlah: number }[];
+  tujuan?: string;
+  info?: string;
   petugas: string;
 };
 
@@ -279,6 +281,28 @@ function buildMasukSearchWhere(search?: string): Prisma.BarangMasukWhereInput {
   return { OR: orFilters };
 }
 
+function buildDateRangeFilter(
+  tanggalDari?: string,
+  tanggalSampai?: string
+): { gte?: Date; lte?: Date } | undefined {
+  if (!tanggalDari && !tanggalSampai) return undefined;
+
+  const filter: { gte?: Date; lte?: Date } = {};
+  if (tanggalDari) {
+    filter.gte = new Date(`${tanggalDari}T00:00:00`);
+  }
+  if (tanggalSampai) {
+    filter.lte = new Date(`${tanggalSampai}T23:59:59`);
+  } else if (tanggalDari) {
+    filter.lte = new Date(`${tanggalDari}T23:59:59`);
+  }
+  if (tanggalSampai && !tanggalDari) {
+    filter.gte = new Date(`${tanggalSampai}T00:00:00`);
+  }
+
+  return filter;
+}
+
 function mapKeluarToUnified(items: KeluarWithRelations[]): RiwayatUnifiedItem[] {
   const groups = new Map<string, KeluarWithRelations[]>();
 
@@ -302,10 +326,11 @@ function mapKeluarToUnified(items: KeluarWithRelations[]): RiwayatUnifiedItem[] 
       0
     );
     const detail = formatDetailTujuan(primary);
-    const info =
+    const tujuanNama = primary.tujuan.nama_tujuan;
+    const tujuan =
       detail && detail !== "-"
-        ? `${primary.tujuan.nama_tujuan} · ${detail}`
-        : primary.tujuan.nama_tujuan;
+        ? `${tujuanNama} · ${detail}`
+        : tujuanNama;
 
     return {
       key: `keluar-${asBarangKeluarRiwayatWithRelations(primary).id_grup ?? `single-${primary.id_keluar}`}`,
@@ -319,23 +344,34 @@ function mapKeluarToUnified(items: KeluarWithRelations[]): RiwayatUnifiedItem[] 
       merchandise: formatMerchandiseGroupLabel(merchandiseNames),
       total_jenis: groupItems.length,
       jumlah: totalJumlah,
-      info,
+      items: groupItems.map((item) => ({
+        id: item.id_keluar,
+        nama_merch: item.merchandise.nama_merch,
+        jumlah: item.jumlah + item.jumlah_kembali,
+      })),
+      tujuan,
+      info: detail && detail !== "-" ? detail : undefined,
       petugas: primary.user.nama_user,
     };
   });
 }
 
 function mapMasukToUnified(items: MasukWithRelations[]): RiwayatUnifiedItem[] {
-  return items.map((item) => ({
-    key: `masuk-${item.id_masuk}`,
-    jenis: "MASUK" as const,
-    id: item.id_masuk,
-    tanggal: item.tanggal_masuk,
-    merchandise: item.merchandise.nama_merch,
-    jumlah: item.jumlah,
-    info: "Restock",
-    petugas: item.user.nama_user,
-  }));
+  return items.map((item) => {
+    const keterangan = item.keterangan?.trim();
+    const info = keterangan || "-";
+
+    return {
+      key: `${item.jenis === "BARU" ? "masuk" : "restock"}-${item.id_masuk}`,
+      jenis: item.jenis === "BARU" ? ("MASUK" as const) : ("RESTOCK" as const),
+      id: item.id_masuk,
+      tanggal: item.tanggal_masuk,
+      merchandise: item.merchandise.nama_merch,
+      jumlah: item.jumlah,
+      info,
+      petugas: item.user.nama_user,
+    };
+  });
 }
 
 export async function getRiwayatUnifiedPaginated({
@@ -343,27 +379,35 @@ export async function getRiwayatUnifiedPaginated({
   limit,
   search,
   jenis,
-  tanggal,
+  idMerch,
+  tanggalDari,
+  tanggalSampai,
 }: {
   page: number;
   limit: number;
   search?: string;
   jenis?: RiwayatJenis | "";
-  tanggal?: string;
+  idMerch?: number;
+  tanggalDari?: string;
+  tanggalSampai?: string;
 }) {
-  const dateFilter = tanggal
-    ? {
-        gte: new Date(`${tanggal}T00:00:00`),
-        lte: new Date(`${tanggal}T23:59:59`),
-      }
-    : undefined;
+  const dateFilter = buildDateRangeFilter(tanggalDari, tanggalSampai);
+  const merchFilter = idMerch ? { id_merch: idMerch } : {};
+
+  const masukJenisFilter =
+    jenis === "MASUK"
+      ? { jenis: "BARU" as const }
+      : jenis === "RESTOCK"
+        ? { jenis: "RESTOCK" as const }
+        : {};
 
   const [keluar, masuk] = await Promise.all([
-    jenis === "MASUK"
+    jenis === "MASUK" || jenis === "RESTOCK"
       ? Promise.resolve([])
       : prisma.barangKeluar.findMany({
           where: {
             ...buildSearchWhere(search),
+            ...merchFilter,
             ...(dateFilter ? { tanggal_keluar: dateFilter } : {}),
           },
           include: riwayatListInclude,
@@ -373,6 +417,8 @@ export async function getRiwayatUnifiedPaginated({
       : prisma.barangMasuk.findMany({
           where: {
             ...buildMasukSearchWhere(search),
+            ...merchFilter,
+            ...masukJenisFilter,
             ...(dateFilter ? { tanggal_masuk: dateFilter } : {}),
           },
           include: masukInclude,

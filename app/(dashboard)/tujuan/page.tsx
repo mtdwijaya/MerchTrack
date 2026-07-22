@@ -2,7 +2,7 @@ import { Suspense } from "react";
 import type { JenisDetailTujuan } from "@prisma/client";
 
 import TujuanPageClient from "./tujuan-page-client";
-import { requireAdminPage } from "@/lib/auth";
+import { requirePageAccess } from "@/lib/require-page";
 import { getPageParam, getParam, type SearchParams } from "@/lib/list-params";
 import { parseSortValue } from "@/lib/sort";
 import {
@@ -21,7 +21,7 @@ async function TujuanContent({
 }: {
   searchParams: SearchParams;
 }) {
-  await requireAdminPage();
+  await requirePageAccess("tujuan");
 
   const page = getPageParam(searchParams);
   const search = getParam(searchParams, "search");

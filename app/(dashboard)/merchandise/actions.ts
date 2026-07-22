@@ -78,7 +78,7 @@ export async function createMerchandiseAction(data: {
     const parsed = parseSchema(merchandiseCreateSchema, data);
     if (!parsed.ok) return parsed;
 
-    await createMerchandise(parsed.data);
+    await createMerchandise(parsed.data, auth.user.id_user);
     revalidateMerchandisePages();
     return { ok: true };
   } catch (error) {
@@ -139,7 +139,7 @@ export async function restockMerchandiseAction(
       bukti_nama: bukti?.bukti_nama ?? null,
     });
     revalidateMerchandisePages();
-    revalidatePath("/laporan");
+    revalidatePath("/monitoring");
     revalidatePath("/riwayat-transaksi");
     return { ok: true };
   } catch (error) {

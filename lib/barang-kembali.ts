@@ -14,57 +14,101 @@ function resolveStatus(
 
 export async function createBarangKembali(data: BarangKembaliCreateData) {
   return prisma.$transaction(async (tx) => {
-    const transaksi = await tx.barangKeluar.findUnique({
-      where: { id_keluar: data.id_keluar },
-      include: {
-        tujuan: { select: { boleh_return: true } },
-      },
-    });
+    return createBarangKembaliInTx(tx, data);
+  });
+}
 
-    if (!transaksi) {
-      throw new Error("Transaksi tidak ditemukan");
+type TxClient = Parameters<Parameters<typeof prisma.$transaction>[0]>[0];
+
+async function createBarangKembaliInTx(
+  tx: TxClient,
+  data: BarangKembaliCreateData
+) {
+  const transaksi = await tx.barangKeluar.findUnique({
+    where: { id_keluar: data.id_keluar },
+    include: {
+      tujuan: { select: { boleh_return: true } },
+    },
+  });
+
+  if (!transaksi) {
+    throw new Error("Transaksi tidak ditemukan");
+  }
+
+  if (!transaksi.tujuan.boleh_return) {
+    throw new Error("Tujuan ini tidak mengizinkan pengembalian");
+  }
+
+  if (data.jumlah_kembali > transaksi.jumlah) {
+    throw new Error(`Jumlah kembali melebihi sisa (${transaksi.jumlah} pcs)`);
+  }
+
+  const record = await tx.barangKembali.create({
+    data: {
+      id_keluar: data.id_keluar,
+      id_user: data.id_user,
+      jumlah_kembali: data.jumlah_kembali,
+      tanggal_kembali: data.tanggal_kembali ?? new Date(),
+      pengembali: data.pengembali,
+      asal: data.asal,
+      keterangan: data.keterangan,
+    } as Parameters<typeof tx.barangKembali.create>[0]["data"],
+  });
+
+  const jumlahKembaliBaru = transaksi.jumlah_kembali + data.jumlah_kembali;
+  const jumlahBaru = transaksi.jumlah - data.jumlah_kembali;
+
+  await tx.barangKeluar.update({
+    where: { id_keluar: data.id_keluar },
+    data: {
+      jumlah: jumlahBaru,
+      jumlah_kembali: jumlahKembaliBaru,
+      status: resolveStatus(jumlahBaru, jumlahKembaliBaru),
+    },
+  });
+
+  await tx.stok.update({
+    where: { id_merch: transaksi.id_merch },
+    data: {
+      jumlah_stok: { increment: data.jumlah_kembali },
+    },
+  });
+
+  return record;
+}
+
+/** Satu transaksi DB untuk pengembalian beberapa merch dalam grup */
+export async function createBarangKembaliBatch(
+  id_user: number,
+  shared: {
+    tanggal_kembali?: Date;
+    pengembali: string;
+    asal: string;
+    keterangan?: string;
+  },
+  items: { id_keluar: number; jumlah_kembali: number }[]
+) {
+  const aktif = items.filter((item) => item.jumlah_kembali > 0);
+  if (aktif.length === 0) {
+    throw new Error("Isi jumlah kembali minimal untuk satu merchandise");
+  }
+
+  return prisma.$transaction(async (tx) => {
+    const results = [];
+    for (const item of aktif) {
+      results.push(
+        await createBarangKembaliInTx(tx, {
+          id_keluar: item.id_keluar,
+          id_user,
+          jumlah_kembali: item.jumlah_kembali,
+          tanggal_kembali: shared.tanggal_kembali,
+          pengembali: shared.pengembali,
+          asal: shared.asal,
+          keterangan: shared.keterangan,
+        })
+      );
     }
-
-    if (!transaksi.tujuan.boleh_return) {
-      throw new Error("Tujuan ini tidak mengizinkan pengembalian");
-    }
-
-    if (data.jumlah_kembali > transaksi.jumlah) {
-      throw new Error(`Jumlah kembali melebihi sisa (${transaksi.jumlah} pcs)`);
-    }
-
-    const record = await tx.barangKembali.create({
-      data: {
-        id_keluar: data.id_keluar,
-        id_user: data.id_user,
-        jumlah_kembali: data.jumlah_kembali,
-        tanggal_kembali: data.tanggal_kembali ?? new Date(),
-        pengembali: data.pengembali,
-        asal: data.asal,
-        keterangan: data.keterangan,
-      } as Parameters<typeof tx.barangKembali.create>[0]["data"],
-    });
-
-    const jumlahKembaliBaru = transaksi.jumlah_kembali + data.jumlah_kembali;
-    const jumlahBaru = transaksi.jumlah - data.jumlah_kembali;
-
-    await tx.barangKeluar.update({
-      where: { id_keluar: data.id_keluar },
-      data: {
-        jumlah: jumlahBaru,
-        jumlah_kembali: jumlahKembaliBaru,
-        status: resolveStatus(jumlahBaru, jumlahKembaliBaru),
-      },
-    });
-
-    await tx.stok.update({
-      where: { id_merch: transaksi.id_merch },
-      data: {
-        jumlah_stok: { increment: data.jumlah_kembali },
-      },
-    });
-
-    return record;
+    return results;
   });
 }
 

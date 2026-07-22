@@ -6,7 +6,7 @@ import { parseFormDateWithNowTime } from "@/lib/relative-time";
 
 import { requireActionUser } from "@/lib/auth";
 import { assertCanMutateBarangKeluar } from "@/lib/barang-keluar-access";
-import { createBarangKembali } from "@/lib/barang-kembali";
+import { createBarangKembali, createBarangKembaliBatch } from "@/lib/barang-kembali";
 import {
   createBarangKeluar,
   createBarangKeluarBatch,
@@ -33,6 +33,7 @@ import {
 } from "@/lib/parse-transaksi-form";
 import { getTujuanById } from "@/lib/tujuan";
 import {
+  barangKembaliBatchSchema,
   barangKembaliSchema,
   idParamSchema,
   parseSchema,
@@ -96,6 +97,54 @@ export async function getBarangKeluarReturnInfo(id: number) {
     jumlah_kembali: data.jumlah_kembali,
     sisa: data.jumlah,
     status: data.status,
+  };
+}
+
+/** Info pengembalian untuk seluruh grup transaksi (multi-merch) */
+export async function getBarangKeluarGroupReturnInfo(id: number) {
+  const auth = await requireActionUser();
+  if (!auth.ok) return null;
+
+  const idParsed = parseSchema(idParamSchema, id);
+  if (!idParsed.ok) return null;
+
+  const anchor = await getBarangKeluarById(idParsed.data);
+  if (!anchor) return null;
+
+  const groupItems = anchor.id_grup
+    ? await getBarangKeluarByGrup(anchor.id_grup)
+    : [anchor];
+
+  if (!anchor.tujuan.boleh_return) {
+    return {
+      tujuan: anchor.tujuan.nama_tujuan,
+      boleh_return: false,
+      items: [] as {
+        id_keluar: number;
+        merchandise: string;
+        jumlah: number;
+        jumlah_kembali: number;
+        sisa: number;
+        status: (typeof anchor)["status"];
+      }[],
+    };
+  }
+
+  const items = groupItems
+    .map((row) => ({
+      id_keluar: row.id_keluar,
+      merchandise: row.merchandise.nama_merch,
+      jumlah: row.jumlah + row.jumlah_kembali,
+      jumlah_kembali: row.jumlah_kembali,
+      sisa: row.jumlah,
+      status: row.status,
+    }))
+    .filter((row) => row.sisa > 0);
+
+  return {
+    tujuan: anchor.tujuan.nama_tujuan,
+    boleh_return: true,
+    items,
   };
 }
 
@@ -376,7 +425,62 @@ export async function returnBarangKeluarAction(
     });
 
     revalidatePath("/barang-keluar");
-    revalidatePath("/laporan");
+    revalidatePath("/riwayat-transaksi");
+    revalidateMerchandiseListCache();
+    revalidateAnalyticsPages();
+    return { ok: true };
+  } catch (error) {
+    return {
+      ok: false,
+      message: error instanceof Error ? error.message : "Terjadi kesalahan",
+    };
+  }
+}
+
+export async function returnBarangKeluarBatchAction(data: {
+  tanggal_kembali: string;
+  pengembali: string;
+  asal: string;
+  keterangan: string;
+  items: { id_keluar: number; jumlah_kembali: number }[];
+}): Promise<ActionResult> {
+  try {
+    const auth = await requireActionUser();
+    if (!auth.ok) return auth;
+
+    const parsed = parseSchema(barangKembaliBatchSchema, data);
+    if (!parsed.ok) return parsed;
+
+    const aktif = parsed.data.items.filter((item) => item.jumlah_kembali > 0);
+
+    for (const item of aktif) {
+      const keluar = await getBarangKeluarById(item.id_keluar);
+      if (!keluar) {
+        return {
+          ok: false,
+          message: `Transaksi #${item.id_keluar} tidak ditemukan`,
+        };
+      }
+      assertCanMutateBarangKeluar(auth.user, keluar);
+    }
+
+    const tanggalKembali = parsed.data.tanggal_kembali
+      ? parseFormDateWithNowTime(parsed.data.tanggal_kembali)
+      : new Date();
+
+    await createBarangKembaliBatch(
+      auth.user.id_user,
+      {
+        tanggal_kembali: tanggalKembali,
+        pengembali: parsed.data.pengembali,
+        asal: parsed.data.asal,
+        keterangan: parsed.data.keterangan,
+      },
+      aktif
+    );
+
+    revalidatePath("/barang-keluar");
+    revalidatePath("/monitoring");
     revalidatePath("/riwayat-transaksi");
     revalidateMerchandiseListCache();
     revalidateAnalyticsPages();

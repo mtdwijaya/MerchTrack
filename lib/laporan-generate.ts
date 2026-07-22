@@ -9,7 +9,7 @@ import {
 } from "@/lib/prisma-selects";
 import type { Prisma, StatusBarangKeluar } from "@prisma/client";
 
-export type LaporanJenis = "keluar" | "masuk" | "semua";
+export type LaporanJenis = "keluar" | "masuk" | "restock" | "semua";
 export type LaporanPeriode = "1" | "7" | "30" | "custom" | "semua";
 
 export type LaporanGenerateInput = {
@@ -21,7 +21,7 @@ export type LaporanGenerateInput = {
 };
 
 export type LaporanGenerateRow = {
-  jenis: "KELUAR" | "MASUK";
+  jenis: "KELUAR" | "MASUK" | "RESTOCK";
   id: number;
   tanggal: string;
   merchandise: string;
@@ -121,6 +121,8 @@ function jenisLabel(jenis: LaporanJenis) {
       return "Barang Keluar";
     case "masuk":
       return "Barang Masuk";
+    case "restock":
+      return "Restock";
     case "semua":
       return "Barang Keluar & Masuk";
   }
@@ -155,7 +157,17 @@ export async function generateLaporanData(
 
   const includeKeluar =
     input.jenis === "keluar" || input.jenis === "semua";
-  const includeMasuk = input.jenis === "masuk" || input.jenis === "semua";
+  const includeMasuk =
+    input.jenis === "masuk" ||
+    input.jenis === "restock" ||
+    input.jenis === "semua";
+
+  const masukJenisWhere: Prisma.BarangMasukWhereInput =
+    input.jenis === "masuk"
+      ? { jenis: "BARU" }
+      : input.jenis === "restock"
+        ? { jenis: "RESTOCK" }
+        : {};
 
   const [keluarRows, masukRows] = await Promise.all([
     includeKeluar
@@ -168,7 +180,7 @@ export async function generateLaporanData(
       : Promise.resolve([]),
     includeMasuk
       ? prisma.barangMasuk.findMany({
-          where: { ...merchWhere, ...dateMasukWhere },
+          where: { ...merchWhere, ...dateMasukWhere, ...masukJenisWhere },
           include: recentBarangMasukInclude,
           orderBy: { tanggal_masuk: "desc" },
           take: 5000,
@@ -203,7 +215,7 @@ export async function generateLaporanData(
 
   for (const item of masukRows) {
     rows.push({
-      jenis: "MASUK",
+      jenis: item.jenis === "BARU" ? "MASUK" : "RESTOCK",
       id: item.id_masuk,
       tanggal: item.tanggal_masuk.toISOString(),
       merchandise: item.merchandise.nama_merch,
@@ -221,7 +233,7 @@ export async function generateLaporanData(
     .filter((r) => r.jenis === "KELUAR")
     .reduce((sum, r) => sum + (r.terpakai ?? r.jumlah), 0);
   const totalMasukPcs = rows
-    .filter((r) => r.jenis === "MASUK")
+    .filter((r) => r.jenis === "MASUK" || r.jenis === "RESTOCK")
     .reduce((sum, r) => sum + r.jumlah, 0);
 
   return {
@@ -239,7 +251,9 @@ export async function generateLaporanData(
       totalKeluarPcs,
       totalMasukPcs,
       totalKeluarTrx: rows.filter((r) => r.jenis === "KELUAR").length,
-      totalMasukTrx: rows.filter((r) => r.jenis === "MASUK").length,
+      totalMasukTrx: rows.filter(
+        (r) => r.jenis === "MASUK" || r.jenis === "RESTOCK"
+      ).length,
     },
   };
 }

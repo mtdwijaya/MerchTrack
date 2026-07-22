@@ -3,7 +3,6 @@
 import { useState, useTransition } from "react";
 
 import MerchandiseForm from "@/components/merchandise/merchandise-form";
-import MerchandiseRestockForm from "@/components/merchandise/merchandise-restock-form";
 import ConfirmDialog from "@/components/ui/confirm-dialog";
 import {
   DataTableSection,
@@ -23,7 +22,6 @@ import SummaryCards from "@/components/ui/summary-cards";
 import { DeleteAction, TextOutlineAction } from "@/components/ui/table-actions";
 import { useFormModal } from "@/hooks/use-form-modal";
 import { useListFilters } from "@/hooks/use-list-filters";
-import { buildRestockFormData } from "@/lib/build-transaksi-form-data";
 import { parseSortValue, toggleSortValue } from "@/lib/sort";
 import { showError, showSuccess } from "@/lib/toast";
 
@@ -31,8 +29,6 @@ import {
   createMerchandiseAction,
   deleteMerchandiseAction,
   getMerchandiseFormData,
-  getMerchandiseRestockData,
-  restockMerchandiseAction,
   updateMerchandiseAction,
 } from "./actions";
 
@@ -80,19 +76,6 @@ export default function MerchandisePageClient({
   }>(getMerchandiseFormData);
 
   const [deleteId, setDeleteId] = useState<number | null>(null);
-  const [restock, setRestock] = useState<{
-    id: number | null;
-    open: boolean;
-    loading: boolean;
-    saving: boolean;
-    data: { nama_merch: string; jumlah_stok: number } | null;
-  }>({
-    id: null,
-    open: false,
-    loading: false,
-    saving: false,
-    data: null,
-  });
 
   const currentSort = sort || defaultSort;
   const { sortBy, sortOrder } = parseSortValue<SortField>(
@@ -106,37 +89,6 @@ export default function MerchandisePageClient({
 
   async function openEditModal(id: number) {
     modal.openEdit(id);
-  }
-
-  async function openRestockModal(id: number) {
-    setRestock({
-      id,
-      open: true,
-      loading: true,
-      saving: false,
-      data: null,
-    });
-
-    const data = await getMerchandiseRestockData(id);
-    if (!data) {
-      showError("Merchandise tidak ditemukan");
-      setRestock({
-        id: null,
-        open: false,
-        loading: false,
-        saving: false,
-        data: null,
-      });
-      return;
-    }
-
-    setRestock({
-      id,
-      open: true,
-      loading: false,
-      saving: false,
-      data,
-    });
   }
 
   async function handleSubmit(data: {
@@ -168,35 +120,6 @@ export default function MerchandisePageClient({
         : "Merchandise berhasil ditambahkan"
     );
     modal.close();
-    startTransition(() => {});
-  }
-
-  async function handleRestock(
-    data: { jumlah: number; keterangan: string },
-    bukti?: File | null
-  ) {
-    if (!restock.id) return;
-
-    setRestock((prev) => ({ ...prev, saving: true }));
-    const result = await restockMerchandiseAction(
-      restock.id,
-      buildRestockFormData(data, bukti)
-    );
-    setRestock((prev) => ({ ...prev, saving: false }));
-
-    if (!result.ok) {
-      showError(result.message);
-      return;
-    }
-
-    showSuccess("Stok berhasil ditambahkan");
-    setRestock({
-      id: null,
-      open: false,
-      loading: false,
-      saving: false,
-      data: null,
-    });
     startTransition(() => {});
   }
 
@@ -271,7 +194,7 @@ export default function MerchandisePageClient({
         </FilterBar>
 
         <DataTableSection>
-          <table className="w-full min-w-[1080px]">
+          <table className="w-full min-w-[640px]">
             <thead>
               <tr className="border-b border-[#EFEAE5] bg-[#FAFAFA]">
                 <SortableTh
@@ -285,18 +208,6 @@ export default function MerchandisePageClient({
                 />
                 <th className="px-5 py-4 text-left text-xs font-semibold uppercase tracking-wide text-[#6B7280]">
                   Deskripsi
-                </th>
-                <th className="px-5 py-4 text-center text-xs font-semibold uppercase tracking-wide text-[#6B7280]">
-                  Stok Awal
-                </th>
-                <th className="px-5 py-4 text-center text-xs font-semibold uppercase tracking-wide text-[#6B7280]">
-                  Stok Keluar
-                </th>
-                <th className="px-5 py-4 text-center text-xs font-semibold uppercase tracking-wide text-[#6B7280]">
-                  Stok Dikembalikan
-                </th>
-                <th className="px-5 py-4 text-center text-xs font-semibold uppercase tracking-wide text-[#6B7280]">
-                  Restock
                 </th>
                 <SortableTh
                   label="Stok Akhir"
@@ -315,9 +226,9 @@ export default function MerchandisePageClient({
             </thead>
             <tbody>
               {isPending ? (
-                <TableEmptyRow colSpan={8} message="Memuat data..." />
+                <TableEmptyRow colSpan={4} message="Memuat data..." />
               ) : list.data.length === 0 ? (
-                <TableEmptyRow colSpan={8} message="Belum ada merchandise" />
+                <TableEmptyRow colSpan={4} message="Belum ada merchandise" />
               ) : (
                 list.data.map((item) => (
                   <tr
@@ -331,36 +242,12 @@ export default function MerchandisePageClient({
                       {item.deskripsi || "-"}
                     </Td>
                     <Td align="center" variant="numeric">
-                     <span className="font-medium text-[#1A1C1C]">
-                        {item.movement.stokAwal.toLocaleString("id-ID")}
-                      </span>
-                    </Td>
-                    <Td align="center" variant="numeric">
-                    <span className="font-medium text-red-600">
-                       - {item.movement.stokKeluar.toLocaleString("id-ID")}
-                      </span>
-                    </Td>
-                    <Td align="center" variant="numeric">
-                    <span className="font-medium text-green-600">
-                       + {item.movement.stokDikembalikan.toLocaleString("id-ID")}
-                      </span>
-                    </Td>
-                    <Td align="center" variant="numeric">
-                      <span className="font-medium text-green-600">
-                       + {item.movement.restock.toLocaleString("id-ID")}
-                      </span>
-                    </Td>
-                    <Td align="center" variant="numeric">
                       <span className="font-bold text-[#1A1C1C]">
                         {item.movement.stokAkhir.toLocaleString("id-ID")}
                       </span>
                     </Td>
                     <Td align="center" variant="action">
                       <div className="flex items-center justify-center gap-3">
-                        <TextOutlineAction
-                          label="Restock"
-                          onClick={() => openRestockModal(item.id_merch)}
-                        />
                         <TextOutlineAction
                           label="Edit"
                           onClick={() => openEditModal(item.id_merch)}
@@ -409,43 +296,6 @@ export default function MerchandisePageClient({
           onCancel={modal.close}
           isEdit={modal.isEdit}
         />
-      </FormDialog>
-
-      <FormDialog
-        open={restock.open}
-        onOpenChange={(open) => {
-          if (!open) {
-            setRestock({
-              id: null,
-              open: false,
-              loading: false,
-              saving: false,
-              data: null,
-            });
-          }
-        }}
-        title="Restock Merchandise"
-        description="Tambahkan stok merchandise ke gudang pusat."
-        loading={restock.loading}
-      >
-        {restock.data && restock.id && (
-          <MerchandiseRestockForm
-            key={restock.id}
-            nama_merch={restock.data.nama_merch}
-            stokSaatIni={restock.data.jumlah_stok}
-            onSubmit={handleRestock}
-            loading={restock.saving}
-            onCancel={() =>
-              setRestock({
-                id: null,
-                open: false,
-                loading: false,
-                saving: false,
-                data: null,
-              })
-            }
-          />
-        )}
       </FormDialog>
 
       <ConfirmDialog

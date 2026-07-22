@@ -12,7 +12,13 @@ queryParams:
   - key: jenis
     value: KELUAR
     disabled: true
-  - key: tanggal
-    value: 2026-07-02
+  - key: id_merch
+    value: "1"
+    disabled: true
+  - key: tanggal_dari
+    value: 2026-07-01
+    disabled: true
+  - key: tanggal_sampai
+    value: 2026-07-22
     disabled: true
 order: 1000

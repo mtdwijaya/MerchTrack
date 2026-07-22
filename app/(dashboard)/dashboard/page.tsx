@@ -1,10 +1,8 @@
 import { Suspense } from "react";
 
-import { getCurrentUser } from "@/lib/auth";
 import { getDashboardData } from "@/lib/dashboard";
 import { clampDashboardPeriod } from "@/lib/dashboard-constants";
 import { getOptionalNumberParam, type SearchParams } from "@/lib/list-params";
-import { getRecentActivity } from "@/lib/recent-activity";
 
 import DashboardPageClient from "./dashboard-page-client";
 
@@ -15,35 +13,21 @@ async function DashboardContent({
 }: {
   searchParams: SearchParams;
 }) {
-  const user = await getCurrentUser();
   const now = new Date();
-  const month = getOptionalNumberParam(searchParams, "bulan") ?? now.getMonth() + 1;
-  const year =
-    getOptionalNumberParam(searchParams, "tahun") ?? now.getFullYear();
-  const { month: safeMonth, year: safeYear } = clampDashboardPeriod(
-    month,
-    year
-  );
+  const chartYearRaw =
+    getOptionalNumberParam(searchParams, "chartTahun") ?? now.getFullYear();
+  const { year: chartYear } = clampDashboardPeriod(1, chartYearRaw);
 
-  const [dashboard, recentActivity] = await Promise.all([
-    getDashboardData(safeMonth, safeYear),
-    user
-      ? getRecentActivity({
-          id_user: user.id_user,
-          id_stasiun: user.id_stasiun,
-          role: user.role,
-        })
-      : Promise.resolve([]),
-  ]);
+  const sankeyBulan = getOptionalNumberParam(searchParams, "sankeyBulan");
+  const sankeyTahun = getOptionalNumberParam(searchParams, "sankeyTahun");
 
-  return (
-    <DashboardPageClient
-      dashboard={dashboard}
-      recentActivity={recentActivity}
-      selectedMonth={safeMonth}
-      selectedYear={safeYear}
-    />
-  );
+  const dashboard = await getDashboardData({
+    chartYear,
+    sankeyMonth: sankeyBulan ?? null,
+    sankeyYear: sankeyTahun ?? null,
+  });
+
+  return <DashboardPageClient dashboard={dashboard} />;
 }
 
 export default async function DashboardPage({

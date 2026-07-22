@@ -65,6 +65,7 @@ export default function LaporanGenerateForm({
             <option value="semua">Keluar & Masuk</option>
             <option value="keluar">Barang Keluar</option>
             <option value="masuk">Barang Masuk</option>
+            <option value="restock">Restock</option>
           </select>
         </Field>
 

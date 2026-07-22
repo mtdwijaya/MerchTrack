@@ -9,14 +9,17 @@ import {
   DashboardUserProvider,
   type DashboardUser,
 } from "@/components/providers/dashboard-user";
+import type { SidebarMenu } from "@/constants/sidebar-menu";
 
 interface User extends DashboardUser {}
 
 export default function DashboardLayoutClient({
   user,
+  menus,
   children,
 }: {
   user: User;
+  menus: { main: SidebarMenu[]; master: SidebarMenu[] };
   children: React.ReactNode;
 }) {
   const [collapsed, setCollapsed] = useState(false);
@@ -26,6 +29,7 @@ export default function DashboardLayoutClient({
       <div className="min-h-screen bg-[#F6F7FB]">
       <Sidebar
         user={user}
+        menus={menus}
         collapsed={collapsed}
         setCollapsed={setCollapsed}
       />

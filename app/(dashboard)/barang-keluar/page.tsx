@@ -2,10 +2,8 @@ import { Suspense } from "react";
 
 import BarangKeluarPageClient from "./barang-keluar-page-client";
 import { getBarangKeluarGroupedPaginated } from "@/lib/barang-keluar-group";
-import {
-  getBarangKeluarSummary,
-  parseBarangKeluarSort,
-} from "@/lib/barang-keluar";
+import { parseBarangKeluarSort } from "@/lib/barang-keluar";
+import { BARANG_KELUAR_DEFAULT_SORT } from "@/constants/barang-keluar-sort";
 import { getAllMerchandiseNames } from "@/lib/merchandise";
 import {
   getOptionalNumberParam,
@@ -19,7 +17,6 @@ import { getAllTujuan } from "@/lib/tujuan";
 import { getAllUnit } from "@/lib/unit";
 
 const PAGE_SIZE = 10;
-const DEFAULT_SORT = "tanggal_keluar:desc";
 
 async function BarangKeluarContent({
   searchParams,
@@ -28,12 +25,12 @@ async function BarangKeluarContent({
 }) {
   const page = getPageParam(searchParams);
   const search = getParam(searchParams, "search");
-  const sort = getParam(searchParams, "sort", DEFAULT_SORT);
+  const sort = getParam(searchParams, "sort", BARANG_KELUAR_DEFAULT_SORT);
   const idTujuan = getOptionalNumberParam(searchParams, "id_tujuan");
   const { sortBy, sortOrder } = parseSortValue(sort, "tanggal_keluar", "desc");
   const parsed = parseBarangKeluarSort(sortBy, sortOrder);
 
-  const [list, summary, merchandiseList, stasiunList, tujuanList, unitList] =
+  const [list, merchandiseList, stasiunList, tujuanList, unitList] =
     await Promise.all([
       getBarangKeluarGroupedPaginated({
         page,
@@ -43,7 +40,6 @@ async function BarangKeluarContent({
         sortOrder: parsed.sortOrder,
         idTujuan,
       }),
-      getBarangKeluarSummary(),
       getAllMerchandiseNames(),
       getAllStasiun(),
       getAllTujuan(),
@@ -53,13 +49,12 @@ async function BarangKeluarContent({
   return (
     <BarangKeluarPageClient
       list={list}
-      summary={summary}
       merchandiseList={merchandiseList}
       stasiunList={stasiunList}
       tujuanList={tujuanList}
       unitList={unitList}
       pageSize={PAGE_SIZE}
-      defaultSort={DEFAULT_SORT}
+      defaultSort={BARANG_KELUAR_DEFAULT_SORT}
       openModal={getParam(searchParams, "modal") === "tambah"}
     />
   );

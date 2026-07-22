@@ -73,14 +73,17 @@ export function Td({
   className,
   align = "left",
   variant = "default",
+  rowSpan,
 }: {
   children: React.ReactNode;
   className?: string;
   align?: TableAlign;
   variant?: "default" | "numeric" | "action" | "truncate";
+  rowSpan?: number;
 }) {
   return (
     <td
+      rowSpan={rowSpan}
       className={cn(
         tdBase,
         alignClass[align],

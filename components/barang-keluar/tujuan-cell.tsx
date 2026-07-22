@@ -9,12 +9,20 @@ interface TujuanCellItem {
   detail_teks: string | null;
 }
 
-export default function TujuanCell({ item }: { item: TujuanCellItem }) {
+export default function TujuanCell({
+  item,
+  align = "left",
+}: {
+  item: TujuanCellItem;
+  align?: "left" | "center";
+}) {
   const detail = formatDetailTujuan(item);
   const hasDetail = detail && detail !== "-";
 
   return (
-    <div className="min-w-0">
+    <div
+      className={`min-w-0 ${align === "center" ? "text-center" : ""}`}
+    >
       <p className="truncate font-medium text-[#1A1C1C]">
         {item.tujuan.nama_tujuan}
       </p>

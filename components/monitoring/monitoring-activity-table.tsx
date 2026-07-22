@@ -7,9 +7,9 @@ import {
   Td,
   Th,
 } from "@/components/ui/data-table";
-import { RelativeTime } from "@/components/ui/relative-time";
 import { DetailsAction } from "@/components/ui/table-actions";
 import { activityTypeStyle } from "@/constants/design-tokens";
+import { formatTransaksiDate } from "@/lib/format-transaksi";
 import type { RecentActivityItem } from "@/lib/recent-activity";
 import { cn } from "@/lib/utils";
 
@@ -63,7 +63,7 @@ export default function MonitoringActivityTable({
                 className="border-b border-[#EFEAE5] last:border-b-0 hover:bg-gray-50/60"
               >
                 <Td variant="numeric" align="left" className="whitespace-nowrap">
-                  <RelativeTime iso={item.occurredAt} />
+                  {formatTransaksiDate(item.occurredAt)}
                 </Td>
                 <Td>
                   <Badge

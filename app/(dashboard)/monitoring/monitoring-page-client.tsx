@@ -1,23 +1,28 @@
 "use client";
 
-import type { Role, StatusBarangKeluar } from "@prisma/client";
+import type { Role } from "@prisma/client";
 import { ChevronRight } from "lucide-react";
 import IconImage from "@/components/ui/icon-image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 
 import {
   getBarangKeluarFormData,
-  getBarangKeluarReturnInfo,
-  returnBarangKeluarAction,
+  getBarangKeluarGroupReturnInfo,
+  returnBarangKeluarBatchAction,
   updateBarangKeluarAction,
 } from "@/app/(dashboard)/barang-keluar/actions";
+import {
+  getMerchandiseRestockData,
+  restockMerchandiseAction,
+} from "@/app/(dashboard)/merchandise/actions";
 import BarangKeluarDetailDialog from "@/components/barang-keluar/barang-keluar-detail-dialog";
 import BarangKeluarForm, {
   type BarangKeluarFormSubmitData,
 } from "@/components/barang-keluar/barang-keluar-form";
 import BarangKembaliForm from "@/components/barang-keluar/barang-kembali-form";
+import MerchandiseRestockForm from "@/components/merchandise/merchandise-restock-form";
 import MerchandiseStockCard from "@/components/monitoring/merchandise-stock-card";
 import MonitoringActivityTable from "@/components/monitoring/monitoring-activity-table";
 import {
@@ -28,8 +33,8 @@ import PageHeader from "@/components/ui/page-header";
 import Pagination from "@/components/ui/pagination";
 import { useFormModal } from "@/hooks/use-form-modal";
 import { useListFilters } from "@/hooks/use-list-filters";
-import { useSyncedPanelHeight } from "@/hooks/use-synced-panel-height";
 import { buildBarangKeluarEditFormData, buildBarangKeluarEditBatchFormData } from "@/lib/build-transaksi-form-data";
+import { buildRestockFormData } from "@/lib/build-transaksi-form-data";
 import { showError, showSuccess } from "@/lib/toast";
 import type { MonitoringOverview } from "@/lib/monitoring-overview";
 import type { RecentActivityItem } from "@/lib/recent-activity";
@@ -52,14 +57,16 @@ interface UnitOption {
   nama_unit: string;
 }
 
-interface ReturnInfo {
-  id_keluar: number;
-  merchandise: string;
+interface GroupReturnInfo {
   tujuan: string;
-  jumlah: number;
-  jumlah_kembali: number;
-  sisa: number;
-  status: StatusBarangKeluar;
+  boleh_return: boolean;
+  items: {
+    id_keluar: number;
+    merchandise: string;
+    jumlah: number;
+    jumlah_kembali: number;
+    sisa: number;
+  }[];
 }
 
 interface Props {
@@ -106,15 +113,26 @@ export default function MonitoringPageClient({
     const frame = requestAnimationFrame(scrollToActivity);
     return () => cancelAnimationFrame(frame);
   }, []);
-  const distribusiPanelRef = useRef<HTMLDivElement>(null);
-  const stockPanelHeight = useSyncedPanelHeight(distribusiPanelRef);
   const [detailId, setDetailId] = useState<number | null>(null);
-  const [returnInfo, setReturnInfo] = useState<ReturnInfo | null>(null);
+  const [returnInfo, setReturnInfo] = useState<GroupReturnInfo | null>(null);
   const [returnSourceDetailId, setReturnSourceDetailId] = useState<
     number | null
   >(null);
   const [returnSaving, setReturnSaving] = useState(false);
   const [returnLoading, setReturnLoading] = useState(false);
+  const [restock, setRestock] = useState<{
+    open: boolean;
+    id: number | null;
+    loading: boolean;
+    saving: boolean;
+    data: { nama_merch: string; jumlah_stok: number } | null;
+  }>({
+    open: false,
+    id: null,
+    loading: false,
+    saving: false,
+    data: null,
+  });
 
   const modal = useFormModal<{
     id_tujuan: number;
@@ -140,7 +158,7 @@ export default function MonitoringPageClient({
 
   async function openReturnModal(id: number) {
     setReturnLoading(true);
-    const info = await getBarangKeluarReturnInfo(id);
+    const info = await getBarangKeluarGroupReturnInfo(id);
     setReturnLoading(false);
 
     if (!info) {
@@ -148,7 +166,12 @@ export default function MonitoringPageClient({
       return;
     }
 
-    if (info.sisa <= 0) {
+    if (!info.boleh_return) {
+      showError("Tujuan ini tidak mengizinkan pengembalian");
+      return;
+    }
+
+    if (info.items.length === 0) {
       showError("Semua barang sudah dikembalikan");
       return;
     }
@@ -165,11 +188,66 @@ export default function MonitoringPageClient({
     }
   }
 
-  function handleReturnFromDetail(itemId: number) {
+  function handleReturnFromDetail(groupId: number) {
     if (detailId) {
       setReturnSourceDetailId(detailId);
     }
-    void openReturnModal(itemId);
+    void openReturnModal(groupId);
+  }
+
+  async function openRestockModal(idMerch: number) {
+    setRestock({
+      open: true,
+      id: idMerch,
+      loading: true,
+      saving: false,
+      data: null,
+    });
+    const data = await getMerchandiseRestockData(idMerch);
+    if (!data) {
+      showError("Merchandise tidak ditemukan");
+      setRestock({
+        open: false,
+        id: null,
+        loading: false,
+        saving: false,
+        data: null,
+      });
+      return;
+    }
+    setRestock({
+      open: true,
+      id: idMerch,
+      loading: false,
+      saving: false,
+      data,
+    });
+  }
+
+  async function handleRestock(
+    data: { jumlah: number; keterangan: string },
+    bukti?: File | null
+  ) {
+    if (!restock.id) return;
+    setRestock((prev) => ({ ...prev, saving: true }));
+    const result = await restockMerchandiseAction(
+      restock.id,
+      buildRestockFormData(data, bukti)
+    );
+    setRestock((prev) => ({ ...prev, saving: false }));
+    if (!result.ok) {
+      showError(result.message);
+      return;
+    }
+    showSuccess("Restock berhasil");
+    setRestock({
+      open: false,
+      id: null,
+      loading: false,
+      saving: false,
+      data: null,
+    });
+    startTransition(() => router.refresh());
   }
 
   async function handleSubmit(
@@ -229,16 +307,16 @@ export default function MonitoringPageClient({
   }
 
   async function handleReturn(data: {
-    jumlah_kembali: number;
     tanggal_kembali: string;
     pengembali: string;
     asal: string;
     keterangan: string;
+    items: { id_keluar: number; jumlah_kembali: number }[];
   }) {
     if (!returnInfo) return;
 
     setReturnSaving(true);
-    const result = await returnBarangKeluarAction(returnInfo.id_keluar, data);
+    const result = await returnBarangKeluarBatchAction(data);
     setReturnSaving(false);
 
     if (!result.ok) {
@@ -265,15 +343,10 @@ export default function MonitoringPageClient({
     <>
     <div className="space-y-6">
       <PageHeader
-        title="Monitoring"
-        description={
-          role === "ADMIN"
-            ? "Ringkasan stok dan distribusi per tujuan. Diperbarui otomatis setiap 15 detik."
-            : "Ringkasan stok dan distribusi per tujuan. Diperbarui otomatis setiap 15 detik."
-        }
+        title="Monitoring Merchandise"
+        description="Ringkasan stok merchandise. Diperbarui otomatis setiap 15 detik."
       />
-      {/* card summary */}
-      <section className="grid grid-cols-2 gap-2.5 lg:grid-cols-4">
+      <section className="grid grid-cols-1 gap-3 sm:grid-cols-3">
         <SummaryMetric
           label="Total Stok Aktif"
           value={data.summary.totalStokAktif}
@@ -282,22 +355,11 @@ export default function MonitoringPageClient({
           subtitle="Stok tersedia di gudang"
         />
         <SummaryMetric
-          label="Total Merchandise"
-          value={data.summary.totalMerchandise}
-          suffix="item"
+          label="Jenis Merchandise"
+          value={data.summary.jenisMerchandise}
+          suffix="jenis"
           iconSrc="/icons/icon-merchandise-merah.svg"
-          subtitle="Jenis merchandise "
-        />
-        <SummaryMetric
-          label="Distribusi Bulan Ini"
-          value={data.summary.distribusiBulanIni}
-          suffix="pcs"
-          iconSrc="/icons/icon-barangkeluar-merah.svg"
-          subtitle={
-            data.topMerchandise[0]
-              ? `Terbanyak : ${data.topMerchandise[0].nama}`
-              : "Belum ada distribusi bulan ini"
-          }
+          subtitle="Jumlah jenis merchandise"
         />
         <SummaryMetric
           label="Peringatan Stok Rendah"
@@ -311,85 +373,43 @@ export default function MonitoringPageClient({
               : "Semua stok aman"
           }
           showChevron={data.summary.peringatanStokRendah > 0}
-          href={
-            data.summary.peringatanStokRendah > 0 ? "/merchandise" : undefined
-          }
         />
       </section>
 
-      <section className="grid grid-cols-1 gap-5 xl:grid-cols-3 xl:items-start">
-        <div
-          ref={distribusiPanelRef}
-          className="flex flex-col rounded-2xl border border-[#EFEAE5] bg-white p-6 shadow-sm xl:col-span-1"
-        >
-          {/* card top merchandise digunakan */}
-          <h2 className="text-lg font-semibold text-[#1A1C1C]">
-            Top 5 Merchandise Digunakan
-          </h2>
-
-          {/* list top merchandise digunakan */}
-          <div className="mt-5 space-y-4">
-            {data.topMerchandise.length === 0 ? ( // kalo belom ada data
-              <p className="text-sm text-[#6B7280]">Belum ada data distribusi</p>
-            ) : (
-              // kalo ada data, map data ke card
-              data.topMerchandise.map((item) => (
-                <div
-                  key={item.id_merch}
-                  className="flex items-center justify-between gap-4 border-b border-[#F3F4F6] pb-4 last:border-b-0 last:pb-0"
-                >
-                  <div className="min-w-0">
-                    <p className="truncate text-sm font-medium text-[#1A1C1C]">
-                      {item.nama}
-                    </p>
-                    <p className="mt-1 text-sm text-gray-400">
-                      Stok tersisa: {item.stokTersisa.toLocaleString("id-ID")} pcs
-                    </p>
-                  </div>
-                  <span className="shrink-0 text-sm font-semibold text-[#1A1C1C]">
-                    {item.total.toLocaleString("id-ID")} pcs
-                  </span>
-                </div>
-              ))
-            )}
+      <section className="rounded-2xl border border-[#EFEAE5] bg-white p-6 shadow-sm">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <h2 className="text-lg font-semibold text-[#1A1C1C]">
+              Stok Merchandise
+            </h2>
+            <p className="mt-1 text-sm text-[#6B7280]">
+              Format stok: dipakai / sisa. Restock dari kartu masing-masing.
+            </p>
           </div>
-        </div>
-
-        <div
-          className="flex min-h-0 flex-col overflow-hidden rounded-2xl border border-[#EFEAE5] bg-white p-6 shadow-sm xl:col-span-2"
-          style={stockPanelHeight ? { height: stockPanelHeight } : undefined}
-        >
-          <div className="flex shrink-0 flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-            <div>
-              <h2 className="text-lg font-semibold text-[#1A1C1C]">
-                Stok Merchandise
-              </h2>
-              <p className="mt-1 text-sm text-[#6B7280]">
-                Ketersediaan stok setiap merchandise di gudang saat ini.
-              </p>
-            </div>
+          {role === "ADMIN" && (
             <Link
               href="/merchandise"
               className="shrink-0 text-sm font-semibold text-[#B1070E] hover:underline"
             >
-              Kelola Merchandise
+              Master Merchandise
             </Link>
-          </div>
+          )}
+        </div>
 
-          {/* tinggi panel ikut Top 5; isi scroll kalo kebanyakan (4 kolom) */}
-          <div className="mt-5 min-h-0 flex-1 overflow-y-auto pr-1">
-            <div className="grid grid-cols-2 gap-2.5 md:grid-cols-3 xl:grid-cols-4">
-              {data.merchandiseStock.length === 0 ? (
-                <p className="col-span-full text-sm text-[#6B7280]">
-                  Belum ada merchandise terdaftar
-                </p>
-              ) : (
-                data.merchandiseStock.map((item) => (
-                  <MerchandiseStockCard key={item.id_merch} item={item} />
-                ))
-              )}
-            </div>
-          </div>
+        <div className="mt-5 grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
+          {data.merchandiseStock.length === 0 ? (
+            <p className="col-span-full text-sm text-[#6B7280]">
+              Belum ada merchandise terdaftar
+            </p>
+          ) : (
+            data.merchandiseStock.map((item) => (
+              <MerchandiseStockCard
+                key={item.id_merch}
+                item={item}
+                onRestock={role === "ADMIN" ? openRestockModal : undefined}
+              />
+            ))
+          )}
         </div>
       </section>
 
@@ -464,16 +484,54 @@ export default function MonitoringPageClient({
         if (!open) closeReturnModal();
       }}
       title="Kembalikan Barang"
-      description="Catat barang yang kembali ke gudang dari transaksi ini."
-      contentClassName="sm:max-w-xl"
+      description="Catat pengembalian satu atau lebih merchandise dari transaksi ini."
+      contentClassName="sm:max-w-2xl"
     >
       {returnInfo && (
         <BarangKembaliForm
-          key={returnInfo.id_keluar}
+          key={returnInfo.items.map((i) => i.id_keluar).join("-")}
           info={returnInfo}
           onSubmit={handleReturn}
           loading={returnSaving}
           onCancel={closeReturnModal}
+        />
+      )}
+    </FormDialog>
+
+    <FormDialog
+      open={restock.open}
+      onOpenChange={(open) => {
+        if (!open) {
+          setRestock({
+            open: false,
+            id: null,
+            loading: false,
+            saving: false,
+            data: null,
+          });
+        }
+      }}
+      title="Restock Merchandise"
+      description="Tambah stok merchandise di gudang."
+      loading={restock.loading}
+      contentClassName="sm:max-w-lg"
+    >
+      {restock.data && restock.id && (
+        <MerchandiseRestockForm
+          key={restock.id}
+          nama_merch={restock.data.nama_merch}
+          stokSaatIni={restock.data.jumlah_stok}
+          onSubmit={handleRestock}
+          loading={restock.saving}
+          onCancel={() =>
+            setRestock({
+              open: false,
+              id: null,
+              loading: false,
+              saving: false,
+              data: null,
+            })
+          }
         />
       )}
     </FormDialog>

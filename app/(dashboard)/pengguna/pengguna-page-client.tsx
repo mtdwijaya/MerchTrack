@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 
 import PenggunaForm from "@/components/pengguna/pengguna-form";
+import RolePermissionPanel from "@/components/pengguna/role-permission-panel";
 import ConfirmDialog from "@/components/ui/confirm-dialog";
 import {
   DataTableSection,
@@ -24,6 +25,7 @@ import { useFormModal } from "@/hooks/use-form-modal";
 import { useListFilters } from "@/hooks/use-list-filters";
 import { parseSortValue, toggleSortValue } from "@/lib/sort";
 import { showError, showSuccess } from "@/lib/toast";
+import type { PageKey } from "@/constants/permissions";
 
 import {
   createPenggunaAction,
@@ -57,6 +59,15 @@ interface Props {
     totalPetugas: number;
   };
   stasiunList: StasiunOption[];
+  rolePermissions: {
+    ADMIN: Record<PageKey, boolean>;
+    PETUGAS: Record<PageKey, boolean>;
+    pages: {
+      key: PageKey;
+      label: string;
+      section: "main" | "master";
+    }[];
+  };
   pageSize: number;
   defaultSort: string;
 }
@@ -65,6 +76,7 @@ export default function PenggunaPageClient({
   list,
   summary,
   stasiunList,
+  rolePermissions,
   pageSize,
   defaultSort,
 }: Props) {
@@ -176,6 +188,14 @@ export default function PenggunaPageClient({
               subtitle: "Pengguna operasional",
             },
           ]}
+        />
+
+        <RolePermissionPanel
+          pages={rolePermissions.pages}
+          permissions={{
+            ADMIN: rolePermissions.ADMIN,
+            PETUGAS: rolePermissions.PETUGAS,
+          }}
         />
 
         <FilterBar

@@ -4,7 +4,6 @@ import type { Prisma } from "@prisma/client";
 import { ANALYTICS_CACHE_TAG } from "@/lib/analytics-cache-tag";
 import {
   clampDashboardPeriod,
-  MONTH_FULL,
   MONTH_SHORT,
 } from "@/lib/dashboard-constants";
 import type { DashboardData } from "@/lib/dashboard-types";
@@ -17,143 +16,93 @@ function periodRange(month: number, year: number) {
   return { start, end };
 }
 
-function previousPeriod(month: number, year: number) {
-  if (month === 1) return { month: 12, year: year - 1 };
-  return { month: month - 1, year };
-}
-
-function dayRangeForMonth(month: number, year: number, day: number) {
-  const start = new Date(year, month - 1, day, 0, 0, 0, 0);
-  const end = new Date(year, month - 1, day, 23, 59, 59, 999);
+function dayRange(dayOffset = 0) {
+  const now = new Date();
+  const start = new Date(
+    now.getFullYear(),
+    now.getMonth(),
+    now.getDate() + dayOffset,
+    0,
+    0,
+    0,
+    0
+  );
+  const end = new Date(
+    now.getFullYear(),
+    now.getMonth(),
+    now.getDate() + dayOffset,
+    23,
+    59,
+    59,
+    999
+  );
   return { start, end };
 }
 
-function buildMonthlyTrend(
-  records: { tanggal_keluar: Date; jumlah: number }[],
-  selectedMonth: number,
-  year: number
-) {
-  const buckets = Array.from({ length: 12 }, (_, month) => ({
-    label: MONTH_SHORT[month],
-    total: 0,
-    isCurrent: month + 1 === selectedMonth,
-  }));
+export type DashboardChartFilters = {
+  chartYear: number;
+  /** null = all-time untuk sankey */
+  sankeyMonth: number | null;
+  sankeyYear: number | null;
+};
 
-  for (const item of records) {
-    const date = new Date(item.tanggal_keluar);
-    if (date.getFullYear() === year) {
-      buckets[date.getMonth()].total += item.jumlah;
-    }
+async function fetchDashboardData(
+  chartYear: number,
+  sankeyMonth: number | null,
+  sankeyYear: number | null
+): Promise<DashboardData> {
+  const yearStart = new Date(chartYear, 0, 1, 0, 0, 0, 0);
+  const yearEnd = new Date(chartYear, 11, 31, 23, 59, 59, 999);
+  const today = dayRange(0);
+  const yesterday = dayRange(-1);
+
+  const sankeyAllTime = sankeyMonth == null || sankeyYear == null;
+  let sankeyWhere: Prisma.BarangKeluarWhereInput = {};
+  if (!sankeyAllTime && sankeyMonth != null && sankeyYear != null) {
+    const range = periodRange(sankeyMonth, sankeyYear);
+    sankeyWhere = {
+      tanggal_keluar: { gte: range.start, lte: range.end },
+    };
   }
-
-  return buckets;
-}
-
-async function fetchDashboardData(month: number, year: number) {
-  const selected = periodRange(month, year);
-  const prev = previousPeriod(month, year);
-  const previous = periodRange(prev.month, prev.year);
-
-  const now = new Date();
-  const isCurrentMonth =
-    month === now.getMonth() + 1 && year === now.getFullYear();
-  const today = isCurrentMonth
-    ? dayRangeForMonth(month, year, now.getDate())
-    : null;
-  const yesterday = isCurrentMonth
-    ? dayRangeForMonth(month, year, now.getDate() - 1)
-    : null;
-
-  const monthWhere: Prisma.BarangKeluarWhereInput = {
-    tanggal_keluar: { gte: selected.start, lte: selected.end },
-  };
-  const lastMonthWhere: Prisma.BarangKeluarWhereInput = {
-    tanggal_keluar: { gte: previous.start, lte: previous.end },
-  };
-  const yearWhere: Prisma.BarangKeluarWhereInput = {
-    tanggal_keluar: {
-      gte: new Date(year, 0, 1, 0, 0, 0, 0),
-      lte: new Date(year, 11, 31, 23, 59, 59, 999),
-    },
-  };
 
   const [
     totalStockAgg,
-    masukBulanIniAgg,
-    keluarBulanIniAgg,
-    masukBulanLaluAgg,
-    keluarBulanLaluAgg,
-    topMerchBulanIni,
-    transaksiMasukBulanIni,
-    transaksiKeluarBulanIni,
-    transaksiMasukBulanLalu,
-    transaksiKeluarBulanLalu,
+    totalKeluarAgg,
+    topMerchAllTime,
+    transaksiMasuk,
+    transaksiKeluar,
     distribusiHariIniAgg,
     distribusiKemarinAgg,
     peringatanStokRendah,
     stokRendah,
-    top5MerchBulanIniGroup,
-    tujuanGroup,
+    top5Merch,
+    sankeyGroup,
     trendYearRecords,
     stokGudang,
   ] = await Promise.all([
     prisma.stok.aggregate({ _sum: { jumlah_stok: true } }),
-    prisma.barangMasuk.aggregate({
-      where: {
-        tanggal_masuk: { gte: selected.start, lte: selected.end },
-      },
-      _sum: { jumlah: true },
-    }),
-    prisma.barangKeluar.aggregate({
-      where: monthWhere,
-      _sum: { jumlah: true },
-    }),
-    prisma.barangMasuk.aggregate({
-      where: {
-        tanggal_masuk: { gte: previous.start, lte: previous.end },
-      },
-      _sum: { jumlah: true },
-    }),
-    prisma.barangKeluar.aggregate({
-      where: lastMonthWhere,
-      _sum: { jumlah: true },
-    }),
+    prisma.barangKeluar.aggregate({ _sum: { jumlah: true } }),
     prisma.barangKeluar.groupBy({
       by: ["id_merch"],
-      where: monthWhere,
       _sum: { jumlah: true },
       orderBy: { _sum: { jumlah: "desc" } },
       take: 1,
     }),
-    prisma.barangMasuk.count({
-      where: {
-        tanggal_masuk: { gte: selected.start, lte: selected.end },
-      },
+    prisma.barangMasuk.count(),
+    prisma.$queryRaw<{ total: number }[]>`
+      SELECT COUNT(DISTINCT COALESCE("id_grup", 'single:' || "id_keluar"::text))::int AS total
+      FROM "BarangKeluar"
+    `,
+    prisma.barangKeluar.aggregate({
+      where: { tanggal_keluar: { gte: today.start, lte: today.end } },
+      _sum: { jumlah: true },
     }),
-    prisma.barangKeluar.count({ where: monthWhere }),
-    prisma.barangMasuk.count({
+    prisma.barangKeluar.aggregate({
       where: {
-        tanggal_masuk: { gte: previous.start, lte: previous.end },
+        tanggal_keluar: { gte: yesterday.start, lte: yesterday.end },
       },
+      _sum: { jumlah: true },
     }),
-    prisma.barangKeluar.count({ where: lastMonthWhere }),
-    today
-      ? prisma.barangKeluar.aggregate({
-          where: {
-            tanggal_keluar: { gte: today.start, lte: today.end },
-          },
-          _sum: { jumlah: true },
-        })
-      : Promise.resolve({ _sum: { jumlah: 0 } }),
-    yesterday
-      ? prisma.barangKeluar.aggregate({
-          where: {
-            tanggal_keluar: { gte: yesterday.start, lte: yesterday.end },
-          },
-          _sum: { jumlah: true },
-        })
-      : Promise.resolve({ _sum: { jumlah: 0 } }),
-    // stok < 20 termasuk habis — sama kayak monitoring & merchandise
     prisma.stok.count({ where: lowStockWhere }),
     prisma.stok.findMany({
       where: lowStockWhere,
@@ -163,20 +112,25 @@ async function fetchDashboardData(month: number, year: number) {
     }),
     prisma.barangKeluar.groupBy({
       by: ["id_merch"],
-      where: monthWhere,
       _sum: { jumlah: true },
       orderBy: { _sum: { jumlah: "desc" } },
       take: 5,
     }),
     prisma.barangKeluar.groupBy({
-      by: ["id_tujuan"],
-      where: monthWhere,
+      by: ["id_merch", "id_tujuan"],
+      where: sankeyWhere,
       _sum: { jumlah: true },
       orderBy: { _sum: { jumlah: "desc" } },
     }),
     prisma.barangKeluar.findMany({
-      where: yearWhere,
-      select: { tanggal_keluar: true, jumlah: true },
+      where: {
+        tanggal_keluar: { gte: yearStart, lte: yearEnd },
+      },
+      select: {
+        tanggal_keluar: true,
+        jumlah: true,
+        id_merch: true,
+      },
     }),
     prisma.stok.findMany({
       include: { merchandise: true },
@@ -184,40 +138,33 @@ async function fetchDashboardData(month: number, year: number) {
     }),
   ]);
 
-  const totalStok = totalStockAgg._sum.jumlah_stok ?? 0;
-  const masukBulanIni = masukBulanIniAgg._sum.jumlah ?? 0;
-  const keluarBulanIni = keluarBulanIniAgg._sum.jumlah ?? 0;
-  const masukBulanLalu = masukBulanLaluAgg._sum.jumlah ?? 0;
-  const keluarBulanLalu = keluarBulanLaluAgg._sum.jumlah ?? 0;
-  const distribusiHariIni = distribusiHariIniAgg._sum.jumlah ?? 0;
-  const distribusiKemarin = distribusiKemarinAgg._sum.jumlah ?? 0;
-
-  const netStokBulanIni = masukBulanIni - keluarBulanIni;
-  const netStokBulanLalu = masukBulanLalu - keluarBulanLalu;
-
   const merchIds = [
     ...new Set([
-      ...topMerchBulanIni.map((item) => item.id_merch),
-      ...top5MerchBulanIniGroup.map((item) => item.id_merch),
+      ...topMerchAllTime.map((item) => item.id_merch),
+      ...top5Merch.map((item) => item.id_merch),
+      ...sankeyGroup.map((item) => item.id_merch),
+      ...trendYearRecords.map((item) => item.id_merch),
     ]),
   ];
-  const tujuanIds = tujuanGroup.map((item) => item.id_tujuan);
+  const tujuanIds = [...new Set(sankeyGroup.map((item) => item.id_tujuan))];
 
   const [merchandiseRecords, tujuanRecords, topMerchRecord] =
     await Promise.all([
       merchIds.length > 0
         ? prisma.merchandise.findMany({
             where: { id_merch: { in: merchIds } },
+            select: { id_merch: true, nama_merch: true },
           })
         : Promise.resolve([]),
       tujuanIds.length > 0
         ? prisma.tujuan.findMany({
             where: { id_tujuan: { in: tujuanIds } },
+            select: { id_tujuan: true, nama_tujuan: true },
           })
         : Promise.resolve([]),
-      topMerchBulanIni[0]
+      topMerchAllTime[0]
         ? prisma.merchandise.findUnique({
-            where: { id_merch: topMerchBulanIni[0].id_merch },
+            where: { id_merch: topMerchAllTime[0].id_merch },
             select: { nama_merch: true },
           })
         : Promise.resolve(null),
@@ -230,68 +177,100 @@ async function fetchDashboardData(month: number, year: number) {
     tujuanRecords.map((item) => [item.id_tujuan, item.nama_tujuan])
   );
 
-  const topMerchQty = topMerchBulanIni[0]?._sum.jumlah ?? 0;
-  const totalTransaksiBulanIni =
-    transaksiMasukBulanIni + transaksiKeluarBulanIni;
-  const totalTransaksiBulanLalu =
-    transaksiMasukBulanLalu + transaksiKeluarBulanLalu;
+  const now = new Date();
+  const currentMonth = now.getMonth() + 1;
+  const currentYear = now.getFullYear();
 
-  const selectedMonthName = MONTH_FULL[month - 1];
-  const prevMonthName = MONTH_FULL[prev.month - 1];
+  const transaksiPerBulan = Array.from({ length: 12 }, (_, month) => ({
+    label: MONTH_SHORT[month],
+    month: month + 1,
+    byMerchandise: {} as Record<string, number>,
+    isCurrent: chartYear === currentYear && month + 1 === currentMonth,
+  }));
+
+  for (const row of trendYearRecords) {
+    const date = new Date(row.tanggal_keluar);
+    if (date.getFullYear() !== chartYear) continue;
+    const bucket = transaksiPerBulan[date.getMonth()];
+    const nama = merchMap.get(row.id_merch) ?? "Merchandise";
+    bucket.byMerchandise[nama] =
+      (bucket.byMerchandise[nama] ?? 0) + row.jumlah;
+  }
+
+  const sankeyLinks = sankeyGroup
+    .map((item) => ({
+      source: merchMap.get(item.id_merch) ?? "Merchandise",
+      target: tujuanMap.get(item.id_tujuan) ?? "Tujuan",
+      value: item._sum.jumlah ?? 0,
+    }))
+    .filter((link) => link.value > 0);
 
   return {
-    totalStokTersedia: totalStok,
-    totalStokDelta: netStokBulanIni - netStokBulanLalu,
-    totalBarangKeluarBulanIni: keluarBulanIni,
-    barangKeluarDelta: keluarBulanIni - keluarBulanLalu,
+    totalStokTersedia: totalStockAgg._sum.jumlah_stok ?? 0,
+    totalBarangKeluar: totalKeluarAgg._sum.jumlah ?? 0,
     merchandiseTerbanyak: topMerchRecord?.nama_merch ?? null,
-    merchandiseTerbanyakQty: topMerchQty,
-    transaksiBulanIni: {
-      masuk: transaksiMasukBulanIni,
-      keluar: transaksiKeluarBulanIni,
-      total: totalTransaksiBulanIni,
-      delta: totalTransaksiBulanIni - totalTransaksiBulanLalu,
+    merchandiseTerbanyakQty: topMerchAllTime[0]?._sum.jumlah ?? 0,
+    totalTransaksi: {
+      masuk: transaksiMasuk,
+      keluar: transaksiKeluar[0]?.total ?? 0,
+      total: transaksiMasuk + (transaksiKeluar[0]?.total ?? 0),
     },
-    distribusiHariIni,
-    distribusiHariIniDelta: distribusiHariIni - distribusiKemarin,
+    distribusiHariIni: distribusiHariIniAgg._sum.jumlah ?? 0,
+    distribusiHariIniDelta:
+      (distribusiHariIniAgg._sum.jumlah ?? 0) -
+      (distribusiKemarinAgg._sum.jumlah ?? 0),
     peringatanStokRendah,
     stokRendahItems: stokRendah.map((item) => ({
       nama: item.merchandise.nama_merch,
       jumlah: item.jumlah_stok,
     })),
-    trendDistribusi: buildMonthlyTrend(trendYearRecords, month, year),
-    top5Merchandise: top5MerchBulanIniGroup.map((item) => ({
+    topMerchandise: top5Merch.map((item) => ({
       nama: merchMap.get(item.id_merch) ?? "Merchandise",
       total: item._sum.jumlah ?? 0,
     })),
-    penggunaanTujuan: tujuanGroup.map((item) => ({
-      nama: tujuanMap.get(item.id_tujuan) ?? "Tujuan",
-      total: item._sum.jumlah ?? 0,
-    })),
+    transaksiPerBulan,
+    sankeyLinks,
     stokGudang: stokGudang.map((item) => ({
       id: item.id_stok,
       nama: item.merchandise.nama_merch,
       stok: item.jumlah_stok,
     })),
     chartMeta: {
-      bulan: selectedMonthName,
-      tahun: year,
-      bulanLalu: prevMonthName,
-      selectedMonth: month,
-      selectedYear: year,
+      chartYear,
+      sankeyMonth: sankeyAllTime ? null : sankeyMonth,
+      sankeyYear: sankeyAllTime ? null : sankeyYear,
+      sankeyAllTime,
     },
   };
 }
 
 const getCachedDashboardData = unstable_cache(
-  async (month: number, year: number) => fetchDashboardData(month, year),
-  ["dashboard-data"],
+  async (
+    chartYear: number,
+    sankeyMonth: number | null,
+    sankeyYear: number | null
+  ) => fetchDashboardData(chartYear, sankeyMonth, sankeyYear),
+  ["dashboard-data-v2"],
   { tags: [ANALYTICS_CACHE_TAG], revalidate: 60 }
 );
 
-export async function getDashboardData(month: number, year: number): Promise<DashboardData> {
-  const { month: safeMonth, year: safeYear } = clampDashboardPeriod(month, year);
-  return getCachedDashboardData(safeMonth, safeYear);
+export async function getDashboardData(
+  filters?: Partial<DashboardChartFilters>
+): Promise<DashboardData> {
+  const now = new Date();
+  const chartYear = filters?.chartYear ?? now.getFullYear();
+  const { year: safeYear } = clampDashboardPeriod(1, chartYear);
+
+  const sankeyMonth =
+    filters?.sankeyMonth == null || filters.sankeyMonth <= 0
+      ? null
+      : filters.sankeyMonth;
+  const sankeyYear =
+    filters?.sankeyYear == null || filters.sankeyYear <= 0
+      ? null
+      : filters.sankeyYear;
+
+  return getCachedDashboardData(safeYear, sankeyMonth, sankeyYear);
 }
 
 export type { DashboardData } from "@/lib/dashboard-types";

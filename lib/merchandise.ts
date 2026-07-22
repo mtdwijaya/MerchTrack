@@ -249,31 +249,52 @@ export async function getMerchandiseSummary() {
   };
 }
 
-export async function createMerchandise(data: {
-  nama_merch: string;
-  deskripsi?: string;
-  jumlah_stok?: number;
-}) {
+export async function createMerchandise(
+  data: {
+    nama_merch: string;
+    deskripsi?: string;
+    jumlah_stok?: number;
+  },
+  id_user?: number
+) {
   const nama_merch = data.nama_merch.trim();
   const nama_normalized = normalizeNamaMerch(nama_merch);
+  const jumlah_stok = data.jumlah_stok ?? 0;
 
   if (await isNamaMerchTaken(nama_normalized)) {
     throw new Error("Merchandise dengan nama ini sudah ada");
   }
 
   try {
-    return await prisma.merchandise.create({
-      data: {
-        nama_merch,
-        nama_normalized,
-        deskripsi: data.deskripsi,
-        stok: {
-          create: {
-            jumlah_stok: data.jumlah_stok ?? 0,
+    return await prisma.$transaction(async (tx) => {
+      const created = await tx.merchandise.create({
+        data: {
+          nama_merch,
+          nama_normalized,
+          deskripsi: data.deskripsi,
+          stok: {
+            create: {
+              jumlah_stok,
+            },
           },
         },
-      },
-      include: { stok: true },
+        include: { stok: true },
+      });
+
+      // stok awal = barang masuk jenis BARU (bila user + jumlah > 0)
+      if (id_user && jumlah_stok > 0) {
+        await tx.barangMasuk.create({
+          data: {
+            id_merch: created.id_merch,
+            id_user,
+            jumlah: jumlah_stok,
+            jenis: "BARU",
+            keterangan: "Penambahan jenis merchandise baru",
+          },
+        });
+      }
+
+      return created;
     });
   } catch (error) {
     // jaga-jaga bila lolos pengecekan karena request bersamaan (race condition)
@@ -361,6 +382,7 @@ export async function restockMerchandise(
         id_merch,
         id_user,
         jumlah: data.jumlah,
+        jenis: "RESTOCK",
         keterangan: data.keterangan?.trim() || "Restock gudang pusat",
         bukti_path: data.bukti_path,
         bukti_nama: data.bukti_nama,

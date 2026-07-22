@@ -188,19 +188,19 @@ async function main() {
       id_merch: tumbler.id_merch,
       jumlah: 200,
       tanggal: daysAgo(25),
-      keterangan: "Restock awal tumbler",
+      keterangan: "Stok awal tumbler",
     },
     {
       id_merch: bantal.id_merch,
       jumlah: 100,
       tanggal: daysAgo(20),
-      keterangan: "Restock bantal leher",
+      keterangan: "Stok awal bantal leher",
     },
     {
       id_merch: totebag.id_merch,
       jumlah: 150,
       tanggal: daysAgo(10),
-      keterangan: "Restock totebag kanvas",
+      keterangan: "Stok awal totebag kanvas",
     },
     {
       id_merch: tumbler.id_merch,
@@ -210,12 +210,18 @@ async function main() {
     },
   ];
 
+  const firstMasukPerMerch = new Set<number>();
+
   for (const item of masukData) {
+    const isFirst = !firstMasukPerMerch.has(item.id_merch);
+    if (isFirst) firstMasukPerMerch.add(item.id_merch);
+
     await prisma.barangMasuk.create({
       data: {
         id_merch: item.id_merch,
         id_user: petugas.id_user,
         jumlah: item.jumlah,
+        jenis: isFirst ? "BARU" : "RESTOCK",
         tanggal_masuk: item.tanggal,
         keterangan: item.keterangan,
       },

@@ -4,20 +4,26 @@ import Field from "@/components/ui/field";
 import FormActions from "@/components/ui/form-actions";
 import { useState } from "react";
 
+export type BarangKembaliGroupItem = {
+  id_keluar: number;
+  merchandise: string;
+  jumlah: number;
+  jumlah_kembali: number;
+  sisa: number;
+};
+
 interface BarangKembaliFormProps {
+  /** Satu atau lebih merch dalam grup transaksi */
   info: {
-    merchandise: string;
     tujuan: string;
-    jumlah: number;
-    jumlah_kembali: number;
-    sisa: number;
+    items: BarangKembaliGroupItem[];
   };
   onSubmit: (data: {
-    jumlah_kembali: number;
     tanggal_kembali: string;
     pengembali: string;
     asal: string;
     keterangan: string;
+    items: { id_keluar: number; jumlah_kembali: number }[];
   }) => Promise<void>;
   loading?: boolean;
   onCancel?: () => void;
@@ -29,56 +35,97 @@ export default function BarangKembaliForm({
   loading,
   onCancel,
 }: BarangKembaliFormProps) {
-  const [form, setForm] = useState({
-    jumlah_kembali: info.sisa > 0 ? info.sisa : 1,
+  const [shared, setShared] = useState({
     tanggal_kembali: new Date().toISOString().split("T")[0],
     pengembali: "",
     asal: "",
     keterangan: "",
   });
 
+  const [qtyById, setQtyById] = useState<Record<number, number>>(() =>
+    Object.fromEntries(
+      info.items.map((item) => [
+        item.id_keluar,
+        // default: kembalikan semua sisa (bisa diubah per merch)
+        item.sisa,
+      ])
+    )
+  );
+
+  const isMulti = info.items.length > 1;
+
   return (
     <form
       onSubmit={(e) => {
         e.preventDefault();
-        onSubmit(form);
+        onSubmit({
+          ...shared,
+          items: info.items.map((item) => ({
+            id_keluar: item.id_keluar,
+            jumlah_kembali: qtyById[item.id_keluar] ?? 0,
+          })),
+        });
       }}
       className="space-y-5"
     >
       <div className="rounded-lg border border-[#EFEAE5] bg-[#FAFAFA] px-4 py-3 text-sm text-[#4B5563]">
         <p>
-          <span className="font-medium text-[#1A1C1C]">{info.merchandise}</span>{" "}
-          — {info.tujuan}
+          Tujuan:{" "}
+          <span className="font-medium text-[#1A1C1C]">{info.tujuan}</span>
         </p>
         <p className="mt-1">
-          Keluar awal: <strong>{info.jumlah}</strong> pcs · Sudah kembali:{" "}
-          <strong>{info.jumlah_kembali}</strong> pcs · Sisa bisa dikembalikan:{" "}
-          <strong>{info.sisa}</strong> pcs
+          {isMulti
+            ? `${info.items.length} merchandise — isi jumlah per item yang dikembalikan.`
+            : "Isi jumlah yang dikembalikan untuk merchandise ini."}
         </p>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2">
-        <Field label="Jumlah Dikembalikan">
-          <input
-            required
-            min={1}
-            max={info.sisa}
-            type="number"
-            value={form.jumlah_kembali}
-            onChange={(e) =>
-              setForm({ ...form, jumlah_kembali: Number(e.target.value) })
-            }
-            className="input-field"
-          />
-        </Field>
+      <div className="space-y-3">
+        <p className="text-xs font-semibold uppercase tracking-wide text-[#6B7280]">
+          Merchandise dikembalikan
+        </p>
+        {info.items.map((item) => (
+          <div
+            key={item.id_keluar}
+            className="grid gap-3 rounded-lg border border-[#E5E7EB] bg-white px-4 py-3 sm:grid-cols-[1fr_140px] sm:items-end"
+          >
+            <div className="min-w-0">
+              <p className="truncate text-sm font-medium text-[#1A1C1C]">
+                {item.merchandise}
+              </p>
+              <p className="mt-0.5 text-xs text-[#6B7280]">
+                Keluar {item.jumlah} · Sudah kembali {item.jumlah_kembali} ·
+                Sisa {item.sisa} pcs
+              </p>
+            </div>
+            <Field label="Jumlah kembali">
+              <input
+                required={info.items.length === 1}
+                min={0}
+                max={item.sisa}
+                type="number"
+                value={qtyById[item.id_keluar] ?? 0}
+                onChange={(e) =>
+                  setQtyById((prev) => ({
+                    ...prev,
+                    [item.id_keluar]: Number(e.target.value),
+                  }))
+                }
+                className="input-field"
+              />
+            </Field>
+          </div>
+        ))}
+      </div>
 
+      <div className="grid gap-4 md:grid-cols-2">
         <Field label="Tanggal Kembali">
           <input
             required
             type="date"
-            value={form.tanggal_kembali}
+            value={shared.tanggal_kembali}
             onChange={(e) =>
-              setForm({ ...form, tanggal_kembali: e.target.value })
+              setShared({ ...shared, tanggal_kembali: e.target.value })
             }
             className="input-field"
           />
@@ -88,9 +135,9 @@ export default function BarangKembaliForm({
           <input
             required
             type="text"
-            value={form.pengembali}
+            value={shared.pengembali}
             onChange={(e) =>
-              setForm({ ...form, pengembali: e.target.value })
+              setShared({ ...shared, pengembali: e.target.value })
             }
             className="input-field"
             placeholder="Nama yang mengembalikan barang"
@@ -101,8 +148,8 @@ export default function BarangKembaliForm({
           <input
             required
             type="text"
-            value={form.asal}
-            onChange={(e) => setForm({ ...form, asal: e.target.value })}
+            value={shared.asal}
+            onChange={(e) => setShared({ ...shared, asal: e.target.value })}
             className="input-field"
             placeholder="cth: Stasiun Bekasi, Unit Operasi"
           />
@@ -112,9 +159,9 @@ export default function BarangKembaliForm({
       <Field label="Catatan">
         <textarea
           rows={3}
-          value={form.keterangan}
+          value={shared.keterangan}
           onChange={(e) =>
-            setForm({ ...form, keterangan: e.target.value })
+            setShared({ ...shared, keterangan: e.target.value })
           }
           className="input-field"
           placeholder="Catatan pengembalian (opsional)"

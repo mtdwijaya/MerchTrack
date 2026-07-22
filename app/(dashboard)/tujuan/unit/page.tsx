@@ -1,7 +1,7 @@
 import { Suspense } from "react";
 
 import TujuanUnitPageClient from "./unit-page-client";
-import { requireAdminPage } from "@/lib/auth";
+import { requirePageAccess } from "@/lib/require-page";
 import { getPageParam, getParam, type SearchParams } from "@/lib/list-params";
 import { parseSortValue } from "@/lib/sort";
 import {
@@ -14,7 +14,7 @@ const PAGE_SIZE = 5;
 const DEFAULT_SORT = "nama_unit:asc";
 
 async function Content({ searchParams }: { searchParams: SearchParams }) {
-  await requireAdminPage();
+  await requirePageAccess("unit");
 
   const page = getPageParam(searchParams);
   const search = getParam(searchParams, "search");

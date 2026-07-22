@@ -4,85 +4,11 @@ export interface SidebarMenu {
   icon: string;
 }
 
+/**
+ * @deprecated Pakai getSidebarMenusForRole() dari lib/permissions
+ * — file ini hanya menyimpan tipe SidebarMenu agar import lama tidak putus.
+ */
 export const sidebarMenus = {
-  ADMIN: {
-    main: [
-      {
-        name: "Dashboard",
-        href: "/dashboard",
-        icon: "/icons/icon-dashboard.svg",
-      },
-      {
-        name: "Transaksi Barang Keluar",
-        href: "/barang-keluar",
-        icon: "/icons/icon-barangkeluar.svg",
-      },
-      {
-        name: "Monitoring",
-        href: "/monitoring",
-        icon: "/icons/icon-monitoring.svg",
-      },
-      {
-        name: "Laporan",
-        href: "/laporan",
-        icon: "/icons/icon-laporan.svg",
-      },
-      {
-        name: "Riwayat Transaksi",
-        href: "/riwayat-transaksi",
-        icon: "/icons/icon-riwayat.svg",
-      },
-    ],
-
-    master: [
-      {
-        name: "Tujuan",
-        href: "/tujuan",
-        icon: "/icons/icon-stasiun.svg",
-      },
-      {
-        name: "Merchandise",
-        href: "/merchandise",
-        icon: "/icons/icon-merchandise.svg",
-      },
-      {
-        name: "Pengguna",
-        href: "/pengguna",
-        icon: "/icons/icon-kelolapengguna.svg",
-      },
-    ],
-  },
-
-  PETUGAS: {
-    main: [
-      {
-        name: "Dashboard",
-        href: "/dashboard",
-        icon: "/icons/icon-dashboard.svg",
-      },
-      {
-        name: "Barang Keluar",
-        href: "/barang-keluar",
-        icon: "/icons/icon-barangkeluar.svg",
-      },
-      {
-        name: "Monitoring",
-        href: "/monitoring",
-        icon: "/icons/icon-monitoring.svg",
-      },
-      {
-        name: "Laporan",
-        href: "/laporan",
-        icon: "/icons/icon-laporan.svg",
-      },
-      {
-        name: "Riwayat Transaksi",
-        href: "/riwayat-transaksi",
-        icon: "/icons/icon-riwayat.svg",
-      },
-
-    ],
-
-    master: [],
-  },
+  ADMIN: { main: [] as SidebarMenu[], master: [] as SidebarMenu[] },
+  PETUGAS: { main: [] as SidebarMenu[], master: [] as SidebarMenu[] },
 };

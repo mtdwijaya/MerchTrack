@@ -1,10 +1,8 @@
 "use client";
 
 import type { JenisDetailTujuan } from "@prisma/client";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
-import { ChevronRight } from "lucide-react";
 
 import TujuanForm, {
   type TujuanFormValues,
@@ -33,11 +31,8 @@ import { useListFilters } from "@/hooks/use-list-filters";
 import { parseSortValue, toggleSortValue } from "@/lib/sort";
 import { showError, showSuccess } from "@/lib/toast";
 import {
-  getTujuanSubHref,
   JENIS_DETAIL_LABEL,
 } from "@/lib/tujuan-shared";
-import { buttonVariants } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
 
 import {
   createTujuanAction,
@@ -238,10 +233,7 @@ export default function TujuanPageClient({
               ) : list.data.length === 0 ? (
                 <TableEmptyRow colSpan={5} message="Belum ada data tujuan" />
               ) : (
-                list.data.map((item) => {
-                  const subHref = getTujuanSubHref(item.jenis_detail);
-
-                  return (
+                list.data.map((item) => (
                     <tr
                       key={item.id_tujuan}
                       className="border-b border-[#EFEAE5] hover:bg-gray-50/60"
@@ -271,22 +263,6 @@ export default function TujuanPageClient({
                               onClick={() => modal.openEdit(item.id_tujuan)}
                             />
 
-                            {subHref ? (
-                              <Link
-                                href={subHref}
-                                className={cn(
-                                  buttonVariants({
-                                    variant: "outline",
-                                    size: "sm",
-                                  }),
-                                  "gap-1"
-                                )}
-                              >
-                                Kelola
-                                <ChevronRight className="h-3.5 w-3.5" />
-                              </Link>
-                            ) : null}
-
                               <DeleteAction
                               onClick={() => setDeleteId(item.id_tujuan)}
                             />
@@ -294,8 +270,7 @@ export default function TujuanPageClient({
                         </div>
                       </Td>
                     </tr>
-                  );
-                })
+                  ))
               )}
             </tbody>
           </table>

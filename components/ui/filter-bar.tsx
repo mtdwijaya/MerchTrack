@@ -4,15 +4,21 @@ import { ReactNode } from "react";
 export function FilterBar({
   children,
   onReset,
+  headerActions,
 }: {
   children: ReactNode;
   onReset?: () => void;
+  /** Aksi di pojok kanan header (mis. Preview laporan) */
+  headerActions?: ReactNode;
 }) {
   return (
     <section className="rounded-xl border border-[#E5E7EB] bg-white p-5 shadow-sm">
-      <div className="mb-4 flex items-center gap-2 text-sm font-medium text-[#374151]">
-        <Filter size={16} className="text-[#6B7280]" />
-        Filter &amp; Pencarian
+      <div className="mb-4 flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2 text-sm font-medium text-[#374151]">
+          <Filter size={16} className="text-[#6B7280]" />
+          Filter &amp; Pencarian
+        </div>
+        {headerActions}
       </div>
 
       <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:gap-3">

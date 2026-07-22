@@ -6,13 +6,19 @@ import {
   getParam,
   type SearchParams,
 } from "@/lib/list-params";
+import { getAllMerchandiseNames } from "@/lib/merchandise";
 import {
   getRiwayatUnifiedPaginated,
-  getRiwayatUnifiedSummary,
   type RiwayatJenis,
 } from "@/lib/riwayat-transaksi";
 
 const PAGE_SIZE = 8;
+
+function parseIdMerch(value: string): number | undefined {
+  if (!value) return undefined;
+  const num = Number(value);
+  return Number.isInteger(num) && num > 0 ? num : undefined;
+}
 
 async function RiwayatContent({
   searchParams,
@@ -21,24 +27,28 @@ async function RiwayatContent({
 }) {
   const page = getPageParam(searchParams);
   const search = getParam(searchParams, "search");
-  const tanggal = getParam(searchParams, "tanggal");
+  const tanggalDari = getParam(searchParams, "tanggal_dari");
+  const tanggalSampai = getParam(searchParams, "tanggal_sampai");
   const jenis = getParam(searchParams, "jenis") as RiwayatJenis | "";
+  const idMerch = parseIdMerch(getParam(searchParams, "id_merch"));
 
-  const [list, summary] = await Promise.all([
+  const [list, merchandiseList] = await Promise.all([
     getRiwayatUnifiedPaginated({
       page,
       limit: PAGE_SIZE,
       search,
       jenis,
-      tanggal: tanggal || undefined,
+      idMerch,
+      tanggalDari: tanggalDari || undefined,
+      tanggalSampai: tanggalSampai || undefined,
     }),
-    getRiwayatUnifiedSummary(),
+    getAllMerchandiseNames(),
   ]);
 
   return (
     <RiwayatPageClient
       list={list}
-      summary={summary}
+      merchandiseList={merchandiseList}
       pageSize={PAGE_SIZE}
     />
   );

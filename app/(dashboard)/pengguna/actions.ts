@@ -9,6 +9,8 @@ import {
   getPenggunaById,
   updatePengguna,
 } from "@/lib/pengguna";
+import { upsertRolePermissions } from "@/lib/permissions";
+import type { PageKey } from "@/constants/permissions";
 import {
   idParamSchema,
   parseSchema,
@@ -119,6 +121,32 @@ export async function deletePenggunaAction(id: number): Promise<ActionResult> {
       ok: false,
       message:
         error instanceof Error ? error.message : "Gagal menghapus pengguna",
+    };
+  }
+}
+
+export async function updateRolePermissionsAction(permissions: {
+  ADMIN: Partial<Record<PageKey, boolean>>;
+  PETUGAS: Partial<Record<PageKey, boolean>>;
+}): Promise<ActionResult> {
+  try {
+    const auth = await requireActionAdmin();
+    if (!auth.ok) return auth;
+
+    await Promise.all([
+      upsertRolePermissions("ADMIN", permissions.ADMIN),
+      upsertRolePermissions("PETUGAS", permissions.PETUGAS),
+    ]);
+
+    revalidatePath("/pengguna");
+    return { ok: true };
+  } catch (error) {
+    return {
+      ok: false,
+      message:
+        error instanceof Error
+          ? error.message
+          : "Gagal memperbarui hak akses halaman",
     };
   }
 }

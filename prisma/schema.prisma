@@ -30,6 +30,11 @@ enum JenisAktivitas {
   KEMBALI
 }
 
+enum JenisBarangMasuk {
+  BARU
+  RESTOCK
+}
+
 model User {
   id_user    Int  @id @default(autoincrement())
   id_stasiun Int?
@@ -49,6 +54,21 @@ model User {
   barangKeluar  BarangKeluar[]
   barangKembali BarangKembali[]
   aktivitasLog  AktivitasLog[]
+}
+
+/// Matriks page access per role (ADMIN/PETUGAS) — editable dari master pengguna
+model RolePermission {
+  id Int @id @default(autoincrement())
+
+  role     Role
+  page_key String
+  allowed  Boolean @default(true)
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  @@unique([role, page_key])
+  @@index([role])
 }
 
 model Stasiun {
@@ -123,6 +143,7 @@ model BarangMasuk {
   id_user  Int
 
   jumlah Int
+  jenis  JenisBarangMasuk @default(RESTOCK)
 
   tanggal_masuk DateTime @default(now())
 
@@ -136,6 +157,7 @@ model BarangMasuk {
 
   @@index([tanggal_masuk])
   @@index([id_merch])
+  @@index([jenis])
 }
 
 model BarangKeluar {

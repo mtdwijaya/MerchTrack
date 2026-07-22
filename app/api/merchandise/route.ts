@@ -44,14 +44,17 @@ export const GET = route(async (req) => {
 
 // POST /api/merchandise — buat merchandise baru (ADMIN)
 export const POST = route(async (req) => {
-  await requireAdmin(req);
+  const admin = await requireAdmin(req);
   const data = await parseJson(req, merchandiseCreateSchema);
 
-  const created = await createMerchandise({
-    nama_merch: data.nama_merch,
-    deskripsi: data.deskripsi || undefined,
-    jumlah_stok: data.jumlah_stok,
-  });
+  const created = await createMerchandise(
+    {
+      nama_merch: data.nama_merch,
+      deskripsi: data.deskripsi || undefined,
+      jumlah_stok: data.jumlah_stok,
+    },
+    admin.id_user
+  );
 
   revalidateMerchandiseListCache();
   revalidateAnalyticsPages();

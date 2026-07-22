@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { sidebarMenus } from "@/constants/sidebar-menu";
+import type { SidebarMenu } from "@/constants/sidebar-menu";
 import IconImage from "@/components/ui/icon-image";
 import { logoutAction } from "@/app/(dashboard)/actions";
 
@@ -15,14 +15,25 @@ interface User {
 
 interface SidebarProps {
   user: User | null;
+  menus: { main: SidebarMenu[]; master: SidebarMenu[] };
   collapsed: boolean;
   setCollapsed: React.Dispatch<
     React.SetStateAction<boolean>
   >;
 }
 
+function isMenuActive(pathname: string, href: string) {
+  if (pathname === href) return true;
+  // /tujuan jangan aktif saat di /tujuan/unit atau /tujuan/stasiun
+  if (href === "/tujuan") {
+    return pathname === "/tujuan";
+  }
+  return pathname.startsWith(`${href}/`) || pathname.startsWith(href);
+}
+
 export default function Sidebar({
   user,
+  menus,
   collapsed,
   setCollapsed,
 }: SidebarProps) {
@@ -46,8 +57,7 @@ export default function Sidebar({
     );
   }
 
-  const menu =
-    sidebarMenus[user.role];
+  const menu = menus;
 
   return (
     <aside
@@ -187,7 +197,7 @@ export default function Sidebar({
                 transition-all
 
                 ${
-                  pathname.startsWith(item.href)
+                  isMenuActive(pathname, item.href)
                     ? "bg-white/15 border-l-2 border-white"
                     : "hover:bg-white/10"
                 }
@@ -237,7 +247,7 @@ export default function Sidebar({
                     transition-all
 
                     ${
-                      pathname.startsWith(item.href)
+                      isMenuActive(pathname, item.href)
                         ? "bg-white/15 border-l-2 border-white"
                         : "hover:bg-white/10"
                     }

@@ -145,9 +145,26 @@ export default function BarangKeluarDetailDialog({
 
             <div className="space-y-6 px-6 py-6">
               <div className="rounded-xl border border-[#E5E7EB] bg-white p-5">
-                <h3 className="text-xs font-semibold uppercase tracking-wide text-[#6B7280]">
-                  Daftar Merchandise
-                </h3>
+                <div className="flex items-center justify-between gap-3">
+                  <h3 className="text-xs font-semibold uppercase tracking-wide text-[#6B7280]">
+                    Daftar Merchandise
+                  </h3>
+                  {canReturn &&
+                    detail.grup_items.some((item) => item.sisa_return > 0) && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          onReturn?.(detail.id_keluar);
+                          onOpenChange(false);
+                        }}
+                      >
+                        <RotateCcw className="mr-1.5 h-3.5 w-3.5" />
+                        Kembalikan
+                      </Button>
+                    )}
+                </div>
                 <div className="mt-4 overflow-x-auto">
                   <table className="min-w-full text-sm">
                     <thead>
@@ -156,9 +173,6 @@ export default function BarangKeluarDetailDialog({
                         <th className="pb-2 pr-4 font-medium">Keluar</th>
                         <th className="pb-2 pr-4 font-medium">Kembali</th>
                         <th className="pb-2 pr-4 font-medium">Terpakai</th>
-                        {canReturn && (
-                          <th className="pb-2 font-medium text-right">Aksi</th>
-                        )}
                       </tr>
                     </thead>
                     <tbody>
@@ -179,23 +193,6 @@ export default function BarangKeluarDetailDialog({
                           <td className="py-2.5 pr-4 text-[#4B5563]">
                             {item.qty.terpakai.toLocaleString("id-ID")} pcs
                           </td>
-                          {canReturn && (
-                            <td className="py-2.5 text-right">
-                              <Button
-                                type="button"
-                                variant="outline"
-                                size="sm"
-                                disabled={item.sisa_return <= 0}
-                                onClick={() => {
-                                  onReturn?.(item.id_keluar);
-                                  onOpenChange(false);
-                                }}
-                              >
-                                <RotateCcw className="mr-1.5 h-3.5 w-3.5" />
-                                Kembalikan
-                              </Button>
-                            </td>
-                          )}
                         </tr>
                       ))}
                     </tbody>

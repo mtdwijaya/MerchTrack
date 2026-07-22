@@ -1,7 +1,7 @@
 import { Suspense } from "react";
 
 import PenggunaPageClient from "./pengguna-page-client";
-import { requireAdminPage } from "@/lib/auth";
+import { requirePageAccess } from "@/lib/require-page";
 import { getPageParam, getParam, type SearchParams } from "@/lib/list-params";
 import {
   getPenggunaPaginated,
@@ -9,6 +9,7 @@ import {
   parsePenggunaSort,
 } from "@/lib/pengguna";
 import { getAllStasiun } from "@/lib/stasiun";
+import { getAllRolePermissions } from "@/lib/permissions";
 import { parseSortValue } from "@/lib/sort";
 import { Role } from "@prisma/client";
 
@@ -20,7 +21,7 @@ async function PenggunaContent({
 }: {
   searchParams: SearchParams;
 }) {
-  await requireAdminPage();
+  await requirePageAccess("pengguna");
 
   const page = getPageParam(searchParams);
   const search = getParam(searchParams, "search");
@@ -29,7 +30,7 @@ async function PenggunaContent({
   const { sortBy, sortOrder } = parseSortValue(sort, "nama_user");
   const parsed = parsePenggunaSort(sortBy, sortOrder);
 
-  const [list, summary, stasiunList] = await Promise.all([
+  const [list, summary, stasiunList, rolePermissions] = await Promise.all([
     getPenggunaPaginated({
       page,
       limit: PAGE_SIZE,
@@ -40,6 +41,7 @@ async function PenggunaContent({
     }),
     getPenggunaSummary(),
     getAllStasiun(),
+    getAllRolePermissions(),
   ]);
 
   return (
@@ -47,6 +49,7 @@ async function PenggunaContent({
       list={list}
       summary={summary}
       stasiunList={stasiunList}
+      rolePermissions={rolePermissions}
       pageSize={PAGE_SIZE}
       defaultSort={DEFAULT_SORT}
     />

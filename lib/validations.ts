@@ -114,6 +114,42 @@ export const barangKembaliSchema = z.object({
   keterangan: optionalText(500),
 });
 
+/** Pengembalian batch — satu form untuk beberapa merch dalam grup transaksi */
+export const barangKembaliBatchSchema = z.object({
+  tanggal_kembali: z.string().optional().or(z.literal("")),
+  pengembali: z
+    .string()
+    .trim()
+    .min(1, "Nama pengembali wajib diisi")
+    .max(200, "Nama pengembali terlalu panjang"),
+  asal: z
+    .string()
+    .trim()
+    .min(1, "Asal wajib diisi")
+    .max(200, "Asal terlalu panjang"),
+  keterangan: optionalText(500),
+  items: z
+    .array(
+      z.object({
+        id_keluar: idParamSchema,
+        jumlah_kembali: z.coerce
+          .number()
+          .int("Jumlah harus bilangan bulat")
+          .min(0, "Jumlah tidak boleh negatif"),
+      })
+    )
+    .min(1, "Minimal satu merchandise"),
+}).superRefine((data, ctx) => {
+  const aktif = data.items.filter((item) => item.jumlah_kembali > 0);
+  if (aktif.length === 0) {
+    ctx.addIssue({
+      code: "custom",
+      message: "Isi jumlah kembali minimal untuk satu merchandise",
+      path: ["items"],
+    });
+  }
+});
+
 export const merchandiseCreateSchema = z.object({
   nama_merch: z
     .string()
