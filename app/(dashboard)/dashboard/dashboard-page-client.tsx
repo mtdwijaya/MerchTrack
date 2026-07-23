@@ -69,7 +69,7 @@ export default function DashboardPageClient({ dashboard }: Props) {
   }
 
   return (
-    <div className="flex h-[calc(100dvh-7.75rem)] flex-col gap-3 overflow-hidden">
+    <div className="flex h-[calc(100dvh-6.25rem)] flex-col gap-3 overflow-hidden">
       <section className="grid shrink-0 grid-cols-2 gap-3 lg:grid-cols-3 xl:grid-cols-5">
         <KpiCard
           title="Total Stok Tersedia"
@@ -413,7 +413,7 @@ function ChartPanel({
           )}
         </div>
       </div>
-      <div className="flex min-h-0 min-w-0 flex-1 flex-col px-3 pb-3 pt-1">
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col px-3 pb-4 pt-1">
         {children}
       </div>
     </div>

@@ -73,11 +73,10 @@ function estimateTextWidth(text: string, charWidth = 6.1) {
   return Math.ceil(text.length * charWidth);
 }
 
-/** Opacity default: volume terbesar paling terang */
+/** Default: hanya volume terbesar yang terang; sisanya redup */
 function opacityForValue(value: number, maxValue: number) {
-  if (maxValue <= 0) return 0.35;
-  const ratio = value / maxValue;
-  return 0.18 + ratio * 0.72;
+  if (maxValue <= 0) return 0.28;
+  return value >= maxValue ? 0.92 : 0.22;
 }
 
 function resolveLinkEnds(payload: SankeyLinkRenderPayload) {
@@ -183,6 +182,7 @@ function SankeyNode(props: {
   width?: number;
   height?: number;
   payload?: SankeyNodePayload;
+  maxTotalBySide: { merch: number; tujuan: number };
   hovered: HoverTarget;
   onHover: (target: HoverTarget) => void;
 }) {
@@ -192,6 +192,7 @@ function SankeyNode(props: {
     width = 0,
     height = 0,
     payload,
+    maxTotalBySide,
     hovered,
     onHover,
   } = props;
@@ -200,12 +201,20 @@ function SankeyNode(props: {
 
   const isMerch = payload.side === "merch";
   const active = isNodeActive(hovered, payload);
-  const dimmed = hovered != null && !active;
-  const fillOpacity = dimmed ? 0.4 : 0.95;
+  const total = payload.total ?? Number(payload.value ?? 0);
+  const maxOnSide = maxTotalBySide[payload.side];
+  const isTop = maxOnSide > 0 && total >= maxOnSide;
+
+  // Default: hanya node teratas (volume terbesar) terang; hover: path aktif terang
+  let fillOpacity = isTop ? 0.95 : 0.38;
+  let strokeOpacity = isTop ? 1 : 0.45;
+  if (hovered != null) {
+    fillOpacity = active ? 0.98 : 0.28;
+    strokeOpacity = active ? 1 : 0.35;
+  }
 
   const pillX = isMerch ? x + width + 8 : x - 8;
   const pillAlign = isMerch ? "left" : "right";
-  const total = payload.total ?? Number(payload.value ?? 0);
 
   return (
     <Layer>
@@ -217,10 +226,10 @@ function SankeyNode(props: {
         fill={payload.color}
         fillOpacity={fillOpacity}
         stroke={payload.color}
-        strokeOpacity={dimmed ? 0.5 : 1}
+        strokeOpacity={strokeOpacity}
         strokeWidth={1}
         radius={2}
-        style={{ cursor: "pointer" }}
+        style={{ cursor: "pointer", transition: "fill-opacity 140ms ease" }}
         onMouseEnter={() =>
           onHover({ type: "node", name: payload.name, side: payload.side })
         }
@@ -270,9 +279,9 @@ function SankeyLink(props: {
   const { sourceName, targetName, color } = resolveLinkEnds(payload);
   const active = isLinkActive(hovered, sourceName, targetName);
   const baseOpacity = opacityForValue(payload.value, maxValue);
-  // Saat hover: aktif terang; lainnya tetap terlihat (tidak hampir hilang)
+  // Default: hanya link terbesar terang; hover: path aktif terang
   const strokeOpacity =
-    hovered == null ? baseOpacity : active ? 0.95 : 0.28;
+    hovered == null ? baseOpacity : active ? 0.95 : 0.16;
 
   return (
     <Layer>
@@ -327,68 +336,84 @@ export default function MerchTujuanSankeyChart({
     setMounted(true);
   }, []);
 
-  const { data, maxValue } = useMemo(() => {
-    const merchNames = links.map((link) => link.source);
-    const tujuanNames = links.map((link) => link.target);
-    const merchColors = buildMerchColorMap(merchNames);
-    const tujuanColors = buildTujuanColorMap(tujuanNames);
+  const { data, maxValue, maxTotalBySide } = useMemo(() => {
+    const filtered = links.filter((link) => link.value > 0);
 
-    const nodeIndex = new Map<string, number>();
-    const nodes: SankeyNodePayload[] = [];
-    const totals = new Map<string, number>();
-
-    function ensureNode(name: string, side: "merch" | "tujuan") {
-      const key = `${side}:${name}`;
-      const existing = nodeIndex.get(key);
-      if (existing != null) return existing;
-      const index = nodes.length;
-      nodeIndex.set(key, index);
-      nodes.push({
-        name,
-        side,
-        color:
-          side === "merch"
-            ? (merchColors.get(name) ?? "#D32F2F")
-            : (tujuanColors.get(name) ?? "#78909C"),
-        total: 0,
-      });
-      return index;
+    const merchTotals = new Map<string, number>();
+    const tujuanTotals = new Map<string, number>();
+    for (const link of filtered) {
+      merchTotals.set(
+        link.source,
+        (merchTotals.get(link.source) ?? 0) + link.value
+      );
+      tujuanTotals.set(
+        link.target,
+        (tujuanTotals.get(link.target) ?? 0) + link.value
+      );
     }
 
-    const filtered = links.filter((link) => link.value > 0);
-    const sankeyLinks: SankeyLinkInputPayload[] = filtered.map((link) => {
-      const source = ensureNode(link.source, "merch");
-      const target = ensureNode(link.target, "tujuan");
-      totals.set(
-        `merch:${link.source}`,
-        (totals.get(`merch:${link.source}`) ?? 0) + link.value
-      );
-      totals.set(
-        `tujuan:${link.target}`,
-        (totals.get(`tujuan:${link.target}`) ?? 0) + link.value
-      );
-      return {
-        source,
-        target,
+    // Volume terbesar di atas (urut menurun)
+    const merchOrdered = [...merchTotals.entries()]
+      .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], "id"))
+      .map(([name]) => name);
+    const tujuanOrdered = [...tujuanTotals.entries()]
+      .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], "id"))
+      .map(([name]) => name);
+
+    const merchColors = buildMerchColorMap(merchOrdered);
+    const tujuanColors = buildTujuanColorMap(tujuanOrdered);
+
+    const nodes: SankeyNodePayload[] = [];
+    const nodeIndex = new Map<string, number>();
+
+    for (const name of merchOrdered) {
+      nodeIndex.set(`merch:${name}`, nodes.length);
+      nodes.push({
+        name,
+        side: "merch",
+        color: merchColors.get(name) ?? "#D32F2F",
+        total: merchTotals.get(name) ?? 0,
+      });
+    }
+    for (const name of tujuanOrdered) {
+      nodeIndex.set(`tujuan:${name}`, nodes.length);
+      nodes.push({
+        name,
+        side: "tujuan",
+        color: tujuanColors.get(name) ?? "#78909C",
+        total: tujuanTotals.get(name) ?? 0,
+      });
+    }
+
+    const sankeyLinks: SankeyLinkInputPayload[] = filtered
+      .map((link) => ({
+        source: nodeIndex.get(`merch:${link.source}`) ?? 0,
+        target: nodeIndex.get(`tujuan:${link.target}`) ?? 0,
         value: link.value,
         color: merchColors.get(link.source) ?? "#EF9A9A",
         sourceName: link.source,
         targetName: link.target,
-      };
-    });
-
-    for (const node of nodes) {
-      node.total = totals.get(`${node.side}:${node.name}`) ?? 0;
-    }
+      }))
+      .sort((a, b) => b.value - a.value);
 
     const max = sankeyLinks.reduce((m, link) => Math.max(m, link.value), 0);
+    const maxTotalBySide = {
+      merch: merchOrdered[0] ? (merchTotals.get(merchOrdered[0]) ?? 0) : 0,
+      tujuan: tujuanOrdered[0]
+        ? (tujuanTotals.get(tujuanOrdered[0]) ?? 0)
+        : 0,
+    };
 
-    return { data: { nodes, links: sankeyLinks }, maxValue: max };
+    return {
+      data: { nodes, links: sankeyLinks },
+      maxValue: max,
+      maxTotalBySide,
+    };
   }, [links]);
 
   if (data.links.length === 0) {
     return (
-      <div className="flex h-full min-h-[160px] items-center justify-center text-sm text-[#9A9A9A]">
+      <div className="flex h-full min-h-40 items-center justify-center text-sm text-[#9A9A9A]">
         {emptyMessage}
       </div>
     );
@@ -396,12 +421,12 @@ export default function MerchTujuanSankeyChart({
 
   if (!mounted) {
     return (
-      <div className="h-full min-h-[160px] w-full animate-pulse rounded-lg bg-[#F3F4F6]" />
+      <div className="h-full min-h-40 w-full animate-pulse rounded-lg bg-[#F3F4F6]" />
     );
   }
 
   return (
-    <div className="relative h-full min-h-[200px] w-full min-w-0">
+    <div className="relative h-full min-h-50 w-full min-w-0">
       <div className="pointer-events-none absolute inset-x-3 top-0 z-10 flex justify-between px-1 text-[9px] font-semibold uppercase tracking-wide text-[#9CA3AF]">
         <span className="text-[#B71C1C]">Merchandise</span>
         <span className="text-[#546E7A]">Tujuan</span>
@@ -417,9 +442,17 @@ export default function MerchTujuanSankeyChart({
           nodePadding={16}
           nodeWidth={8}
           linkCurvature={0.55}
-          iterations={48}
-          margin={{ top: 24, right: 28, bottom: 10, left: 28 }}
-          node={<SankeyNode hovered={hovered} onHover={setHovered} />}
+          iterations={0}
+          verticalAlign="top"
+          sort={false}
+          margin={{ top: 24, right: 28, bottom: 22, left: 28 }}
+          node={
+            <SankeyNode
+              maxTotalBySide={maxTotalBySide}
+              hovered={hovered}
+              onHover={setHovered}
+            />
+          }
           link={
             <SankeyLink
               maxValue={maxValue}
