@@ -12,13 +12,13 @@ import { canAccessPage } from "@/lib/permissions";
 /** Guard halaman berdasarkan matriks RolePermission */
 export async function requirePageAccess(pageKey: PageKey): Promise<CurrentUser> {
   const user = await getCurrentUser();
-  if (!user) redirect("/login");
+  if (!user) redirect("/admin/login");
 
   const freshUser = await getFreshUserFromDb(user.id_user);
-  if (!freshUser) redirect("/login");
+  if (!freshUser) redirect("/admin/login");
 
   const allowed = await canAccessPage(freshUser.role as Role, pageKey);
-  if (!allowed) redirect("/dashboard");
+  if (!allowed) redirect("/admin");
 
   return freshUser;
 }

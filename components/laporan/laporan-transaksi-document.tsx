@@ -1,4 +1,4 @@
-import { getBarangKeluarDetail } from "@/app/(dashboard)/barang-keluar/actions";
+import { getBarangKeluarDetail } from "@/app/admin/(dashboard)/barang-keluar/actions";
 import { formatTransaksiDate, formatTransaksiId } from "@/lib/format-transaksi";
 import { getBarangKeluarQuantities } from "@/lib/barang-keluar-quantities";
 import { STATUS_BARANG_KELUAR_LABEL, formatDetailTujuan } from "@/lib/detail-tujuan";

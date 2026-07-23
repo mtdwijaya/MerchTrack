@@ -75,7 +75,7 @@ export function ErrorFallback({
           </Button>
 
           <Link
-            href="/dashboard"
+            href="/admin"
             className="
               inline-flex
               h-10

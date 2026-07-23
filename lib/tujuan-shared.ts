@@ -12,7 +12,7 @@ export function hasTujuanSubList(jenis: JenisDetailTujuan) {
 }
 
 export function getTujuanSubHref(jenis: JenisDetailTujuan) {
-  if (jenis === "STASIUN") return "/tujuan/stasiun";
-  if (jenis === "UNIT") return "/tujuan/unit";
+  if (jenis === "STASIUN") return "/admin/tujuan/stasiun";
+  if (jenis === "UNIT") return "/admin/tujuan/unit";
   return null;
 }

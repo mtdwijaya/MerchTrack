@@ -19,7 +19,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { formatTransaksiDate, formatTransaksiId } from "@/lib/format-transaksi";
-import { getBarangKeluarDetail } from "@/app/(dashboard)/barang-keluar/actions";
+import { getBarangKeluarDetail } from "@/app/admin/(dashboard)/barang-keluar/actions";
 
 export type BarangKeluarDetailData = NonNullable<
   Awaited<ReturnType<typeof getBarangKeluarDetail>>

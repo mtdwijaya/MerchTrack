@@ -28,9 +28,9 @@ import { revalidatePath } from "next/cache";
 type Ctx = { params: Promise<{ id: string }> };
 
 function refreshTransaksiPages() {
-  revalidatePath("/barang-keluar");
-  revalidatePath("/laporan");
-  revalidatePath("/riwayat-transaksi");
+  revalidatePath("/admin/barang-keluar");
+  revalidatePath("/admin/laporan");
+  revalidatePath("/admin/riwayat-transaksi");
   revalidateMerchandiseListCache();
   revalidateAnalyticsPages();
 }

@@ -25,9 +25,9 @@ import { z } from "zod";
 type Ctx = { params: Promise<{ id: string }> };
 
 function refreshTransaksiPages() {
-  revalidatePath("/barang-keluar");
-  revalidatePath("/monitoring");
-  revalidatePath("/riwayat-transaksi");
+  revalidatePath("/admin/barang-keluar");
+  revalidatePath("/admin/monitoring");
+  revalidatePath("/admin/riwayat-transaksi");
   revalidateMerchandiseListCache();
   revalidateAnalyticsPages();
 }

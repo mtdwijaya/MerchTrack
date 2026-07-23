@@ -4,7 +4,7 @@ import { PDFViewer, pdf } from "@react-pdf/renderer";
 import { Download } from "lucide-react";
 import { useEffect, useState } from "react";
 
-import { getBarangKeluarDetail } from "@/app/(dashboard)/barang-keluar/actions";
+import { getBarangKeluarDetail } from "@/app/admin/(dashboard)/barang-keluar/actions";
 import {
   buildLaporanPdfFilename,
   LaporanTransaksiDocument,

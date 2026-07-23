@@ -74,7 +74,7 @@ export default function LoginPage() {
         </div>
 
         <p className="text-center text-[#7A7A7A] text-sm mb-8">
-          Login akses cepat merchandise (tablet)
+          Login admin panel MerchTrack
         </p>
 
         <form action={formAction} autoComplete="on" suppressHydrationWarning>
@@ -206,9 +206,9 @@ export default function LoginPage() {
         </form>
 
         <p className="mt-5 text-center text-xs text-[#9CA3AF]">
-          Panel admin?{" "}
-          <a href="/admin/login" className="font-semibold text-[#D71920] hover:underline">
-            Login admin
+          Akses cepat tablet?{" "}
+          <a href="/login" className="font-semibold text-[#D71920] hover:underline">
+            Login tablet
           </a>
         </p>
       </div>

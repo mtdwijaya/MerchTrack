@@ -1,5 +1,4 @@
 
-
 export const PAGE_KEYS = [
   "dashboard",
   "barang-keluar",
@@ -31,7 +30,7 @@ export type AppPageDef = {
 export const APP_PAGES: AppPageDef[] = [
   {
     key: "dashboard",
-    href: "/dashboard",
+    href: "/admin",
     label: "Dashboard",
     icon: "/icons/icon-dashboard.svg",
     section: "main",
@@ -39,7 +38,7 @@ export const APP_PAGES: AppPageDef[] = [
   },
   {
     key: "barang-keluar",
-    href: "/barang-keluar",
+    href: "/admin/barang-keluar",
     label: "Transaksi Barang Keluar",
     icon: "/icons/icon-barangkeluar.svg",
     section: "main",
@@ -47,7 +46,7 @@ export const APP_PAGES: AppPageDef[] = [
   },
   {
     key: "monitoring",
-    href: "/monitoring",
+    href: "/admin/monitoring",
     label: "Monitoring Merchandise",
     icon: "/icons/icon-monitoring.svg",
     section: "main",
@@ -55,7 +54,7 @@ export const APP_PAGES: AppPageDef[] = [
   },
   {
     key: "riwayat-transaksi",
-    href: "/riwayat-transaksi",
+    href: "/admin/riwayat-transaksi",
     label: "Riwayat Transaksi",
     icon: "/icons/icon-riwayat.svg",
     section: "main",
@@ -63,7 +62,7 @@ export const APP_PAGES: AppPageDef[] = [
   },
   {
     key: "tujuan",
-    href: "/tujuan",
+    href: "/admin/tujuan",
     label: "Tujuan",
     icon: "/icons/icon-tujuan.svg",
     section: "master",
@@ -71,7 +70,7 @@ export const APP_PAGES: AppPageDef[] = [
   },
   {
     key: "unit",
-    href: "/tujuan/unit",
+    href: "/admin/tujuan/unit",
     label: "Unit",
     icon: "/icons/icon-unit.svg",
     section: "master",
@@ -79,7 +78,7 @@ export const APP_PAGES: AppPageDef[] = [
   },
   {
     key: "stasiun",
-    href: "/tujuan/stasiun",
+    href: "/admin/tujuan/stasiun",
     label: "Stasiun",
     icon: "/icons/icon-stasiun.svg",
     section: "master",
@@ -87,7 +86,7 @@ export const APP_PAGES: AppPageDef[] = [
   },
   {
     key: "merchandise",
-    href: "/merchandise",
+    href: "/admin/merchandise",
     label: "Merchandise",
     icon: "/icons/icon-merchandise.svg",
     section: "master",
@@ -95,7 +94,7 @@ export const APP_PAGES: AppPageDef[] = [
   },
   {
     key: "pengguna",
-    href: "/pengguna",
+    href: "/admin/pengguna",
     label: "Pengguna",
     icon: "/icons/icon-kelolapengguna.svg",
     section: "master",

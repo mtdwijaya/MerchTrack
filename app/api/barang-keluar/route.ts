@@ -24,9 +24,9 @@ import {
 import { revalidatePath } from "next/cache";
 
 function refreshTransaksiPages() {
-  revalidatePath("/barang-keluar");
-  revalidatePath("/laporan");
-  revalidatePath("/riwayat-transaksi");
+  revalidatePath("/admin/barang-keluar");
+  revalidatePath("/admin/laporan");
+  revalidatePath("/admin/riwayat-transaksi");
   revalidateMerchandiseListCache();
   revalidateAnalyticsPages();
 }

@@ -225,6 +225,32 @@ export const getAllMerchandiseNames = unstable_cache(
   { tags: [MERCHANDISE_LIST_CACHE_TAG] }
 );
 
+/** Katalog merch untuk akses cepat tablet (termasuk foto) */
+async function fetchMerchandiseCatalog() {
+  const items = await prisma.merchandise.findMany({
+    select: {
+      id_merch: true,
+      nama_merch: true,
+      foto_path: true,
+      stok: { select: { jumlah_stok: true } },
+    },
+    orderBy: { nama_merch: "asc" },
+  });
+
+  return items.map((item) => ({
+    id_merch: item.id_merch,
+    nama_merch: item.nama_merch,
+    foto_path: item.foto_path,
+    jumlah_stok: item.stok?.jumlah_stok ?? 0,
+  }));
+}
+
+export const getMerchandiseCatalog = unstable_cache(
+  fetchMerchandiseCatalog,
+  ["merchandise-catalog"],
+  { tags: [MERCHANDISE_LIST_CACHE_TAG] }
+);
+
 export function revalidateMerchandiseListCache() {
   revalidateTag(MERCHANDISE_LIST_CACHE_TAG, "max");
 }

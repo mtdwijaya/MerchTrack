@@ -1,34 +1,30 @@
 import { NextRequest, NextResponse } from "next/server";
 
-// proxy: cek cookie token sebelum halaman dashboard diproses (pengganti middleware di next.js 16)
+// proxy: cek cookie token sebelum halaman diproses (pengganti middleware di next.js 16)
 export function proxy(request: NextRequest) {
   const token = request.cookies.get("token")?.value;
-
   const pathname = request.nextUrl.pathname;
 
-  const isAuthPage = pathname === "/login";
+  const isAdminLogin = pathname === "/admin/login";
+  const isTabletLogin = pathname === "/login";
 
-  if (isAuthPage && token) {
-    return NextResponse.redirect(new URL("/dashboard", request.url));
+  if (isAdminLogin && token) {
+    return NextResponse.redirect(new URL("/admin", request.url));
   }
 
-  const protectedRoutes = [
-    "/dashboard",
-    "/barang-keluar",
-    "/monitoring",
-    "/merchandise",
-    "/pengguna",
-    "/stasiun",
-    "/tujuan",
-    "/laporan",
-    "/riwayat-transaksi",
-  ];
+  if (isTabletLogin && token) {
+    return NextResponse.redirect(new URL("/", request.url));
+  }
 
-  const isProtected = protectedRoutes.some((route) =>
-    pathname.startsWith(route)
-  );
+  const isAdminProtected =
+    pathname === "/admin" || pathname.startsWith("/admin/");
+  const isTabletHome = pathname === "/";
 
-  if (isProtected && !token) {
+  if (isAdminProtected && !isAdminLogin && !token) {
+    return NextResponse.redirect(new URL("/admin/login", request.url));
+  }
+
+  if (isTabletHome && !token) {
     return NextResponse.redirect(new URL("/login", request.url));
   }
 
@@ -36,16 +32,5 @@ export function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: [
-    "/dashboard/:path*",
-    "/barang-keluar/:path*",
-    "/monitoring/:path*",
-    "/merchandise/:path*",
-    "/pengguna/:path*",
-    "/stasiun/:path*",
-    "/tujuan/:path*",
-    "/laporan/:path*",
-    "/riwayat-transaksi/:path*",
-    "/login",
-  ],
+  matcher: ["/", "/login", "/admin", "/admin/:path*"],
 };

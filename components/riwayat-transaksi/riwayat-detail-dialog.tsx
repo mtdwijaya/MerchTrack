@@ -6,8 +6,8 @@ import { useEffect, useState } from "react";
 
 import BuktiDocumentPreview from "@/components/ui/bukti-document-preview";
 
-import { getBarangKeluarDetail } from "@/app/(dashboard)/barang-keluar/actions";
-import { getBarangMasukDetailAction } from "@/app/(dashboard)/riwayat-transaksi/actions";
+import { getBarangKeluarDetail } from "@/app/admin/(dashboard)/barang-keluar/actions";
+import { getBarangMasukDetailAction } from "@/app/admin/(dashboard)/riwayat-transaksi/actions";
 import {
   buildLaporanPdfFilename,
   LaporanTransaksiDocument,

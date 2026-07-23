@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { SidebarMenu } from "@/constants/sidebar-menu";
 import IconImage from "@/components/ui/icon-image";
-import { logoutAction } from "@/app/(dashboard)/actions";
+import { logoutAction } from "@/app/admin/(dashboard)/actions";
 
 interface User {
   id_user: number;

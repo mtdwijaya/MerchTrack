@@ -260,3 +260,16 @@ curl -X POST http://localhost:3000/api/auth/login \
 curl http://localhost:3000/api/barang-keluar \
   -H "Authorization: Bearer <token>"
 ```
+
+---
+
+## 4. Gap UI akses cepat (tablet)
+
+Halaman tablet `/` (login `/login`) memakai **Server Actions**, belum punya endpoint REST khusus:
+
+| Mode | Aksi UI | Domain yang dipakai |
+|------|---------|---------------------|
+| OUT | Keranjang multi-merch + confirm | `createBarangKeluarBatch` (sama `POST /api/barang-keluar` batch) |
+| RETURN | Keranjang multi-merch + confirm | `restockMerchandise` per item (sama `POST /api/merchandise/:id/restock`) |
+
+Admin panel: `/admin` (login `/admin/login`).

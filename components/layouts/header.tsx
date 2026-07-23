@@ -15,16 +15,16 @@ interface HeaderProps {
 }
 
 const pageTitles: Record<string, string> = {
-  "/dashboard": "Dashboard",
-  "/barang-keluar": "Barang Keluar",
-  "/monitoring": "Monitoring",
-  "/tujuan": "Manajemen Tujuan",
-  "/tujuan/stasiun": "Daftar Stasiun",
-  "/tujuan/unit": "Daftar Unit",
-  "/merchandise": "Manajemen Merchandise",
-  "/pengguna": "Manajemen Pengguna",
-  "/laporan": "Laporan",
-  "/riwayat-transaksi": "Riwayat Transaksi",
+  "/admin": "Dashboard",
+  "/admin/barang-keluar": "Barang Keluar",
+  "/admin/monitoring": "Monitoring",
+  "/admin/tujuan": "Manajemen Tujuan",
+  "/admin/tujuan/stasiun": "Daftar Stasiun",
+  "/admin/tujuan/unit": "Daftar Unit",
+  "/admin/merchandise": "Manajemen Merchandise",
+  "/admin/pengguna": "Manajemen Pengguna",
+  "/admin/laporan": "Laporan",
+  "/admin/riwayat-transaksi": "Riwayat Transaksi",
 };
 
 export default function Header({
@@ -33,12 +33,13 @@ export default function Header({
   const pathname = usePathname();
 
   const currentPage =
-    Object.entries(pageTitles).find(([path]) =>
-      pathname.startsWith(path)
-    )?.[1] || "Dashboard";
+    Object.entries(pageTitles)
+      .sort((a, b) => b[0].length - a[0].length)
+      .find(
+        ([path]) => pathname === path || pathname.startsWith(`${path}/`)
+      )?.[1] || "Dashboard";
 
-  const isDashboard =
-    pathname === "/dashboard";
+  const isDashboard = pathname === "/admin";
 
   return (
     <header
@@ -59,7 +60,7 @@ export default function Header({
       {/* Breadcrumb */}
       <div className="flex items-center gap-2 text-[11px] font-medium ">
         <Link
-          href="/dashboard"
+          href="/admin"
           className="
             text-[#4B5563]
             hover:text-[#B1070E]

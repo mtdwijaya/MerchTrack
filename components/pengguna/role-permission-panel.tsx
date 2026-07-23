@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 
-import { updateRolePermissionsAction } from "@/app/(dashboard)/pengguna/actions";
+import { updateRolePermissionsAction } from "@/app/admin/(dashboard)/pengguna/actions";
 import { Button } from "@/components/ui/button";
 import type { PageKey } from "@/constants/permissions";
 import { showError, showSuccess } from "@/lib/toast";

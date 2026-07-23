@@ -44,5 +44,5 @@ export async function loginAction(
   }
 
   resetRateLimit(loginRateLimitKey(ip));
-  redirect("/");
+  redirect("/admin");
 }

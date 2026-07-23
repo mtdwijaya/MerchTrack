@@ -142,11 +142,11 @@ export async function requireActionAdmin(): Promise<ActionAuthResult> {
 // guard halaman master data — redirect jika bukan admin (dipakai di page.tsx)
 export async function requireAdminPage(): Promise<CurrentUser> {
   const user = await getCurrentUser();
-  if (!user) redirect("/login");
+  if (!user) redirect("/admin/login");
 
   const freshUser = await getFreshUserFromDb(user.id_user);
-  if (!freshUser) redirect("/login");
-  if (freshUser.role !== "ADMIN") redirect("/dashboard");
+  if (!freshUser) redirect("/admin/login");
+  if (freshUser.role !== "ADMIN") redirect("/admin");
 
   return freshUser;
 }

@@ -29,7 +29,7 @@ export default function NotFound() {
 
         <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-center">
           <Link
-            href="/dashboard"
+            href="/admin"
             className="
               inline-flex
               h-10
