@@ -16,6 +16,8 @@ import {
   parseRestockBukti,
   parseRestockFormData,
 } from "@/lib/parse-transaksi-form";
+import { saveMerchandiseFotoFromFormData } from "@/lib/upload-merchandise-foto";
+import { deleteUploadedPublicFile } from "@/lib/upload-file-cleanup";
 import {
   idParamSchema,
   merchandiseCreateSchema,
@@ -31,6 +33,7 @@ function revalidateMerchandisePages() {
   updateTag(MERCHANDISE_LIST_CACHE_TAG);
   revalidatePath("/merchandise");
   revalidatePath("/barang-keluar");
+  revalidatePath("/monitoring");
   revalidateAnalyticsPages();
 }
 
@@ -47,6 +50,8 @@ export async function getMerchandiseFormData(id: number) {
   return {
     nama_merch: data.nama_merch,
     deskripsi: data.deskripsi ?? "",
+    foto_path: data.foto_path ?? null,
+    foto_nama: data.foto_nama ?? null,
   };
 }
 
@@ -66,19 +71,30 @@ export async function getMerchandiseRestockData(id: number) {
   };
 }
 
-export async function createMerchandiseAction(data: {
-  nama_merch: string;
-  deskripsi: string;
-  jumlah_stok: number;
-}): Promise<ActionResult> {
+export async function createMerchandiseAction(
+  formData: FormData
+): Promise<ActionResult> {
   try {
     const auth = await requireActionAdmin();
     if (!auth.ok) return auth;
 
-    const parsed = parseSchema(merchandiseCreateSchema, data);
+    const parsed = parseSchema(merchandiseCreateSchema, {
+      nama_merch: formData.get("nama_merch"),
+      deskripsi: formData.get("deskripsi") || undefined,
+      jumlah_stok: formData.get("jumlah_stok"),
+    });
     if (!parsed.ok) return parsed;
 
-    await createMerchandise(parsed.data, auth.user.id_user);
+    const foto = await saveMerchandiseFotoFromFormData(formData);
+
+    await createMerchandise(
+      {
+        ...parsed.data,
+        foto_path: foto?.foto_path ?? null,
+        foto_nama: foto?.foto_nama ?? null,
+      },
+      auth.user.id_user
+    );
     revalidateMerchandisePages();
     return { ok: true };
   } catch (error) {
@@ -91,10 +107,7 @@ export async function createMerchandiseAction(data: {
 
 export async function updateMerchandiseAction(
   id: number,
-  data: {
-    nama_merch: string;
-    deskripsi: string;
-  }
+  formData: FormData
 ): Promise<ActionResult> {
   try {
     const auth = await requireActionAdmin();
@@ -103,10 +116,42 @@ export async function updateMerchandiseAction(
     const idParsed = parseSchema(idParamSchema, id);
     if (!idParsed.ok) return idParsed;
 
-    const parsed = parseSchema(merchandiseUpdateSchema, data);
+    const parsed = parseSchema(merchandiseUpdateSchema, {
+      nama_merch: formData.get("nama_merch"),
+      deskripsi: formData.get("deskripsi") || undefined,
+    });
     if (!parsed.ok) return parsed;
 
-    await updateMerchandise(idParsed.data, parsed.data);
+    const foto = await saveMerchandiseFotoFromFormData(formData);
+    const hapusFoto = formData.get("hapus_foto") === "1";
+
+    const existing = await getMerchandiseById(idParsed.data);
+    if (!existing) {
+      return { ok: false, message: "Merchandise tidak ditemukan" };
+    }
+
+    if (foto) {
+      if (existing.foto_path) {
+        await deleteUploadedPublicFile(existing.foto_path);
+      }
+      await updateMerchandise(idParsed.data, {
+        ...parsed.data,
+        foto_path: foto.foto_path,
+        foto_nama: foto.foto_nama,
+      });
+    } else if (hapusFoto) {
+      if (existing.foto_path) {
+        await deleteUploadedPublicFile(existing.foto_path);
+      }
+      await updateMerchandise(idParsed.data, {
+        ...parsed.data,
+        foto_path: null,
+        foto_nama: null,
+      });
+    } else {
+      await updateMerchandise(idParsed.data, parsed.data);
+    }
+
     revalidateMerchandisePages();
     return { ok: true };
   } catch (error) {

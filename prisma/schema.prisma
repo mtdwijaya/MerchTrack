@@ -106,6 +106,9 @@ model Merchandise {
   nama_normalized String @unique
   deskripsi       String?
 
+  foto_path String?
+  foto_nama String?
+
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
 

@@ -8,6 +8,7 @@ export function buildBarangKeluarFormData(
     tanggal_keluar: string;
     keterangan: string;
     items: { id_merch: number; jumlah: number }[];
+    hapus_bukti?: boolean;
   },
   bukti?: File | null
 ) {
@@ -21,6 +22,7 @@ export function buildBarangKeluarFormData(
   formData.append("keterangan", data.keterangan);
   formData.append("items", JSON.stringify(data.items));
   if (bukti) formData.append("bukti", bukti);
+  if (data.hapus_bukti) formData.append("hapus_bukti", "1");
   return formData;
 }
 
@@ -35,6 +37,7 @@ export function buildBarangKeluarEditFormData(
     jumlah: number;
     tanggal_keluar: string;
     keterangan: string;
+    hapus_bukti?: boolean;
   },
   bukti?: File | null
 ) {
@@ -49,6 +52,7 @@ export function buildBarangKeluarEditFormData(
   formData.append("tanggal_keluar", data.tanggal_keluar);
   formData.append("keterangan", data.keterangan);
   if (bukti) formData.append("bukti", bukti);
+  if (data.hapus_bukti) formData.append("hapus_bukti", "1");
   return formData;
 }
 
@@ -62,6 +66,7 @@ export function buildBarangKeluarEditBatchFormData(
     tanggal_keluar: string;
     keterangan: string;
     items: { id_keluar: number; id_merch: number; jumlah: number }[];
+    hapus_bukti?: boolean;
   },
   bukti?: File | null
 ) {
@@ -75,6 +80,7 @@ export function buildBarangKeluarEditBatchFormData(
   formData.append("keterangan", data.keterangan);
   formData.append("items", JSON.stringify(data.items));
   if (bukti) formData.append("bukti", bukti);
+  if (data.hapus_bukti) formData.append("hapus_bukti", "1");
   return formData;
 }
 

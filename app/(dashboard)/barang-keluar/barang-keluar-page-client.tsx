@@ -216,6 +216,7 @@ export default function BarangKeluarPageClient({
       detail_teks?: string;
       tanggal_keluar: string;
       keterangan: string;
+      hapus_bukti?: boolean;
       items: { id_keluar?: number; id_merch: number; jumlah: number }[];
     },
     bukti?: File | null
@@ -238,6 +239,7 @@ export default function BarangKeluarPageClient({
               detail_teks: data.detail_teks,
               tanggal_keluar: data.tanggal_keluar,
               keterangan: data.keterangan,
+              hapus_bukti: data.hapus_bukti,
               items: data.items.map((item) => ({
                 id_keluar: item.id_keluar!,
                 id_merch: item.id_merch,
@@ -257,6 +259,7 @@ export default function BarangKeluarPageClient({
               jumlah: data.items[0]?.jumlah ?? 1,
               tanggal_keluar: data.tanggal_keluar,
               keterangan: data.keterangan,
+              hapus_bukti: data.hapus_bukti,
             },
             bukti
           )

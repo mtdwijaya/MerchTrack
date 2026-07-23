@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { Prisma } from "@prisma/client";
 import { lowStockWhere } from "@/lib/monitoring";
 import { SortOrder } from "@/lib/sort";
+import { deleteUploadedPublicFile } from "@/lib/upload-file-cleanup";
 
 export const MERCHANDISE_LIST_CACHE_TAG = "merchandise-list";
 
@@ -254,6 +255,8 @@ export async function createMerchandise(
     nama_merch: string;
     deskripsi?: string;
     jumlah_stok?: number;
+    foto_path?: string | null;
+    foto_nama?: string | null;
   },
   id_user?: number
 ) {
@@ -272,6 +275,8 @@ export async function createMerchandise(
           nama_merch,
           nama_normalized,
           deskripsi: data.deskripsi,
+          foto_path: data.foto_path ?? null,
+          foto_nama: data.foto_nama ?? null,
           stok: {
             create: {
               jumlah_stok,
@@ -313,9 +318,11 @@ export async function updateMerchandise(
   data: {
     nama_merch: string;
     deskripsi?: string;
+    foto_path?: string | null;
+    foto_nama?: string | null;
   }
 ) {
-  // edit merchandise hanya ubah nama/deskripsi, stok diubah lewat restock
+  // edit merchandise hanya ubah nama/deskripsi/foto, stok diubah lewat restock
   const existing = await prisma.merchandise.findUnique({
     where: { id_merch: id },
   });
@@ -338,6 +345,12 @@ export async function updateMerchandise(
         nama_merch,
         nama_normalized,
         deskripsi: data.deskripsi,
+        ...(data.foto_path !== undefined
+          ? {
+              foto_path: data.foto_path,
+              foto_nama: data.foto_nama ?? null,
+            }
+          : {}),
       },
       include: { stok: true },
     });
@@ -447,5 +460,8 @@ export async function deleteMerchandise(id: number) {
 
   return prisma.merchandise.delete({
     where: { id_merch: id },
+  }).then(async (deleted) => {
+    await deleteUploadedPublicFile(deleted.foto_path);
+    return deleted;
   });
 }

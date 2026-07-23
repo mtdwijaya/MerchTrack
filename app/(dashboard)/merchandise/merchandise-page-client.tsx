@@ -95,18 +95,27 @@ export default function MerchandisePageClient({
     nama_merch: string;
     deskripsi: string;
     jumlah_stok?: number;
+    foto?: File | null;
+    hapus_foto?: boolean;
   }) {
     modal.setSaving(true);
+
+    const formData = new FormData();
+    formData.append("nama_merch", data.nama_merch);
+    formData.append("deskripsi", data.deskripsi);
+    if (!modal.editId) {
+      formData.append("jumlah_stok", String(data.jumlah_stok ?? 0));
+    }
+    if (data.foto) {
+      formData.append("foto", data.foto);
+    }
+    if (data.hapus_foto) {
+      formData.append("hapus_foto", "1");
+    }
+
     const result = modal.editId
-      ? await updateMerchandiseAction(modal.editId, {
-          nama_merch: data.nama_merch,
-          deskripsi: data.deskripsi,
-        })
-      : await createMerchandiseAction({
-          nama_merch: data.nama_merch,
-          deskripsi: data.deskripsi,
-          jumlah_stok: data.jumlah_stok ?? 0,
-        });
+      ? await updateMerchandiseAction(modal.editId, formData)
+      : await createMerchandiseAction(formData);
     modal.setSaving(false);
 
     if (!result.ok) {
@@ -283,7 +292,7 @@ export default function MerchandisePageClient({
         title={modal.isEdit ? "Edit Merchandise" : "Tambah Merchandise"}
         description={
           modal.isEdit
-            ? "Perbarui nama dan deskripsi merchandise."
+            ? "Perbarui nama, deskripsi, dan foto merchandise."
             : "Tambahkan merchandise baru ke gudang pusat."
         }
         loading={modal.loading}

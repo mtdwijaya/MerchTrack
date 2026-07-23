@@ -14,15 +14,17 @@ interface Props {
   open: boolean;
   title: string;
   message: string;
+  confirmLabel?: string;
   onConfirm: () => void;
   onCancel: () => void;
 }
 
-// dialog konfirmasi hapus — pakai shadcn Dialog biar konsisten
+// dialog konfirmasi — pakai shadcn Dialog biar konsisten
 export default function ConfirmDialog({
   open,
   title,
   message,
+  confirmLabel = "Hapus",
   onConfirm,
   onCancel,
 }: Props) {
@@ -43,7 +45,7 @@ export default function ConfirmDialog({
             Batal
           </Button>
           <Button type="button" variant="destructive" onClick={onConfirm}>
-            Hapus
+            {confirmLabel}
           </Button>
         </DialogFooter>
       </DialogContent>

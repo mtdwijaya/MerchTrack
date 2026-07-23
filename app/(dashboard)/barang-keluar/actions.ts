@@ -24,6 +24,7 @@ import { prisma } from "@/lib/prisma";
 import type { BarangKeluarWithRelations } from "@/lib/barang-keluar-types";
 import { revalidateMerchandiseListCache } from "@/lib/merchandise";
 import { revalidateAnalyticsPages } from "@/lib/revalidate-analytics";
+import { deleteUploadedPublicFile } from "@/lib/upload-file-cleanup";
 import {
   getTanggalFromForm,
   isBarangKeluarBatchData,
@@ -232,6 +233,22 @@ export async function updateBarangKeluarAction(
     if (!parsed.ok) return parsed;
 
     const bukti = await parseBarangKeluarBukti(formData);
+    const hapusBukti = formData.get("hapus_bukti") === "1";
+
+    async function resolveBuktiPatch(existingPath: string | null | undefined) {
+      if (bukti) {
+        if (existingPath) await deleteUploadedPublicFile(existingPath);
+        return {
+          bukti_path: bukti.bukti_path,
+          bukti_nama: bukti.bukti_nama,
+        };
+      }
+      if (hapusBukti) {
+        if (existingPath) await deleteUploadedPublicFile(existingPath);
+        return { bukti_path: null, bukti_nama: null };
+      }
+      return undefined;
+    }
 
     if (isBarangKeluarEditBatchData(parsed.data)) {
       if (!parsed.data.tanggal_keluar) {
@@ -245,6 +262,8 @@ export async function updateBarangKeluarAction(
 
       assertCanMutateBarangKeluar(auth.user, existing);
 
+      const buktiPatch = await resolveBuktiPatch(existing.bukti_path);
+
       await updateBarangKeluarBatch(
         idParsed.data,
         {
@@ -257,7 +276,7 @@ export async function updateBarangKeluarAction(
           keterangan: parsed.data.keterangan,
           items: parsed.data.items,
         },
-        bukti ?? undefined
+        buktiPatch
       );
 
       revalidatePath("/barang-keluar");
@@ -328,7 +347,7 @@ export async function updateBarangKeluarAction(
         jumlah: parsed.data.jumlah,
         tanggal_keluar: tanggalBaru,
         keterangan: parsed.data.keterangan,
-        buktiBaru: !!bukti,
+        buktiBaru: !!bukti || hapusBukti,
       },
       {
         merchandise: newMerch?.nama_merch,
@@ -337,6 +356,8 @@ export async function updateBarangKeluarAction(
         unit: needsUnit ? newUnit : existing.unit,
       }
     );
+
+    const buktiPatch = await resolveBuktiPatch(existing.bukti_path);
 
     await updateBarangKeluar(idParsed.data, {
       nama_petugas: parsed.data.nama_petugas,
@@ -348,12 +369,7 @@ export async function updateBarangKeluarAction(
       jumlah: parsed.data.jumlah,
       tanggal_keluar: getTanggalFromForm(parsed.data.tanggal_keluar),
       keterangan: parsed.data.keterangan,
-      ...(bukti
-        ? {
-            bukti_path: bukti.bukti_path,
-            bukti_nama: bukti.bukti_nama,
-          }
-        : {}),
+      ...(buktiPatch ?? {}),
     });
 
     const displayMerch =

@@ -11,6 +11,11 @@ export type MonitoringUser = {
   role: Role;
 };
 
+const merchandiseStockSelect = {
+  nama_merch: true,
+  foto_path: true,
+} as const;
+
 async function fetchMonitoringOverview() {
   const [
     totalStokAktifAgg,
@@ -25,12 +30,12 @@ async function fetchMonitoringOverview() {
     prisma.stok.count({ where: lowStockWhere }),
     prisma.stok.findMany({
       where: lowStockWhere,
-      include: { merchandise: true },
+      include: { merchandise: { select: merchandiseStockSelect } },
       orderBy: { jumlah_stok: "asc" },
       take: 10,
     }),
     prisma.stok.findMany({
-      include: { merchandise: true },
+      include: { merchandise: { select: merchandiseStockSelect } },
       orderBy: [{ jumlah_stok: "desc" }, { id_merch: "asc" }],
     }),
     prisma.barangKeluar.groupBy({
@@ -65,6 +70,7 @@ async function fetchMonitoringOverview() {
       return {
         id_merch: item.id_merch,
         nama: item.merchandise.nama_merch,
+        foto_path: item.merchandise.foto_path,
         jumlah: sisa,
         stokDipakai: dipakai,
         stokSisa: sisa,
@@ -74,6 +80,7 @@ async function fetchMonitoringOverview() {
     lowStockItems: stokRendah.map((item) => ({
       id_merch: item.id_merch,
       nama: item.merchandise.nama_merch,
+      foto_path: item.merchandise.foto_path,
       jumlah: item.jumlah_stok,
       status: getStockStatus(item.jumlah_stok),
     })),
@@ -82,7 +89,7 @@ async function fetchMonitoringOverview() {
 
 const getCachedMonitoringOverview = unstable_cache(
   fetchMonitoringOverview,
-  ["monitoring-overview-v2"],
+  ["monitoring-overview-v3"],
   { tags: [ANALYTICS_CACHE_TAG], revalidate: 30 }
 );
 
@@ -90,4 +97,6 @@ export async function getMonitoringOverview(_user: MonitoringUser) {
   return getCachedMonitoringOverview();
 }
 
-export type MonitoringOverview = Awaited<ReturnType<typeof getMonitoringOverview>>;
+export type MonitoringOverview = Awaited<
+  ReturnType<typeof getMonitoringOverview>
+>;

@@ -40,6 +40,7 @@ export type BarangKeluarFormSubmitData = {
   tanggal_keluar: string;
   keterangan: string;
   items: MerchItemRow[];
+  hapus_bukti?: boolean;
 };
 
 interface BarangKeluarFormProps {
@@ -121,6 +122,7 @@ export default function BarangKeluarForm({
     return [createEmptyItem()];
   });
   const [bukti, setBukti] = useState<File | null>(null);
+  const [hapusBukti, setHapusBukti] = useState(false);
 
   const selectedTujuan = tujuanList.find(
     (item) => item.id_tujuan === header.id_tujuan
@@ -241,6 +243,7 @@ export default function BarangKeluarForm({
             detail_teks: header.detail_teks || undefined,
             tanggal_keluar: header.tanggal_keluar,
             keterangan: header.keterangan,
+            hapus_bukti: hapusBukti,
             items: items
               .filter((item) => item.id_merch > 0)
               .map((item) => ({
@@ -438,6 +441,8 @@ export default function BarangKeluarForm({
         onChange={setBukti}
         existingFileName={initialData?.bukti_nama}
         existingFilePath={initialData?.bukti_path}
+        removeExisting={hapusBukti}
+        onRemoveExistingChange={setHapusBukti}
       />
 
       <FormActions

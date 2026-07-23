@@ -45,3 +45,5 @@ next-env.d.ts
 # upload bukti transaksi (jangan commit file user)
 /public/uploads/bukti/*
 !/public/uploads/bukti/.gitkeep
+/public/uploads/merchandise/*
+!/public/uploads/merchandise/.gitkeep

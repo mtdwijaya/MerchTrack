@@ -183,7 +183,15 @@ export function BuktiLocalPreview({ file }: BuktiLocalPreviewProps) {
 
   return (
     <div className="mt-3 overflow-hidden rounded-lg border border-[#E5E7EB] bg-[#FAFAFA]">
-
+      <BuktiPreviewFrame
+        path={previewUrl}
+        name={file.name}
+        kind={kind}
+        className="mx-auto max-h-48 w-full object-contain"
+      />
+      <p className="border-t border-[#EFEAE5] px-3 py-2 text-xs text-[#6B7280]">
+        {file.name}
+      </p>
     </div>
   );
 }

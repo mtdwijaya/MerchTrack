@@ -100,6 +100,7 @@ export async function getMonitoringPaginated({
       id_stok: item.id_stok,
       id_merch: item.id_merch,
       nama_merch: item.merchandise.nama_merch,
+      foto_path: item.merchandise.foto_path ?? null,
       jumlah_stok: item.jumlah_stok,
       status: getStockStatus(item.jumlah_stok),
     })),

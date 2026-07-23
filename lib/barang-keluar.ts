@@ -16,6 +16,7 @@ import {
   asBarangKeluarWithRelationsList,
 } from "@/lib/barang-keluar-types";
 import { getTujuanById } from "@/lib/tujuan";
+import { deleteUploadedPublicFile } from "@/lib/upload-file-cleanup";
 import { Prisma } from "@prisma/client";
 import { SortOrder } from "@/lib/sort";
 
@@ -491,6 +492,12 @@ export async function deleteBarangKeluar(id: number) {
         )
       : [asBarangKeluarWithRelations(transaksi as BarangKeluarWithRelations)];
 
+    const buktiPaths = new Set(
+      targets
+        .map((item) => item.bukti_path)
+        .filter((path): path is string => Boolean(path))
+    );
+
     for (const item of targets) {
       await tx.stok.update({
         where: { id_merch: item.id_merch },
@@ -504,6 +511,10 @@ export async function deleteBarangKeluar(id: number) {
       await tx.barangKeluar.delete({
         where: { id_keluar: item.id_keluar },
       });
+    }
+
+    for (const path of buktiPaths) {
+      await deleteUploadedPublicFile(path);
     }
   });
 }

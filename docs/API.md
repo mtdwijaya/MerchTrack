@@ -70,7 +70,7 @@ Akun seed: `admin@lrt.co.id` / `password123`, `petugas@lrt.co.id` / `password123
 
 **Query `/api/dashboard`:** `chartTahun` (tahun stacked bar), `sankeyBulan` + `sankeyTahun` (opsional — kosong = sankey all-time).
 
-**Response monitoring overview (ringkas):** `summary.{totalStokAktif,jenisMerchandise,peringatanStokRendah}`, `merchandiseStock[]` (`stokDipakai`, `stokSisa`, `status`), `lowStockItems[]`.
+**Response monitoring overview (ringkas):** `summary.{totalStokAktif,jenisMerchandise,peringatanStokRendah}`, `merchandiseStock[]` (`foto_path`, `stokDipakai`, `stokSisa`, `status`), `lowStockItems[]`.
 
 **Query `/api/monitoring/stok`:** `page`, `limit`, `search`, `sort`, `status` (`habis` \| `rendah` \| `normal`).
 
@@ -127,10 +127,13 @@ Body create/update unit:
 
 **Query GET list:** `page`, `limit`, `search`, `sort` (`nama_merch:asc` \| `jumlah_stok:desc`).
 
-Body create:
+Body create (JSON):
 ```json
 { "nama_merch": "Topi LRT", "deskripsi": "Topi katun", "jumlah_stok": 100 }
 ```
+
+> **Foto merchandise:** di UI diunggah lewat FormData field `foto` (JPG/PNG/WEBP, max 5MB) saat create/edit. REST JSON di atas tidak mengirim binary; response GET list/detail/monitoring menyertakan `foto_path` bila ada. Upload foto via REST multipart belum tersedia (pakai UI master merchandise).
+
 Body restock:
 ```json
 { "nama_petugas": "Andi Wijaya", "jumlah": 50, "keterangan": "Restock gudang pusat" }

@@ -273,6 +273,7 @@ export default function MonitoringPageClient({
               detail_teks: data.detail_teks,
               tanggal_keluar: data.tanggal_keluar,
               keterangan: data.keterangan,
+              hapus_bukti: data.hapus_bukti,
               items: data.items.map((item) => ({
                 id_keluar: item.id_keluar!,
                 id_merch: item.id_merch,
@@ -292,6 +293,7 @@ export default function MonitoringPageClient({
               jumlah: data.items[0]?.jumlah ?? 1,
               tanggal_keluar: data.tanggal_keluar,
               keterangan: data.keterangan,
+              hapus_bukti: data.hapus_bukti,
             },
             bukti
           )
