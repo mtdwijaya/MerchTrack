@@ -21,7 +21,6 @@ import {
 } from "@/components/ui/filter-bar";
 import PageHeader, { PrimaryButton } from "@/components/ui/page-header";
 import Pagination from "@/components/ui/pagination";
-import SummaryCards from "@/components/ui/summary-cards";
 import { DeleteAction, TextOutlineAction } from "@/components/ui/table-actions";
 import { useFormModal } from "@/hooks/use-form-modal";
 import { useListFilters } from "@/hooks/use-list-filters";
@@ -50,18 +49,12 @@ interface Props {
     currentPage: number;
     totalPages: number;
   };
-  summary: {
-    totalStasiun: number;
-    stasiunAktif: number;
-    totalPetugas: number;
-  };
   pageSize: number;
   defaultSort: string;
 }
 
 export default function TujuanStasiunPageClient({
   list,
-  summary,
   pageSize,
   defaultSort,
 }: Props) {
@@ -131,13 +124,6 @@ export default function TujuanStasiunPageClient({
   return (
     <>
       <div className="space-y-6">
-        <Link
-          href="/tujuan"
-          className="inline-flex items-center gap-1.5 text-sm font-medium text-[#6B7280] hover:text-[#B1070E]"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          Kembali ke Tujuan
-        </Link>
 
         <PageHeader
           title="Daftar Stasiun"
@@ -147,29 +133,6 @@ export default function TujuanStasiunPageClient({
               + Tambah Stasiun
             </PrimaryButton>
           }
-        />
-
-        <SummaryCards
-          items={[
-            {
-              title: "Total Stasiun",
-              value: summary.totalStasiun,
-              iconSrc: "/icons/icon-red-stasiun.svg",
-              subtitle: "Seluruh stasiun terdaftar",
-            },
-            {
-              title: "Stasiun Aktif",
-              value: summary.stasiunAktif,
-              iconSrc: "/icons/icon-barangkeluar-merah.svg",
-              subtitle: "Stasiun dengan transaksi",
-            },
-            {
-              title: "Petugas Terdaftar",
-              value: summary.totalPetugas,
-              iconSrc: "/icons/icon-kelolapengguna-merah.svg",
-              subtitle: "Petugas dengan stasiun",
-            },
-          ]}
         />
 
         <FilterBar onReset={() => resetParams(["search", "sort"])}>

@@ -5,7 +5,6 @@ import { requirePageAccess } from "@/lib/require-page";
 import { getPageParam, getParam, type SearchParams } from "@/lib/list-params";
 import {
   getPenggunaPaginated,
-  getPenggunaSummary,
   parsePenggunaSort,
 } from "@/lib/pengguna";
 import { getAllStasiun } from "@/lib/stasiun";
@@ -30,7 +29,7 @@ async function PenggunaContent({
   const { sortBy, sortOrder } = parseSortValue(sort, "nama_user");
   const parsed = parsePenggunaSort(sortBy, sortOrder);
 
-  const [list, summary, stasiunList, rolePermissions] = await Promise.all([
+  const [list, stasiunList, rolePermissions] = await Promise.all([
     getPenggunaPaginated({
       page,
       limit: PAGE_SIZE,
@@ -39,7 +38,6 @@ async function PenggunaContent({
       sortOrder: parsed.sortOrder,
       role: role || undefined,
     }),
-    getPenggunaSummary(),
     getAllStasiun(),
     getAllRolePermissions(),
   ]);
@@ -47,7 +45,6 @@ async function PenggunaContent({
   return (
     <PenggunaPageClient
       list={list}
-      summary={summary}
       stasiunList={stasiunList}
       rolePermissions={rolePermissions}
       pageSize={PAGE_SIZE}

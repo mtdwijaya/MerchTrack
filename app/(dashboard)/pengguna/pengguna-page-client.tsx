@@ -19,7 +19,6 @@ import {
 } from "@/components/ui/filter-bar";
 import PageHeader, { PrimaryButton } from "@/components/ui/page-header";
 import Pagination from "@/components/ui/pagination";
-import SummaryCards from "@/components/ui/summary-cards";
 import { DeleteAction, TextOutlineAction } from "@/components/ui/table-actions";
 import { useFormModal } from "@/hooks/use-form-modal";
 import { useListFilters } from "@/hooks/use-list-filters";
@@ -53,11 +52,6 @@ interface Props {
     total: number;
     totalPages: number;
   };
-  summary: {
-    totalPengguna: number;
-    totalAdmin: number;
-    totalPetugas: number;
-  };
   stasiunList: StasiunOption[];
   rolePermissions: {
     ADMIN: Record<PageKey, boolean>;
@@ -74,7 +68,6 @@ interface Props {
 
 export default function PenggunaPageClient({
   list,
-  summary,
   stasiunList,
   rolePermissions,
   pageSize,
@@ -165,29 +158,6 @@ export default function PenggunaPageClient({
               + Tambah Pengguna
             </PrimaryButton>
           }
-        />
-
-        <SummaryCards
-          items={[
-            {
-              title: "Total Pengguna",
-              value: summary.totalPengguna,
-              iconSrc: "/icons/icon-kelolapengguna-merah.svg",
-              subtitle: "Seluruh akun terdaftar",
-            },
-            {
-              title: "Admin",
-              value: summary.totalAdmin,
-              iconSrc: "/icons/icon-kelolapengguna-merah.svg",
-              subtitle: "Pengguna dengan akses penuh",
-            },
-            {
-              title: "Petugas",
-              value: summary.totalPetugas,
-              iconSrc: "/icons/icon-red-stasiun.svg",
-              subtitle: "Pengguna operasional",
-            },
-          ]}
         />
 
         <RolePermissionPanel

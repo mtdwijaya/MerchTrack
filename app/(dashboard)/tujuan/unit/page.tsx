@@ -6,7 +6,6 @@ import { getPageParam, getParam, type SearchParams } from "@/lib/list-params";
 import { parseSortValue } from "@/lib/sort";
 import {
   getUnitPaginated,
-  getUnitSummary,
   parseUnitSort,
 } from "@/lib/unit";
 
@@ -22,21 +21,17 @@ async function Content({ searchParams }: { searchParams: SearchParams }) {
   const { sortBy, sortOrder } = parseSortValue(sort, "nama_unit");
   const parsed = parseUnitSort(sortBy, sortOrder);
 
-  const [list, summary] = await Promise.all([
-    getUnitPaginated({
-      page,
-      limit: PAGE_SIZE,
-      search,
-      sortBy: parsed.sortBy,
-      sortOrder: parsed.sortOrder,
-    }),
-    getUnitSummary(),
-  ]);
+  const list = await getUnitPaginated({
+    page,
+    limit: PAGE_SIZE,
+    search,
+    sortBy: parsed.sortBy,
+    sortOrder: parsed.sortOrder,
+  });
 
   return (
     <TujuanUnitPageClient
       list={list}
-      summary={summary}
       pageSize={PAGE_SIZE}
       defaultSort={DEFAULT_SORT}
     />

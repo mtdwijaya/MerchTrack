@@ -21,7 +21,6 @@ import {
 } from "@/components/ui/filter-bar";
 import PageHeader, { PrimaryButton } from "@/components/ui/page-header";
 import Pagination from "@/components/ui/pagination";
-import SummaryCards from "@/components/ui/summary-cards";
 import { DeleteAction, TextOutlineAction } from "@/components/ui/table-actions";
 import { useFormModal } from "@/hooks/use-form-modal";
 import { useListFilters } from "@/hooks/use-list-filters";
@@ -50,17 +49,12 @@ interface Props {
     currentPage: number;
     totalPages: number;
   };
-  summary: {
-    totalUnit: number;
-    unitAktif: number;
-  };
   pageSize: number;
   defaultSort: string;
 }
 
 export default function TujuanUnitPageClient({
   list,
-  summary,
   pageSize,
   defaultSort,
 }: Props) {
@@ -126,13 +120,7 @@ export default function TujuanUnitPageClient({
   return (
     <>
       <div className="space-y-6">
-        <Link
-          href="/tujuan"
-          className="inline-flex items-center gap-1.5 text-sm font-medium text-[#6B7280] hover:text-[#B1070E]"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          Kembali ke Tujuan
-        </Link>
+
 
         <PageHeader
           title="Daftar Unit"
@@ -142,24 +130,6 @@ export default function TujuanUnitPageClient({
               + Tambah Unit
             </PrimaryButton>
           }
-        />
-
-        <SummaryCards
-          columns={2}
-          items={[
-            {
-              title: "Total Unit",
-              value: summary.totalUnit,
-              iconSrc: "/icons/icon-red-stasiun.svg",
-              subtitle: "Seluruh unit terdaftar",
-            },
-            {
-              title: "Unit Aktif",
-              value: summary.unitAktif,
-              iconSrc: "/icons/icon-barangkeluar-merah.svg",
-              subtitle: "Unit dengan transaksi",
-            },
-          ]}
         />
 
         <FilterBar onReset={() => resetParams(["search", "sort"])}>

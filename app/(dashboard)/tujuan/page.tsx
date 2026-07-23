@@ -7,7 +7,6 @@ import { getPageParam, getParam, type SearchParams } from "@/lib/list-params";
 import { parseSortValue } from "@/lib/sort";
 import {
   getTujuanPaginated,
-  getTujuanSummary,
   parseTujuanSort,
 } from "@/lib/tujuan";
 
@@ -34,22 +33,18 @@ async function TujuanContent({
   const { sortBy, sortOrder } = parseSortValue(sort, "nama_tujuan");
   const parsed = parseTujuanSort(sortBy, sortOrder);
 
-  const [list, summary] = await Promise.all([
-    getTujuanPaginated({
-      page,
-      limit: PAGE_SIZE,
-      search,
-      sortBy: parsed.sortBy,
-      sortOrder: parsed.sortOrder,
-      jenisDetail,
-    }),
-    getTujuanSummary(),
-  ]);
+  const list = await getTujuanPaginated({
+    page,
+    limit: PAGE_SIZE,
+    search,
+    sortBy: parsed.sortBy,
+    sortOrder: parsed.sortOrder,
+    jenisDetail,
+  });
 
   return (
     <TujuanPageClient
       list={list}
-      summary={summary}
       pageSize={PAGE_SIZE}
       defaultSort={DEFAULT_SORT}
     />

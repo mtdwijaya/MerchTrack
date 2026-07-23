@@ -24,7 +24,6 @@ import {
 } from "@/components/ui/filter-bar";
 import PageHeader, { PrimaryButton } from "@/components/ui/page-header";
 import Pagination from "@/components/ui/pagination";
-import SummaryCards from "@/components/ui/summary-cards";
 import { DeleteAction, TextOutlineAction } from "@/components/ui/table-actions";
 import { useFormModal } from "@/hooks/use-form-modal";
 import { useListFilters } from "@/hooks/use-list-filters";
@@ -59,18 +58,12 @@ interface Props {
     currentPage: number;
     totalPages: number;
   };
-  summary: {
-    totalTujuan: number;
-    denganSubList: number;
-    bolehReturn: number;
-  };
   pageSize: number;
   defaultSort: string;
 }
 
 export default function TujuanPageClient({
   list,
-  summary,
   pageSize,
   defaultSort,
 }: Props) {
@@ -139,29 +132,6 @@ export default function TujuanPageClient({
               + Tambah Tujuan
             </PrimaryButton>
           }
-        />
-
-        <SummaryCards
-          items={[
-            {
-              title: "Total Tujuan",
-              value: summary.totalTujuan,
-              iconSrc: "/icons/icon-red-stasiun.svg",
-              subtitle: "Kategori tujuan terdaftar",
-            },
-            {
-              title: "Punya Sub Daftar",
-              value: summary.denganSubList,
-              iconSrc: "/icons/icon-barangkeluar-merah.svg",
-              subtitle: "Jenis Stasiun / Unit",
-            },
-            {
-              title: "Boleh Return",
-              value: summary.bolehReturn,
-              iconSrc: "/icons/icon-stok.svg",
-              subtitle: "Kategori yang boleh dikembalikan",
-            },
-          ]}
         />
 
         <FilterBar

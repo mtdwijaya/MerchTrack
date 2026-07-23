@@ -58,10 +58,6 @@ type HoverTarget =
   | { type: "node"; name: string; side: "merch" | "tujuan" }
   | null;
 
-function truncateLabel(label: string, max = 14) {
-  return label.length > max ? `${label.slice(0, max - 1)}…` : label;
-}
-
 function formatPcs(value: number) {
   if (value >= 1_000_000) {
     return `${(value / 1_000_000).toFixed(1)}Jt`;
@@ -70,6 +66,11 @@ function formatPcs(value: number) {
     return `${(value / 1_000).toFixed(1)}rb`;
   }
   return value.toLocaleString("id-ID");
+}
+
+/** Perkiraan lebar teks SVG (font ~10px) */
+function estimateTextWidth(text: string, charWidth = 6.1) {
+  return Math.ceil(text.length * charWidth);
 }
 
 /** Opacity default: volume terbesar paling terang */
@@ -130,25 +131,26 @@ function PillLabel({
   color: string;
   align: "left" | "right";
 }) {
-  const label = truncateLabel(name, 12);
   const valueText = `${formatPcs(value)} pcs`;
-  const approxWidth = Math.min(
-    150,
-    16 + label.length * 6.2 + 8 + valueText.length * 5.4
-  );
-  const height = 20;
+  const nameWidth = estimateTextWidth(name, 6.4);
+  const valueWidth = estimateTextWidth(valueText, 5.6);
+  const gap = 6;
+  const paddingX = 10;
+  const approxWidth = paddingX * 2 + nameWidth + gap + valueWidth;
+  const height = 22;
   const rectX = align === "left" ? x : x - approxWidth;
-  const textStart = rectX + 8;
+  const textStart = rectX + paddingX;
 
   return (
     <g style={{ pointerEvents: "none" }}>
+      <title>{`${name} · ${valueText}`}</title>
       <rect
         x={rectX}
         y={y - height / 2}
         width={approxWidth}
         height={height}
-        rx={10}
-        ry={10}
+        rx={11}
+        ry={11}
         fill="rgba(26, 26, 26, 0.78)"
       />
       <text
@@ -159,10 +161,10 @@ function PillLabel({
         fontWeight={700}
         fill={color}
       >
-        {label}
+        {name}
       </text>
       <text
-        x={textStart + label.length * 6.2 + 6}
+        x={textStart + nameWidth + gap}
         y={y}
         dominantBaseline="middle"
         fontSize={10}

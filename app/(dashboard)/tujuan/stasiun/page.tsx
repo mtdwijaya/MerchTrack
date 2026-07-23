@@ -6,7 +6,6 @@ import { getPageParam, getParam, type SearchParams } from "@/lib/list-params";
 import { parseSortValue } from "@/lib/sort";
 import {
   getStasiunPaginated,
-  getStasiunSummary,
   parseStasiunSort,
 } from "@/lib/stasiun";
 
@@ -22,21 +21,17 @@ async function Content({ searchParams }: { searchParams: SearchParams }) {
   const { sortBy, sortOrder } = parseSortValue(sort, "nama_stasiun");
   const parsed = parseStasiunSort(sortBy, sortOrder);
 
-  const [list, summary] = await Promise.all([
-    getStasiunPaginated({
-      page,
-      limit: PAGE_SIZE,
-      search,
-      sortBy: parsed.sortBy,
-      sortOrder: parsed.sortOrder,
-    }),
-    getStasiunSummary(),
-  ]);
+  const list = await getStasiunPaginated({
+    page,
+    limit: PAGE_SIZE,
+    search,
+    sortBy: parsed.sortBy,
+    sortOrder: parsed.sortOrder,
+  });
 
   return (
     <TujuanStasiunPageClient
       list={list}
-      summary={summary}
       pageSize={PAGE_SIZE}
       defaultSort={DEFAULT_SORT}
     />
