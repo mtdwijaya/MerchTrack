@@ -76,6 +76,7 @@ export const PUT = route<Ctx>(async (req, ctx) => {
     }
 
     await updateBarangKeluarBatch(id, {
+      nama_petugas: parsed.data.nama_petugas,
       id_tujuan: parsed.data.id_tujuan,
       id_stasiun: parsed.data.id_stasiun,
       id_unit: parsed.data.id_unit,
@@ -98,6 +99,7 @@ export const PUT = route<Ctx>(async (req, ctx) => {
   }
 
   const updated = await updateBarangKeluar(id, {
+    nama_petugas: data.data.nama_petugas,
     id_merch: data.data.id_merch,
     id_tujuan: data.data.id_tujuan,
     id_stasiun: data.data.id_stasiun,

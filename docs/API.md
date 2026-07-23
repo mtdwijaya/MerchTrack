@@ -133,7 +133,7 @@ Body create:
 ```
 Body restock:
 ```json
-{ "jumlah": 50, "keterangan": "Restock gudang pusat" }
+{ "nama_petugas": "Andi Wijaya", "jumlah": 50, "keterangan": "Restock gudang pusat" }
 ```
 
 ---
@@ -179,6 +179,7 @@ Body restock:
 Body create single:
 ```json
 {
+  "nama_petugas": "Andi Wijaya",
   "id_merch": 1,
   "id_tujuan": 1,
   "id_stasiun": 1,
@@ -191,6 +192,7 @@ Body create single:
 Body create batch:
 ```json
 {
+  "nama_petugas": "Andi Wijaya",
   "id_tujuan": 1,
   "id_stasiun": 1,
   "tanggal_keluar": "2026-07-02",
@@ -226,7 +228,7 @@ Body return (batch multi-merch dalam grup — `:id` = anchor transaksi):
 }
 ```
 
-> Field detail (`id_stasiun` / `id_unit` / `detail_teks`) tergantung `jenis_detail` tujuan. Stok kurang → `400`.
+> Field `nama_petugas` wajib: nama orang yang melakukan transaksi di perangkat bersama (bukan akun login). Field detail (`id_stasiun` / `id_unit` / `detail_teks`) tergantung `jenis_detail` tujuan. Stok kurang → `400`.
 
 ---
 
@@ -237,7 +239,7 @@ Body return (batch multi-merch dalam grup — `:id` = anchor transaksi):
 
 **Query:** `page`, `limit`, `search`, `jenis` (`KELUAR` \| `MASUK` \| `RESTOCK`), `id_merch`, `tanggal_dari`, `tanggal_sampai` (`YYYY-MM-DD`).
 
-Response: `{ data, total, currentPage, totalPages }` — item unified dengan `jenis`, `items[]` (grup keluar multi-merch), `tujuan`.
+Response: `{ data, total, currentPage, totalPages }` — item unified dengan `jenis`, `petugas` (dari `nama_petugas` form), `items[]` (grup keluar multi-merch), `tujuan`.
 
 ---
 

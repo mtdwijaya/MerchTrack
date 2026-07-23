@@ -22,7 +22,14 @@ export const loginSchema = z.object({
   password: z.string().min(1, "Password wajib diisi"),
 });
 
+const namaPetugasField = z
+  .string()
+  .trim()
+  .min(1, "Nama petugas wajib diisi")
+  .max(200, "Nama petugas terlalu panjang");
+
 const barangKeluarDetailFields = {
+  nama_petugas: namaPetugasField,
   id_tujuan: idParamSchema,
   id_stasiun: z
     .union([idParamSchema, z.literal(0), z.null()])
@@ -173,6 +180,7 @@ export const merchandiseUpdateSchema = z.object({
 });
 
 export const merchandiseRestockSchema = z.object({
+  nama_petugas: namaPetugasField,
   jumlah: z.coerce
     .number()
     .int("Jumlah harus bilangan bulat")

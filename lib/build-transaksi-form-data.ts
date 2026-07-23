@@ -1,5 +1,6 @@
 export function buildBarangKeluarFormData(
   data: {
+    nama_petugas: string;
     id_tujuan: number;
     id_stasiun?: number;
     id_unit?: number;
@@ -11,6 +12,7 @@ export function buildBarangKeluarFormData(
   bukti?: File | null
 ) {
   const formData = new FormData();
+  formData.append("nama_petugas", data.nama_petugas);
   formData.append("id_tujuan", String(data.id_tujuan));
   if (data.id_stasiun) formData.append("id_stasiun", String(data.id_stasiun));
   if (data.id_unit) formData.append("id_unit", String(data.id_unit));
@@ -24,6 +26,7 @@ export function buildBarangKeluarFormData(
 
 export function buildBarangKeluarEditFormData(
   data: {
+    nama_petugas: string;
     id_merch: number;
     id_tujuan: number;
     id_stasiun?: number;
@@ -36,6 +39,7 @@ export function buildBarangKeluarEditFormData(
   bukti?: File | null
 ) {
   const formData = new FormData();
+  formData.append("nama_petugas", data.nama_petugas);
   formData.append("id_merch", String(data.id_merch));
   formData.append("id_tujuan", String(data.id_tujuan));
   if (data.id_stasiun) formData.append("id_stasiun", String(data.id_stasiun));
@@ -50,6 +54,7 @@ export function buildBarangKeluarEditFormData(
 
 export function buildBarangKeluarEditBatchFormData(
   data: {
+    nama_petugas: string;
     id_tujuan: number;
     id_stasiun?: number;
     id_unit?: number;
@@ -61,6 +66,7 @@ export function buildBarangKeluarEditBatchFormData(
   bukti?: File | null
 ) {
   const formData = new FormData();
+  formData.append("nama_petugas", data.nama_petugas);
   formData.append("id_tujuan", String(data.id_tujuan));
   if (data.id_stasiun) formData.append("id_stasiun", String(data.id_stasiun));
   if (data.id_unit) formData.append("id_unit", String(data.id_unit));
@@ -73,10 +79,11 @@ export function buildBarangKeluarEditBatchFormData(
 }
 
 export function buildRestockFormData(
-  data: { jumlah: number; keterangan: string },
+  data: { nama_petugas: string; jumlah: number; keterangan: string },
   bukti?: File | null
 ) {
   const formData = new FormData();
+  formData.append("nama_petugas", data.nama_petugas);
   formData.append("jumlah", String(data.jumlah));
   formData.append("keterangan", data.keterangan);
   if (bukti) formData.append("bukti", bukti);

@@ -29,6 +29,7 @@ import Pagination from "@/components/ui/pagination";
 import {
   BARANG_KELUAR_SORT_OPTIONS,
 } from "@/constants/barang-keluar-sort";
+import { TABLE_FULL_GRID } from "@/constants/table-styles";
 import { useFormModal } from "@/hooks/use-form-modal";
 import { useListFilters } from "@/hooks/use-list-filters";
 import type { BarangKeluarGroupRow } from "@/lib/barang-keluar-group";
@@ -208,6 +209,7 @@ export default function BarangKeluarPageClient({
 
   async function handleSubmit(
     data: {
+      nama_petugas: string;
       id_tujuan: number;
       id_stasiun?: number;
       id_unit?: number;
@@ -229,6 +231,7 @@ export default function BarangKeluarPageClient({
       ? isMultiEdit
         ? buildBarangKeluarEditBatchFormData(
             {
+              nama_petugas: data.nama_petugas,
               id_tujuan: data.id_tujuan,
               id_stasiun: data.id_stasiun,
               id_unit: data.id_unit,
@@ -245,6 +248,7 @@ export default function BarangKeluarPageClient({
           )
         : buildBarangKeluarEditFormData(
             {
+              nama_petugas: data.nama_petugas,
               id_merch: data.items[0]?.id_merch ?? 0,
               id_tujuan: data.id_tujuan,
               id_stasiun: data.id_stasiun,
@@ -358,9 +362,9 @@ export default function BarangKeluarPageClient({
         </FilterBar>
 
         <DataTableSection>
-          <DataTable>
+          <DataTable className={TABLE_FULL_GRID}>
             <thead>
-              <tr className="border-b border-[#EFEAE5] bg-[#FAFAFA]">
+              <tr className="bg-[#FAFAFA]">
                 <SortableTh
                   label="Tanggal"
                   field="tanggal_keluar"
@@ -384,19 +388,21 @@ export default function BarangKeluarPageClient({
                 />
                 <Th align="center">Tujuan</Th>
                 <Th align="center">Status</Th>
+                <Th align="center">Petugas</Th>
                 <Th align="center">Aksi</Th>
               </tr>
             </thead>
             <tbody>
               {isPending || returnLoading ? (
-                <TableEmptyRow colSpan={6} message="Memuat data..." />
+                <TableEmptyRow colSpan={7} message="Memuat data..." />
               ) : list.data.length === 0 ? (
-                <TableEmptyRow colSpan={6} message="Tidak ada data" />
+                <TableEmptyRow colSpan={7} message="Tidak ada data" />
               ) : (
-                list.data.map((item) => (
+                list.data.map((item, index) => (
                   <BarangKeluarGroupTableRow
                     key={item.group_key}
                     item={item}
+                    stripeIndex={index}
                     onManage={setDetailId}
                     onReturn={(id) => void openReturnModal(id)}
                   />

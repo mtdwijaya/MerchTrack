@@ -220,6 +220,7 @@ async function main() {
       data: {
         id_merch: item.id_merch,
         id_user: petugas.id_user,
+        nama_petugas: "Budi Restock",
         jumlah: item.jumlah,
         jenis: isFirst ? "BARU" : "RESTOCK",
         tanggal_masuk: item.tanggal,
@@ -287,6 +288,7 @@ async function main() {
         id_merch: item.id_merch,
         id_tujuan: item.id_tujuan,
         id_user: admin.id_user,
+        nama_petugas: "Sari Angpen",
         id_stasiun: item.id_stasiun ?? null,
         id_unit: item.id_unit ?? null,
         detail_teks: item.detail_teks ?? null,

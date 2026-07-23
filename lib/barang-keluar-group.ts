@@ -7,6 +7,7 @@ import {
   type BarangKeluarSortField,
   buildSearchWhere,
 } from "@/lib/barang-keluar";
+import { resolveNamaPetugas } from "@/lib/nama-petugas";
 import type { SortOrder } from "@/lib/sort";
 
 type SlimRow = {
@@ -54,6 +55,8 @@ export type BarangKeluarGroupRow = {
   stasiun: { id_stasiun: number; nama_stasiun: string } | null;
   unit: { id_unit: number; nama_unit: string } | null;
   user: { id_user: number; nama_user: string };
+  nama_petugas: string | null;
+  petugas: string;
 };
 
 function getGroupKey(row: Pick<SlimRow, "id_keluar" | "id_grup">) {
@@ -248,6 +251,8 @@ export async function getBarangKeluarGroupedPaginated({
     const merchandise_label = formatMerchandiseGroupLabel(
       group.merchandise_names
     );
+    const namaPetugas =
+      (header as { nama_petugas?: string | null }).nama_petugas ?? null;
 
     return {
       group_key: group.group_key,
@@ -268,6 +273,8 @@ export async function getBarangKeluarGroupedPaginated({
       stasiun: header.stasiun,
       unit: header.unit,
       user: header.user,
+      nama_petugas: namaPetugas,
+      petugas: resolveNamaPetugas(namaPetugas, header.user.nama_user),
     };
   });
 

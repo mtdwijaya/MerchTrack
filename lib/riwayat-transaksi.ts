@@ -3,6 +3,7 @@ import { formatDetailTujuan } from "@/lib/detail-tujuan";
 import { formatMerchandiseGroupLabel } from "@/lib/barang-keluar-group";
 import type { BarangKeluarRiwayatWithRelations } from "@/lib/barang-keluar-types";
 import { asBarangKeluarRiwayatWithRelations } from "@/lib/barang-keluar-types";
+import { resolveNamaPetugas } from "@/lib/nama-petugas";
 import { riwayatListInclude } from "@/lib/prisma-selects";
 import { Prisma } from "@prisma/client";
 
@@ -99,6 +100,12 @@ function buildSearchWhere(search?: string): Prisma.BarangKeluarWhereInput {
     },
     {
       detail_teks: {
+        contains: term,
+        mode: "insensitive",
+      },
+    },
+    {
+      nama_petugas: {
         contains: term,
         mode: "insensitive",
       },
@@ -272,6 +279,9 @@ function buildMasukSearchWhere(search?: string): Prisma.BarangMasukWhereInput {
     {
       keterangan: { contains: term, mode: "insensitive" },
     },
+    {
+      nama_petugas: { contains: term, mode: "insensitive" },
+    },
   ];
 
   if (!Number.isNaN(numericId)) {
@@ -351,7 +361,10 @@ function mapKeluarToUnified(items: KeluarWithRelations[]): RiwayatUnifiedItem[] 
       })),
       tujuan,
       info: detail && detail !== "-" ? detail : undefined,
-      petugas: primary.user.nama_user,
+      petugas: resolveNamaPetugas(
+        (primary as { nama_petugas?: string | null }).nama_petugas,
+        primary.user.nama_user
+      ),
     };
   });
 }
@@ -369,7 +382,10 @@ function mapMasukToUnified(items: MasukWithRelations[]): RiwayatUnifiedItem[] {
       merchandise: item.merchandise.nama_merch,
       jumlah: item.jumlah,
       info,
-      petugas: item.user.nama_user,
+      petugas: resolveNamaPetugas(
+        (item as { nama_petugas?: string | null }).nama_petugas,
+        item.user.nama_user
+      ),
     };
   });
 }

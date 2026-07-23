@@ -360,7 +360,7 @@
             "header": [{ "key": "Content-Type", "value": "application/json" }],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"jumlah\": 50,\n  \"keterangan\": \"Restock gudang pusat\"\n}"
+              "raw": "{\n  \"nama_petugas\": \"Andi Wijaya\",\n  \"jumlah\": 50,\n  \"keterangan\": \"Restock gudang pusat\"\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/api/merchandise/1/restock",
@@ -582,7 +582,7 @@
             "header": [{ "key": "Content-Type", "value": "application/json" }],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"id_merch\": 1,\n  \"id_tujuan\": 1,\n  \"id_stasiun\": 1,\n  \"jumlah\": 5,\n  \"tanggal_keluar\": \"2026-07-02\",\n  \"keterangan\": \"Dibagikan saat event\"\n}"
+              "raw": "{\n  \"nama_petugas\": \"Andi Wijaya\",\n  \"id_merch\": 1,\n  \"id_tujuan\": 1,\n  \"id_stasiun\": 1,\n  \"jumlah\": 5,\n  \"tanggal_keluar\": \"2026-07-02\",\n  \"keterangan\": \"Dibagikan saat event\"\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/api/barang-keluar",
@@ -598,7 +598,7 @@
             "header": [{ "key": "Content-Type", "value": "application/json" }],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"id_tujuan\": 1,\n  \"id_stasiun\": 1,\n  \"tanggal_keluar\": \"2026-07-02\",\n  \"keterangan\": \"Distribusi batch multi merchandise\",\n  \"items\": [\n    { \"id_merch\": 1, \"jumlah\": 5 },\n    { \"id_merch\": 2, \"jumlah\": 3 }\n  ]\n}"
+              "raw": "{\n  \"nama_petugas\": \"Andi Wijaya\",\n  \"id_tujuan\": 1,\n  \"id_stasiun\": 1,\n  \"tanggal_keluar\": \"2026-07-02\",\n  \"keterangan\": \"Distribusi batch multi merchandise\",\n  \"items\": [\n    { \"id_merch\": 1, \"jumlah\": 5 },\n    { \"id_merch\": 2, \"jumlah\": 3 }\n  ]\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/api/barang-keluar",
@@ -630,7 +630,7 @@
             "header": [{ "key": "Content-Type", "value": "application/json" }],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"id_merch\": 1,\n  \"id_tujuan\": 1,\n  \"id_stasiun\": 2,\n  \"jumlah\": 3,\n  \"tanggal_keluar\": \"2026-07-02\",\n  \"keterangan\": \"Koreksi jumlah\"\n}"
+              "raw": "{\n  \"nama_petugas\": \"Andi Wijaya\",\n  \"id_merch\": 1,\n  \"id_tujuan\": 1,\n  \"id_stasiun\": 2,\n  \"jumlah\": 3,\n  \"tanggal_keluar\": \"2026-07-02\",\n  \"keterangan\": \"Koreksi jumlah\"\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/api/barang-keluar/1",
@@ -646,7 +646,7 @@
             "header": [{ "key": "Content-Type", "value": "application/json" }],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"id_tujuan\": 1,\n  \"id_stasiun\": 1,\n  \"tanggal_keluar\": \"2026-07-02\",\n  \"keterangan\": \"Koreksi batch\",\n  \"items\": [\n    { \"id_keluar\": 1, \"id_merch\": 1, \"jumlah\": 4 },\n    { \"id_keluar\": 2, \"id_merch\": 2, \"jumlah\": 2 }\n  ]\n}"
+              "raw": "{\n  \"nama_petugas\": \"Andi Wijaya\",\n  \"id_tujuan\": 1,\n  \"id_stasiun\": 1,\n  \"tanggal_keluar\": \"2026-07-02\",\n  \"keterangan\": \"Koreksi batch\",\n  \"items\": [\n    { \"id_keluar\": 1, \"id_merch\": 1, \"jumlah\": 4 },\n    { \"id_keluar\": 2, \"id_merch\": 2, \"jumlah\": 2 }\n  ]\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/api/barang-keluar/1",

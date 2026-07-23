@@ -28,6 +28,7 @@ import {
   RIWAYAT_JENIS_LABEL,
   RIWAYAT_JENIS_OPTIONS,
 } from "@/constants/riwayat-jenis";
+import { TABLE_FULL_GRID, transactionStripeRowClass } from "@/constants/table-styles";
 import { useListFilters } from "@/hooks/use-list-filters";
 import { formatTransaksiDate } from "@/lib/format-transaksi";
 import type { LaporanGenerateResult } from "@/lib/laporan-generate";
@@ -62,9 +63,11 @@ function JenisBadge({ jenis }: { jenis: RiwayatJenis }) {
 function RiwayatTableRow({
   item,
   onDetail,
+  stripeIndex = 0,
 }: {
   item: RiwayatUnifiedItem;
   onDetail: (jenis: RiwayatJenis, id: number) => void;
+  stripeIndex?: number;
 }) {
   const lines =
     item.jenis === "KELUAR" && item.items && item.items.length > 0
@@ -80,6 +83,7 @@ function RiwayatTableRow({
   const rowSpan = lines.length;
   const tujuanDisplay =
     item.tujuan ?? (item.jenis === "KELUAR" ? "-" : item.info ?? "-");
+  const stripeRow = transactionStripeRowClass(stripeIndex);
 
   return (
     <>
@@ -87,23 +91,20 @@ function RiwayatTableRow({
         const isFirst = index === 0;
 
         return (
-          <tr
-            key={`${item.key}-${line.id}`}
-            className="border-b border-[#E8E4DF] last:border-b-0 hover:bg-[#FAFAF8]/80"
-          >
+          <tr key={`${item.key}-${line.id}`} className={stripeRow}>
             {isFirst && (
               <Td
                 variant="numeric"
-                align="left"
+                align="center"
                 rowSpan={rowSpan}
-                className="align-top whitespace-nowrap"
+                className="align-middle whitespace-nowrap"
               >
                 {formatTransaksiDate(item.tanggal.toISOString())}
               </Td>
             )}
 
             {isFirst && (
-              <Td align="center" rowSpan={rowSpan} className="align-top">
+              <Td align="center" rowSpan={rowSpan} className="align-middle">
                 <JenisBadge jenis={item.jenis} />
               </Td>
             )}
@@ -119,13 +120,26 @@ function RiwayatTableRow({
             </Td>
 
             {isFirst && (
-              <Td variant="truncate" rowSpan={rowSpan} className="align-top">
+              <Td align="center" rowSpan={rowSpan} className="align-middle">
                 {tujuanDisplay}
               </Td>
             )}
 
             {isFirst && (
-              <Td variant="action" align="center" rowSpan={rowSpan} className="align-top">
+              <Td align="center" rowSpan={rowSpan} className="align-middle">
+                <p className="truncate font-medium text-[#1A1C1C]">
+                  {item.petugas}
+                </p>
+              </Td>
+            )}
+
+            {isFirst && (
+              <Td
+                variant="action"
+                align="center"
+                rowSpan={rowSpan}
+                className="align-middle"
+              >
                 <DetailsAction
                   label="Detail"
                   onClick={() => onDetail(item.jenis, item.id)}
@@ -215,7 +229,7 @@ export default function RiwayatPageClient({
           headerActions={
             <Button
               type="button"
-              variant="outline"
+              variant="brand"
               size="sm"
               className="gap-1.5"
               disabled={previewLoading}
@@ -265,27 +279,29 @@ export default function RiwayatPageClient({
         </FilterBar>
 
         <DataTableSection>
-          <DataTable>
+          <DataTable className={TABLE_FULL_GRID}>
             <thead>
-              <tr className="border-b border-[#E8E4DF] bg-[#FAFAF8]">
-                <Th>Tanggal</Th>
+              <tr className="bg-[#FAFAF8]">
+                <Th align="center">Tanggal</Th>
                 <Th align="center">Jenis</Th>
                 <Th align="center">Merchandise</Th>
                 <Th align="center">Jumlah</Th>
-                <Th>Tujuan</Th>
+                <Th align="center">Tujuan</Th>
+                <Th align="center">Petugas</Th>
                 <Th align="center">Aksi</Th>
               </tr>
             </thead>
             <tbody>
               {isPending ? (
-                <TableEmptyRow colSpan={6} message="Memuat data..." />
+                <TableEmptyRow colSpan={7} message="Memuat data..." />
               ) : list.data.length === 0 ? (
-                <TableEmptyRow colSpan={6} message="Tidak ada transaksi" />
+                <TableEmptyRow colSpan={7} message="Tidak ada transaksi" />
               ) : (
-                list.data.map((item) => (
+                list.data.map((item, index) => (
                   <RiwayatTableRow
                     key={item.key}
                     item={item}
+                    stripeIndex={index}
                     onDetail={(jenis, id) => setDetail({ jenis, id })}
                   />
                 ))

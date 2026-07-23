@@ -356,6 +356,7 @@ export async function restockMerchandise(
   id_merch: number,
   id_user: number,
   data: {
+    nama_petugas: string;
     jumlah: number;
     keterangan?: string;
     bukti_path?: string | null;
@@ -364,6 +365,11 @@ export async function restockMerchandise(
 ) {
   if (!Number.isFinite(data.jumlah) || data.jumlah <= 0) {
     throw new Error("Jumlah restock harus lebih dari 0");
+  }
+
+  const namaPetugas = data.nama_petugas.trim();
+  if (!namaPetugas) {
+    throw new Error("Nama petugas wajib diisi");
   }
 
   return prisma.$transaction(async (tx) => {
@@ -381,6 +387,7 @@ export async function restockMerchandise(
       data: {
         id_merch,
         id_user,
+        nama_petugas: namaPetugas,
         jumlah: data.jumlah,
         jenis: "RESTOCK",
         keterangan: data.keterangan?.trim() || "Restock gudang pusat",

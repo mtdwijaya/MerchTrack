@@ -101,6 +101,9 @@ export function buildSearchWhere(search?: string): Prisma.BarangKeluarWhereInput
     {
       detail_teks: { contains: term, mode: "insensitive" },
     },
+    {
+      nama_petugas: { contains: term, mode: "insensitive" },
+    },
   ];
 
   if (!Number.isNaN(numericId)) {
@@ -164,6 +167,7 @@ export async function getBarangKeluarById(
 }
 
 type BarangKeluarHeaderInput = {
+  nama_petugas: string;
   id_tujuan: number;
   id_stasiun?: number | null;
   id_unit?: number | null;
@@ -247,6 +251,7 @@ export async function createBarangKeluarBatch(
           id_merch: item.id_merch,
           id_tujuan: data.id_tujuan,
           id_user: data.id_user,
+          nama_petugas: data.nama_petugas.trim(),
           id_stasiun: detail.id_stasiun,
           id_unit: detail.id_unit,
           detail_teks: detail.detail_teks,
@@ -309,6 +314,7 @@ export async function updateBarangKeluarBatch(
 
   for (const item of data.items) {
     await updateBarangKeluar(item.id_keluar, {
+      nama_petugas: data.nama_petugas,
       id_merch: item.id_merch,
       id_tujuan: data.id_tujuan,
       id_stasiun: data.id_stasiun,
@@ -361,6 +367,7 @@ export async function createBarangKeluar(
         id_merch: data.id_merch,
         id_tujuan: data.id_tujuan,
         id_user: data.id_user,
+        nama_petugas: data.nama_petugas.trim(),
         id_stasiun: detail.id_stasiun,
         id_unit: detail.id_unit,
         detail_teks: detail.detail_teks,
@@ -401,6 +408,7 @@ export async function updateBarangKeluar(id: number, data: BarangKeluarInput) {
       return tx.barangKeluar.update({
         where: { id_keluar: id },
         data: {
+          nama_petugas: data.nama_petugas.trim(),
           id_tujuan: data.id_tujuan,
           id_stasiun: detail.id_stasiun,
           id_unit: detail.id_unit,  
@@ -444,6 +452,7 @@ export async function updateBarangKeluar(id: number, data: BarangKeluarInput) {
       data: {
         id_merch: data.id_merch,
         id_tujuan: data.id_tujuan,
+        nama_petugas: data.nama_petugas.trim(),
         id_stasiun: detail.id_stasiun,
         id_unit: detail.id_unit,
         detail_teks: detail.detail_teks,

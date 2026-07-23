@@ -225,7 +225,7 @@ export default function MonitoringPageClient({
   }
 
   async function handleRestock(
-    data: { jumlah: number; keterangan: string },
+    data: { nama_petugas: string; jumlah: number; keterangan: string },
     bukti?: File | null
   ) {
     if (!restock.id) return;
@@ -266,6 +266,7 @@ export default function MonitoringPageClient({
       isMultiEdit
         ? buildBarangKeluarEditBatchFormData(
             {
+              nama_petugas: data.nama_petugas,
               id_tujuan: data.id_tujuan,
               id_stasiun: data.id_stasiun,
               id_unit: data.id_unit,
@@ -282,6 +283,7 @@ export default function MonitoringPageClient({
           )
         : buildBarangKeluarEditFormData(
             {
+              nama_petugas: data.nama_petugas,
               id_merch: data.items[0]?.id_merch ?? 0,
               id_tujuan: data.id_tujuan,
               id_stasiun: data.id_stasiun,

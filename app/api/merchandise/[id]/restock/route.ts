@@ -21,6 +21,7 @@ export const POST = route<Ctx>(async (req, ctx) => {
   const data = await parseJson(req, merchandiseRestockSchema);
 
   const result = await restockMerchandise(id, admin.id_user, {
+    nama_petugas: data.nama_petugas,
     jumlah: data.jumlah,
     keterangan: data.keterangan || undefined,
   });

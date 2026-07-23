@@ -10,7 +10,7 @@ interface MerchandiseRestockFormProps {
   nama_merch: string;
   stokSaatIni: number;
   onSubmit: (
-    data: { jumlah: number; keterangan: string },
+    data: { nama_petugas: string; jumlah: number; keterangan: string },
     bukti?: File | null
   ) => Promise<void>;
   loading?: boolean;
@@ -25,6 +25,7 @@ export default function MerchandiseRestockForm({
   onCancel,
 }: MerchandiseRestockFormProps) {
   const [form, setForm] = useState({
+    nama_petugas: "",
     jumlah: 1,
     keterangan: "",
   });
@@ -34,7 +35,14 @@ export default function MerchandiseRestockForm({
     <form
       onSubmit={(e) => {
         e.preventDefault();
-        onSubmit(form, bukti);
+        onSubmit(
+          {
+            nama_petugas: form.nama_petugas.trim(),
+            jumlah: form.jumlah,
+            keterangan: form.keterangan,
+          },
+          bukti
+        );
       }}
       className="space-y-5"
     >
@@ -45,6 +53,20 @@ export default function MerchandiseRestockForm({
           <span className="font-semibold text-[#1A1C1C]">{stokSaatIni}</span> pcs
         </p>
       </div>
+
+      <Field label="Nama Petugas">
+        <input
+          required
+          type="text"
+          value={form.nama_petugas}
+          onChange={(e) =>
+            setForm({ ...form, nama_petugas: e.target.value })
+          }
+          className="input-field"
+          placeholder="Nama orang yang melakukan restock"
+          autoComplete="name"
+        />
+      </Field>
 
       <Field label="Jumlah Restock">
         <input

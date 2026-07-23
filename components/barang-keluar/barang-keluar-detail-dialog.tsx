@@ -229,7 +229,7 @@ export default function BarangKeluarDetailDialog({
 
                 <InfoCard title="Informasi Petugas">
                   <InfoRow
-                    label="Dicatat Oleh"
+                    label="Nama Petugas"
                     value={
                       <span className="inline-flex items-center gap-1.5">
                         <User className="h-3.5 w-3.5 text-[#6B7280]" />

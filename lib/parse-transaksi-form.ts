@@ -19,6 +19,7 @@ export function parseBarangKeluarFormData(formData: FormData) {
     }
 
     const raw = {
+      nama_petugas: formData.get("nama_petugas"),
       id_tujuan: formData.get("id_tujuan"),
       id_stasiun: formData.get("id_stasiun") || undefined,
       id_unit: formData.get("id_unit") || undefined,
@@ -32,6 +33,7 @@ export function parseBarangKeluarFormData(formData: FormData) {
   }
 
   const raw = {
+    nama_petugas: formData.get("nama_petugas"),
     id_merch: formData.get("id_merch"),
     id_tujuan: formData.get("id_tujuan"),
     id_stasiun: formData.get("id_stasiun") || undefined,
@@ -51,6 +53,7 @@ export async function parseBarangKeluarBukti(formData: FormData) {
 
 export function parseRestockFormData(formData: FormData) {
   const raw = {
+    nama_petugas: formData.get("nama_petugas"),
     jumlah: formData.get("jumlah"),
     keterangan: formData.get("keterangan") || undefined,
   };
@@ -68,6 +71,7 @@ export function getTanggalFromForm(value?: string) {
 export function isBarangKeluarBatchData(
   data: unknown
 ): data is {
+  nama_petugas: string;
   id_tujuan: number;
   id_stasiun?: number;
   id_unit?: number;
@@ -87,6 +91,7 @@ export function isBarangKeluarBatchData(
 export function isBarangKeluarEditBatchData(
   data: unknown
 ): data is {
+  nama_petugas: string;
   id_tujuan: number;
   id_stasiun?: number;
   id_unit?: number;

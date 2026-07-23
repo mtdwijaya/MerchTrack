@@ -65,6 +65,8 @@ export async function getBarangKeluarFormData(id: number) {
     id_stasiun: first.id_stasiun ?? 0,
     id_unit: first.id_unit ?? 0,
     detail_teks: first.detail_teks ?? "",
+    nama_petugas:
+      (first as { nama_petugas?: string | null }).nama_petugas ?? "",
     tanggal_keluar: first.tanggal_keluar.toISOString(),
     keterangan: first.keterangan ?? "",
     bukti_path: first.bukti_path,
@@ -172,6 +174,7 @@ export async function createBarangKeluarAction(
 
     if (isBarangKeluarBatchData(parsed.data)) {
       await createBarangKeluarBatch({
+        nama_petugas: parsed.data.nama_petugas,
         id_tujuan: parsed.data.id_tujuan,
         id_stasiun: parsed.data.id_stasiun,
         id_unit: parsed.data.id_unit,
@@ -185,6 +188,7 @@ export async function createBarangKeluarAction(
       });
     } else {
       await createBarangKeluar({
+        nama_petugas: parsed.data.nama_petugas,
         id_merch: parsed.data.id_merch,
         id_tujuan: parsed.data.id_tujuan,
         id_stasiun: parsed.data.id_stasiun,
@@ -244,6 +248,7 @@ export async function updateBarangKeluarAction(
       await updateBarangKeluarBatch(
         idParsed.data,
         {
+          nama_petugas: parsed.data.nama_petugas,
           id_tujuan: parsed.data.id_tujuan,
           id_stasiun: parsed.data.id_stasiun,
           id_unit: parsed.data.id_unit,
@@ -334,6 +339,7 @@ export async function updateBarangKeluarAction(
     );
 
     await updateBarangKeluar(idParsed.data, {
+      nama_petugas: parsed.data.nama_petugas,
       id_merch: parsed.data.id_merch,
       id_tujuan: parsed.data.id_tujuan,
       id_stasiun: parsed.data.id_stasiun,

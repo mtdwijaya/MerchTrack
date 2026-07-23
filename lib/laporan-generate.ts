@@ -3,6 +3,7 @@ import {
   formatDetailTujuan,
   STATUS_BARANG_KELUAR_LABEL,
 } from "@/lib/detail-tujuan";
+import { resolveNamaPetugas } from "@/lib/nama-petugas";
 import {
   recentBarangKeluarInclude,
   recentBarangMasukInclude,
@@ -208,7 +209,10 @@ export async function generateLaporanData(
       status:
         STATUS_BARANG_KELUAR_LABEL[item.status as StatusBarangKeluar] ??
         item.status,
-      petugas: item.user.nama_user,
+      petugas: resolveNamaPetugas(
+        (item as { nama_petugas?: string | null }).nama_petugas,
+        item.user.nama_user
+      ),
       keterangan: item.keterangan,
     });
   }
@@ -220,7 +224,10 @@ export async function generateLaporanData(
       tanggal: item.tanggal_masuk.toISOString(),
       merchandise: item.merchandise.nama_merch,
       jumlah: item.jumlah,
-      petugas: item.user.nama_user,
+      petugas: resolveNamaPetugas(
+        (item as { nama_petugas?: string | null }).nama_petugas,
+        item.user.nama_user
+      ),
       keterangan: item.keterangan,
     });
   }

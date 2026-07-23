@@ -1,7 +1,13 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Layer, Rectangle, ResponsiveContainer, Sankey, Tooltip } from "recharts";
+import {
+  Layer,
+  Rectangle,
+  ResponsiveContainer,
+  Sankey,
+  Tooltip,
+} from "recharts";
 
 import {
   buildMerchColorMap,
@@ -23,17 +29,150 @@ type SankeyNodePayload = {
   name: string;
   side: "merch" | "tujuan";
   color: string;
+  total: number;
+  /** diisi Recharts saat layout */
+  value?: number;
 };
 
-type SankeyLinkPayload = {
+type SankeyLinkInputPayload = {
   source: number;
   target: number;
   value: number;
   color: string;
+  sourceName: string;
+  targetName: string;
 };
 
-function truncateLabel(label: string, max = 16) {
+/** Payload link saat render custom (source/target jadi objek node) */
+type SankeyLinkRenderPayload = {
+  value: number;
+  color?: string;
+  sourceName?: string;
+  targetName?: string;
+  source: SankeyNodePayload & { name: string; value?: number };
+  target: SankeyNodePayload & { name: string; value?: number };
+};
+
+type HoverTarget =
+  | { type: "link"; sourceName: string; targetName: string }
+  | { type: "node"; name: string; side: "merch" | "tujuan" }
+  | null;
+
+function truncateLabel(label: string, max = 14) {
   return label.length > max ? `${label.slice(0, max - 1)}…` : label;
+}
+
+function formatPcs(value: number) {
+  if (value >= 1_000_000) {
+    return `${(value / 1_000_000).toFixed(1)}Jt`;
+  }
+  if (value >= 1_000) {
+    return `${(value / 1_000).toFixed(1)}rb`;
+  }
+  return value.toLocaleString("id-ID");
+}
+
+/** Opacity default: volume terbesar paling terang */
+function opacityForValue(value: number, maxValue: number) {
+  if (maxValue <= 0) return 0.35;
+  const ratio = value / maxValue;
+  return 0.18 + ratio * 0.72;
+}
+
+function resolveLinkEnds(payload: SankeyLinkRenderPayload) {
+  const sourceName = payload.sourceName ?? payload.source.name;
+  const targetName = payload.targetName ?? payload.target.name;
+  const color =
+    payload.color ??
+    payload.source.color ??
+    "#EF9A9A";
+  return { sourceName, targetName, color };
+}
+
+function isNodeActive(hovered: HoverTarget, node: SankeyNodePayload) {
+  if (hovered == null) return true;
+  if (hovered.type === "node") {
+    return hovered.name === node.name && hovered.side === node.side;
+  }
+  return node.side === "merch"
+    ? hovered.sourceName === node.name
+    : hovered.targetName === node.name;
+}
+
+function isLinkActive(
+  hovered: HoverTarget,
+  sourceName: string,
+  targetName: string
+) {
+  if (hovered == null) return true;
+  if (hovered.type === "link") {
+    return (
+      hovered.sourceName === sourceName && hovered.targetName === targetName
+    );
+  }
+  return hovered.side === "merch"
+    ? hovered.name === sourceName
+    : hovered.name === targetName;
+}
+
+function PillLabel({
+  x,
+  y,
+  name,
+  value,
+  color,
+  align,
+}: {
+  x: number;
+  y: number;
+  name: string;
+  value: number;
+  color: string;
+  align: "left" | "right";
+}) {
+  const label = truncateLabel(name, 12);
+  const valueText = `${formatPcs(value)} pcs`;
+  const approxWidth = Math.min(
+    150,
+    16 + label.length * 6.2 + 8 + valueText.length * 5.4
+  );
+  const height = 20;
+  const rectX = align === "left" ? x : x - approxWidth;
+  const textStart = rectX + 8;
+
+  return (
+    <g style={{ pointerEvents: "none" }}>
+      <rect
+        x={rectX}
+        y={y - height / 2}
+        width={approxWidth}
+        height={height}
+        rx={10}
+        ry={10}
+        fill="rgba(26, 26, 26, 0.78)"
+      />
+      <text
+        x={textStart}
+        y={y}
+        dominantBaseline="middle"
+        fontSize={10}
+        fontWeight={700}
+        fill={color}
+      >
+        {label}
+      </text>
+      <text
+        x={textStart + label.length * 6.2 + 6}
+        y={y}
+        dominantBaseline="middle"
+        fontSize={10}
+        fontWeight={500}
+        fill="#F3F4F6"
+      >
+        {valueText}
+      </text>
+    </g>
+  );
 }
 
 function SankeyNode(props: {
@@ -42,40 +181,57 @@ function SankeyNode(props: {
   width?: number;
   height?: number;
   payload?: SankeyNodePayload;
+  hovered: HoverTarget;
+  onHover: (target: HoverTarget) => void;
 }) {
-  const { x = 0, y = 0, width = 0, height = 0, payload } = props;
+  const {
+    x = 0,
+    y = 0,
+    width = 0,
+    height = 0,
+    payload,
+    hovered,
+    onHover,
+  } = props;
 
-  if (!payload) return null;
+  if (!payload?.name || !payload.side) return null;
 
   const isMerch = payload.side === "merch";
-  const label = truncateLabel(payload.name);
-  const textX = isMerch ? x - 6 : x + width + 6;
-  const textAnchor = isMerch ? "end" : "start";
+  const active = isNodeActive(hovered, payload);
+  const dimmed = hovered != null && !active;
+  const fillOpacity = dimmed ? 0.4 : 0.95;
+
+  const pillX = isMerch ? x + width + 8 : x - 8;
+  const pillAlign = isMerch ? "left" : "right";
+  const total = payload.total ?? Number(payload.value ?? 0);
 
   return (
     <Layer>
       <Rectangle
         x={x}
         y={y}
-        width={width}
-        height={height}
+        width={Math.max(width, 6)}
+        height={Math.max(height, 4)}
         fill={payload.color}
-        fillOpacity={0.95}
+        fillOpacity={fillOpacity}
         stroke={payload.color}
+        strokeOpacity={dimmed ? 0.5 : 1}
         strokeWidth={1}
         radius={2}
+        style={{ cursor: "pointer" }}
+        onMouseEnter={() =>
+          onHover({ type: "node", name: payload.name, side: payload.side })
+        }
+        onMouseLeave={() => onHover(null)}
       />
-      <text
-        x={textX}
-        y={y + height / 2}
-        textAnchor={textAnchor}
-        dominantBaseline="middle"
-        fontSize={10}
-        fill="#4A4A4A"
-        style={{ pointerEvents: "none" }}
-      >
-        {label}
-      </text>
+      <PillLabel
+        x={pillX}
+        y={y + Math.max(height, 4) / 2}
+        name={payload.name}
+        value={total}
+        color={payload.color}
+        align={pillAlign}
+      />
     </Layer>
   );
 }
@@ -88,7 +244,10 @@ function SankeyLink(props: {
   sourceControlX?: number;
   targetControlX?: number;
   linkWidth?: number;
-  payload?: SankeyLinkPayload;
+  payload?: SankeyLinkRenderPayload;
+  maxValue: number;
+  hovered: HoverTarget;
+  onHover: (target: HoverTarget) => void;
 }) {
   const {
     sourceX = 0,
@@ -99,9 +258,19 @@ function SankeyLink(props: {
     targetControlX = 0,
     linkWidth = 0,
     payload,
+    maxValue,
+    hovered,
+    onHover,
   } = props;
 
-  const color = payload?.color ?? "#EF9A9A";
+  if (!payload?.source || !payload?.target) return null;
+
+  const { sourceName, targetName, color } = resolveLinkEnds(payload);
+  const active = isLinkActive(hovered, sourceName, targetName);
+  const baseOpacity = opacityForValue(payload.value, maxValue);
+  // Saat hover: aktif terang; lainnya tetap terlihat (tidak hampir hilang)
+  const strokeOpacity =
+    hovered == null ? baseOpacity : active ? 0.95 : 0.28;
 
   return (
     <Layer>
@@ -112,9 +281,35 @@ function SankeyLink(props: {
         `}
         fill="none"
         stroke={color}
-        strokeWidth={Math.max(linkWidth, 1)}
-        strokeOpacity={0.45}
+        strokeWidth={Math.max(linkWidth, 1.5)}
+        strokeOpacity={strokeOpacity}
+        style={{ cursor: "pointer", transition: "stroke-opacity 140ms ease" }}
+        onMouseEnter={() => onHover({ type: "link", sourceName, targetName })}
+        onMouseLeave={() => onHover(null)}
       />
+      {active && hovered?.type === "link" && linkWidth >= 8 && (
+        <g style={{ pointerEvents: "none" }}>
+          <rect
+            x={(sourceX + targetX) / 2 - 36}
+            y={(sourceY + targetY) / 2 - 10}
+            width={72}
+            height={20}
+            rx={10}
+            fill="rgba(26, 26, 26, 0.85)"
+          />
+          <text
+            x={(sourceX + targetX) / 2}
+            y={(sourceY + targetY) / 2}
+            textAnchor="middle"
+            dominantBaseline="middle"
+            fontSize={10}
+            fontWeight={600}
+            fill="#F9FAFB"
+          >
+            {formatPcs(payload.value)} pcs
+          </text>
+        </g>
+      )}
     </Layer>
   );
 }
@@ -124,12 +319,13 @@ export default function MerchTujuanSankeyChart({
   emptyMessage = "Belum ada data distribusi",
 }: Props) {
   const [mounted, setMounted] = useState(false);
+  const [hovered, setHovered] = useState<HoverTarget>(null);
 
   useEffect(() => {
     setMounted(true);
   }, []);
 
-  const data = useMemo(() => {
+  const { data, maxValue } = useMemo(() => {
     const merchNames = links.map((link) => link.source);
     const tujuanNames = links.map((link) => link.target);
     const merchColors = buildMerchColorMap(merchNames);
@@ -137,6 +333,7 @@ export default function MerchTujuanSankeyChart({
 
     const nodeIndex = new Map<string, number>();
     const nodes: SankeyNodePayload[] = [];
+    const totals = new Map<string, number>();
 
     function ensureNode(name: string, side: "merch" | "tujuan") {
       const key = `${side}:${name}`;
@@ -151,24 +348,40 @@ export default function MerchTujuanSankeyChart({
           side === "merch"
             ? (merchColors.get(name) ?? "#D32F2F")
             : (tujuanColors.get(name) ?? "#78909C"),
+        total: 0,
       });
       return index;
     }
 
-    const sankeyLinks: SankeyLinkPayload[] = links
-      .filter((link) => link.value > 0)
-      .map((link) => {
-        const source = ensureNode(link.source, "merch");
-        const target = ensureNode(link.target, "tujuan");
-        return {
-          source,
-          target,
-          value: link.value,
-          color: merchColors.get(link.source) ?? "#EF9A9A",
-        };
-      });
+    const filtered = links.filter((link) => link.value > 0);
+    const sankeyLinks: SankeyLinkInputPayload[] = filtered.map((link) => {
+      const source = ensureNode(link.source, "merch");
+      const target = ensureNode(link.target, "tujuan");
+      totals.set(
+        `merch:${link.source}`,
+        (totals.get(`merch:${link.source}`) ?? 0) + link.value
+      );
+      totals.set(
+        `tujuan:${link.target}`,
+        (totals.get(`tujuan:${link.target}`) ?? 0) + link.value
+      );
+      return {
+        source,
+        target,
+        value: link.value,
+        color: merchColors.get(link.source) ?? "#EF9A9A",
+        sourceName: link.source,
+        targetName: link.target,
+      };
+    });
 
-    return { nodes, links: sankeyLinks };
+    for (const node of nodes) {
+      node.total = totals.get(`${node.side}:${node.name}`) ?? 0;
+    }
+
+    const max = sankeyLinks.reduce((m, link) => Math.max(m, link.value), 0);
+
+    return { data: { nodes, links: sankeyLinks }, maxValue: max };
   }, [links]);
 
   if (data.links.length === 0) {
@@ -186,26 +399,32 @@ export default function MerchTujuanSankeyChart({
   }
 
   return (
-    <div className="relative h-full min-h-[160px] w-full min-w-0">
-      <div className="pointer-events-none absolute inset-x-2 top-0 z-10 flex justify-between px-1 text-[9px] font-semibold uppercase tracking-wide text-[#9CA3AF]">
-        <span>Merchandise</span>
-        <span>Tujuan</span>
+    <div className="relative h-full min-h-[200px] w-full min-w-0">
+      <div className="pointer-events-none absolute inset-x-3 top-0 z-10 flex justify-between px-1 text-[9px] font-semibold uppercase tracking-wide text-[#9CA3AF]">
+        <span className="text-[#B71C1C]">Merchandise</span>
+        <span className="text-[#546E7A]">Tujuan</span>
       </div>
       <ResponsiveContainer
         width="100%"
         height="100%"
         minWidth={0}
-        initialDimension={{ width: 400, height: 220 }}
+        initialDimension={{ width: 480, height: 260 }}
       >
         <Sankey
           data={data}
-          nodePadding={14}
-          nodeWidth={10}
-          linkCurvature={0.5}
-          iterations={32}
-          margin={{ top: 22, right: 88, bottom: 8, left: 88 }}
-          node={<SankeyNode />}
-          link={<SankeyLink />}
+          nodePadding={16}
+          nodeWidth={8}
+          linkCurvature={0.55}
+          iterations={48}
+          margin={{ top: 24, right: 28, bottom: 10, left: 28 }}
+          node={<SankeyNode hovered={hovered} onHover={setHovered} />}
+          link={
+            <SankeyLink
+              maxValue={maxValue}
+              hovered={hovered}
+              onHover={setHovered}
+            />
+          }
         >
           <Tooltip
             contentStyle={{
@@ -215,7 +434,7 @@ export default function MerchTujuanSankeyChart({
             }}
             formatter={(value) => [
               `${Number(value).toLocaleString("id-ID")} pcs`,
-              "Alur",
+              "Terdistribusi",
             ]}
           />
         </Sankey>

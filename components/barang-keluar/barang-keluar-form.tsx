@@ -32,6 +32,7 @@ type MerchItemRow = {
 };
 
 export type BarangKeluarFormSubmitData = {
+  nama_petugas: string;
   id_tujuan: number;
   id_stasiun?: number;
   id_unit?: number;
@@ -43,6 +44,7 @@ export type BarangKeluarFormSubmitData = {
 
 interface BarangKeluarFormProps {
   initialData?: {
+    nama_petugas?: string;
     id_tujuan: number;
     id_stasiun: number;
     id_unit: number;
@@ -88,6 +90,7 @@ export default function BarangKeluarForm({
   isEdit = false,
 }: BarangKeluarFormProps) {
   const [header, setHeader] = useState({
+    nama_petugas: initialData?.nama_petugas || "",
     id_tujuan: initialData?.id_tujuan || 0,
     id_stasiun: initialData?.id_stasiun || 0,
     id_unit: initialData?.id_unit || 0,
@@ -216,7 +219,7 @@ export default function BarangKeluarForm({
                 setHeader({ ...header, detail_teks: e.target.value })
               }
               className="input-field"
-              placeholder="Contoh: Fun Run LRT 2026"
+              placeholder="Nama Acara/Nama Event"
             />
           </Field>
         );
@@ -231,6 +234,7 @@ export default function BarangKeluarForm({
         e.preventDefault();
         onSubmit(
           {
+            nama_petugas: header.nama_petugas.trim(),
             id_tujuan: header.id_tujuan,
             id_stasiun: header.id_stasiun || undefined,
             id_unit: header.id_unit || undefined,
@@ -250,6 +254,20 @@ export default function BarangKeluarForm({
       }}
       className="space-y-5"
     >
+      <Field label="Nama Petugas">
+        <input
+          required
+          type="text"
+          value={header.nama_petugas}
+          onChange={(e) =>
+            setHeader({ ...header, nama_petugas: e.target.value })
+          }
+          className="input-field"
+          placeholder="Nama orang yang melakukan transaksi"
+          autoComplete="name"
+        />
+      </Field>
+
       <section className="space-y-3">
         <h3 className="text-sm font-semibold text-[#1A1C1C]">Merchandise</h3>
 

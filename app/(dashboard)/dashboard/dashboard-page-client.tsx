@@ -135,9 +135,9 @@ export default function DashboardPageClient({ dashboard }: Props) {
       {/* Kiri: Top merch + transaksi/bulan; kanan: sankey full height */}
       <section className="grid min-h-0 flex-1 grid-cols-1 gap-3 lg:grid-cols-2 lg:grid-rows-2">
         <ChartPanel
-          title="Top Merchandise Didistribusikan"
+          title="Top 5 Merchandise Digunakan"
           subtitle="All time"
-          href="/barang-keluar"
+          href="/monitoring"
         >
           <DashboardBarChart
             data={chartMerch}

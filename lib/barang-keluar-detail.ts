@@ -11,6 +11,7 @@ import { aggregateGrupStatus } from "@/lib/barang-keluar-group";
 import { getBarangKeluarQuantities } from "@/lib/barang-keluar-quantities";
 import type { BarangKeluarWithRelations } from "@/lib/barang-keluar-types";
 import { formatDetailTujuan } from "@/lib/detail-tujuan";
+import { resolveNamaPetugas } from "@/lib/nama-petugas";
 
 /** Payload detail transaksi — dipakai UI actions & REST API. */
 export async function getBarangKeluarDetailPayload(id: number) {
@@ -36,6 +37,7 @@ export async function getBarangKeluarDetailPayload(id: number) {
   }));
 
   const isMulti = grupItems.length > 1;
+  const namaPetugas = (data as { nama_petugas?: string | null }).nama_petugas;
 
   return {
     id_keluar: data.id_keluar,
@@ -50,7 +52,8 @@ export async function getBarangKeluarDetailPayload(id: number) {
     tujuan: data.tujuan.nama_tujuan,
     boleh_return: data.tujuan.boleh_return,
     detail_tujuan: formatDetailTujuan(data),
-    petugas: data.user.nama_user,
+    petugas: resolveNamaPetugas(namaPetugas, data.user.nama_user),
+    nama_petugas: namaPetugas ?? null,
     bukti_path: data.bukti_path,
     bukti_nama: data.bukti_nama,
     qty,

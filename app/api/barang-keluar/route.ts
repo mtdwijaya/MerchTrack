@@ -79,6 +79,7 @@ export const POST = route(async (req) => {
     if (!parsed.ok) return jsonError(parsed.message, 400);
 
     const created = await createBarangKeluarBatch({
+      nama_petugas: parsed.data.nama_petugas,
       id_tujuan: parsed.data.id_tujuan,
       id_stasiun: parsed.data.id_stasiun,
       id_unit: parsed.data.id_unit,
@@ -97,6 +98,7 @@ export const POST = route(async (req) => {
   if (!parsedSingle.ok) return jsonError(parsedSingle.message, 400);
 
   const created = await createBarangKeluar({
+    nama_petugas: parsedSingle.data.nama_petugas,
     id_merch: parsedSingle.data.id_merch,
     id_tujuan: parsedSingle.data.id_tujuan,
     id_stasiun: parsedSingle.data.id_stasiun,

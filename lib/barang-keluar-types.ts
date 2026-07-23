@@ -24,6 +24,7 @@ export type BarangKeluarCreateData = {
   id_merch: number;
   id_tujuan: number;
   id_user: number;
+  nama_petugas?: string | null;
   id_stasiun?: number | null;
   id_unit?: number | null;
   detail_teks?: string | null;

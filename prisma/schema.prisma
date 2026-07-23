@@ -142,6 +142,9 @@ model BarangMasuk {
   id_merch Int
   id_user  Int
 
+  /// Nama orang yang melakukan restock/masuk di perangkat bersama (bukan akun login)
+  nama_petugas String?
+
   jumlah Int
   jenis  JenisBarangMasuk @default(RESTOCK)
 
@@ -168,6 +171,9 @@ model BarangKeluar {
   id_merch Int
   id_tujuan Int
   id_user   Int
+
+  /// Nama orang yang melakukan transaksi di perangkat bersama (bukan akun login)
+  nama_petugas String?
 
   id_stasiun  Int?
   id_unit     Int?

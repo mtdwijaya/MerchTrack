@@ -189,7 +189,7 @@ export default function RiwayatDetailDialog({
                 label="Barang Terpakai"
                 value={`${keluarDetail.grup_items.reduce((sum, item) => sum + item.qty.terpakai, 0)} pcs`}
               />
-              <InfoRow label="Petugas" value={keluarDetail.petugas} />
+              <InfoRow label="Nama Petugas" value={keluarDetail.petugas} />
               {keluarDetail.keterangan && (
                 <InfoRow label="Keterangan" value={keluarDetail.keterangan} />
               )}
@@ -209,7 +209,7 @@ export default function RiwayatDetailDialog({
                 label={jenis === "RESTOCK" ? "Jumlah Restock" : "Jumlah Masuk"}
                 value={`${masukDetail.jumlah} pcs`}
               />
-              <InfoRow label="Petugas" value={masukDetail.petugas} />
+              <InfoRow label="Nama Petugas" value={masukDetail.petugas} />
               {masukDetail.keterangan && (
                 <InfoRow label="Keterangan" value={masukDetail.keterangan} />
               )}
