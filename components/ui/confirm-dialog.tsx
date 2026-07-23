@@ -1,14 +1,9 @@
 "use client";
 
+import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
+
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 
 interface Props {
   open: boolean;
@@ -19,7 +14,6 @@ interface Props {
   onCancel: () => void;
 }
 
-// dialog konfirmasi — pakai shadcn Dialog biar konsisten
 export default function ConfirmDialog({
   open,
   title,
@@ -28,27 +22,75 @@ export default function ConfirmDialog({
   onConfirm,
   onCancel,
 }: Props) {
-  return (
-    <Dialog open={open} onOpenChange={(next) => !next && onCancel()}>
-      <DialogContent showCloseButton={false} className="gap-5 sm:max-w-md">
-        <DialogHeader className="gap-2 text-left">
-          <DialogTitle className="text-lg font-semibold text-[#1A1C1C]">
-            {title}
-          </DialogTitle>
-          <DialogDescription className="text-sm leading-relaxed text-[#6B7280]">
-            {message}
-          </DialogDescription>
-        </DialogHeader>
+  const [mounted, setMounted] = useState(false);
 
-        <DialogFooter className="-mx-0 -mb-0 gap-2 border-0 bg-transparent p-0 sm:justify-end">
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (!open) return;
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onCancel();
+    };
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    window.addEventListener("keydown", onKeyDown);
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", onKeyDown);
+    };
+  }, [open, onCancel]);
+
+  if (!mounted || !open) return null;
+
+  return createPortal(
+    <div
+      className="fixed inset-0 z-[200] flex items-center justify-center p-4"
+      role="presentation"
+    >
+      <button
+        type="button"
+        aria-label="Tutup dialog"
+        className="absolute inset-0 bg-black/50"
+        onClick={onCancel}
+      />
+
+      <div
+        role="alertdialog"
+        aria-modal="true"
+        aria-labelledby="confirm-dialog-title"
+        aria-describedby="confirm-dialog-desc"
+        className="relative z-10 w-full max-w-md rounded-xl bg-white p-5 shadow-xl ring-1 ring-black/10"
+      >
+        <div className="space-y-2 text-left">
+          <h2
+            id="confirm-dialog-title"
+            className="text-lg font-semibold text-[#1A1C1C]"
+          >
+            {title}
+          </h2>
+          <p
+            id="confirm-dialog-desc"
+            className="text-sm leading-relaxed text-[#6B7280]"
+          >
+            {message}
+          </p>
+        </div>
+
+        <div className="mt-5 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
           <Button type="button" variant="outline" onClick={onCancel}>
             Batal
           </Button>
           <Button type="button" variant="destructive" onClick={onConfirm}>
             {confirmLabel}
           </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        </div>
+      </div>
+    </div>,
+    document.body
   );
 }

@@ -1,7 +1,4 @@
-/**
- * Registry page access — satu sumber untuk sidebar, guard, dan UI permission.
- * Jangan hardcode daftar page di komponen; pakai PAGE_KEYS / APP_PAGES.
- */
+
 
 export const PAGE_KEYS = [
   "dashboard",
@@ -68,7 +65,7 @@ export const APP_PAGES: AppPageDef[] = [
     key: "tujuan",
     href: "/tujuan",
     label: "Tujuan",
-    icon: "/icons/icon-stasiun.svg",
+    icon: "/icons/icon-tujuan.svg",
     section: "master",
     defaultAllowed: { ADMIN: true, PETUGAS: false },
   },
@@ -76,7 +73,7 @@ export const APP_PAGES: AppPageDef[] = [
     key: "unit",
     href: "/tujuan/unit",
     label: "Unit",
-    icon: "/icons/icon-stasiun.svg",
+    icon: "/icons/icon-unit.svg",
     section: "master",
     defaultAllowed: { ADMIN: true, PETUGAS: false },
   },
