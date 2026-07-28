@@ -145,6 +145,7 @@ export type QuickReturnGroup = {
   group_key: string;
   id_keluar: number;
   id_grup: string | null;
+  id_user: number;
   tanggal_keluar: string;
   tujuan: string;
   detail_tujuan: string;
@@ -164,6 +165,7 @@ export async function listQuickReturnGroups(): Promise<QuickReturnGroup[]> {
     select: {
       id_keluar: true,
       id_grup: true,
+      id_user: true,
       id_merch: true,
       jumlah: true,
       jumlah_kembali: true,
@@ -188,6 +190,7 @@ export async function listQuickReturnGroups(): Promise<QuickReturnGroup[]> {
       group_key: string;
       id_keluar: number;
       id_grup: string | null;
+      id_user: number;
       tanggal_keluar: Date;
       tujuan: string;
       detail_tujuan: string;
@@ -214,6 +217,7 @@ export async function listQuickReturnGroups(): Promise<QuickReturnGroup[]> {
         group_key: groupKey,
         id_keluar: row.id_keluar,
         id_grup: row.id_grup,
+        id_user: row.id_user,
         tanggal_keluar: row.tanggal_keluar,
         tujuan: row.tujuan.nama_tujuan,
         detail_tujuan: detail,
@@ -225,6 +229,7 @@ export async function listQuickReturnGroups(): Promise<QuickReturnGroup[]> {
     existing.items.push(item);
     if (row.id_keluar < existing.id_keluar) {
       existing.id_keluar = row.id_keluar;
+      existing.id_user = row.id_user;
     }
     if (row.tanggal_keluar > existing.tanggal_keluar) {
       existing.tanggal_keluar = row.tanggal_keluar;
@@ -241,6 +246,7 @@ export async function listQuickReturnGroups(): Promise<QuickReturnGroup[]> {
       group_key: group.group_key,
       id_keluar: group.id_keluar,
       id_grup: group.id_grup,
+      id_user: group.id_user,
       tanggal_keluar: group.tanggal_keluar.toISOString(),
       tujuan: group.tujuan,
       detail_tujuan: group.detail_tujuan,

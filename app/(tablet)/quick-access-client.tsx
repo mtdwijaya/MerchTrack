@@ -1,4 +1,4 @@
-  "use client";
+"use client";
 
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
@@ -15,6 +15,7 @@ import {
 
 import type { TujuanOption } from "@/components/barang-keluar/status-badge";
 import ConfirmDialog from "@/components/ui/confirm-dialog";
+import type { QuickReturnGroup } from "@/lib/barang-kembali";
 import {
   confirmQuickOutAction,
   confirmQuickReturnAction,
@@ -31,6 +32,7 @@ type StasiunOption = { id_stasiun: number; nama_stasiun: string };
 type UnitOption = { id_unit: number; nama_unit: string };
 
 type Mode = "OUT" | "RETURN";
+type Step = "mode" | "petugas" | "pilih-transaksi" | "catalog";
 
 type Setup = {
   mode: Mode;
@@ -41,6 +43,16 @@ type Setup = {
   detail_teks: string;
 };
 
+type CartLine = {
+  cartKey: number;
+  nama_merch: string;
+  foto_path: string | null;
+  jumlah: number;
+  maxQty: number;
+  id_merch?: number;
+  id_keluar?: number;
+};
+
 type Props = {
   userName: string;
   merchandise: CatalogItem[];
@@ -48,7 +60,16 @@ type Props = {
   tujuanList: TujuanOption[];
   stasiunList: StasiunOption[];
   unitList: UnitOption[];
+  returnGroups: QuickReturnGroup[];
 };
+
+function formatTanggalShort(iso: string) {
+  return new Date(iso).toLocaleDateString("id-ID", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
+}
 
 export default function QuickAccessClient({
   merchandise,
@@ -56,9 +77,10 @@ export default function QuickAccessClient({
   tujuanList,
   stasiunList,
   unitList,
+  returnGroups,
 }: Props) {
   const router = useRouter();
-  const [step, setStep] = useState<"mode" | "petugas" | "catalog">("mode");
+  const [step, setStep] = useState<Step>("mode");
   const [setup, setSetup] = useState<Setup>({
     mode: "OUT",
     nama_petugas: "",
@@ -67,34 +89,71 @@ export default function QuickAccessClient({
     id_unit: "",
     detail_teks: "",
   });
+  const [selectedReturnKey, setSelectedReturnKey] = useState<string | null>(
+    null
+  );
   const [qty, setQty] = useState<Record<number, number>>({});
   const [error, setError] = useState<string | null>(null);
   const [showSheet, setShowSheet] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
   const [removeTarget, setRemoveTarget] = useState<{
-    id_merch: number;
+    cartKey: number;
     nama_merch: string;
   } | null>(null);
   const [pending, startTransition] = useTransition();
 
-  const quickTujuanList = tujuanList;
-
   const selectedTujuan = useMemo(
-    () =>
-      quickTujuanList.find((t) => t.id_tujuan === setup.id_tujuan) ?? null,
-    [quickTujuanList, setup.id_tujuan]
+    () => tujuanList.find((t) => t.id_tujuan === setup.id_tujuan) ?? null,
+    [tujuanList, setup.id_tujuan]
   );
 
-  const cartItems = useMemo(
+  const selectedReturnGroup = useMemo(
     () =>
-      merchandise   
+      returnGroups.find((group) => group.group_key === selectedReturnKey) ??
+      null,
+    [returnGroups, selectedReturnKey]
+  );
+
+  const catalogLines = useMemo(() => {
+    if (setup.mode === "RETURN") {
+      return (selectedReturnGroup?.items ?? []).map((item) => ({
+        cartKey: item.id_keluar,
+        nama_merch: item.nama_merch,
+        foto_path: item.foto_path,
+        maxQty: item.sisa,
+        id_keluar: item.id_keluar as number | undefined,
+        id_merch: item.id_merch,
+        meta: `Sisa ${item.sisa} pcs`,
+      }));
+    }
+
+    return merchandise.map((item) => ({
+      cartKey: item.id_merch,
+      nama_merch: item.nama_merch,
+      foto_path: item.foto_path,
+      maxQty: item.jumlah_stok,
+      id_keluar: undefined as number | undefined,
+      id_merch: item.id_merch,
+      meta:
+        item.jumlah_stok > 0 ? `Stok ${item.jumlah_stok}` : "Stok habis",
+    }));
+  }, [setup.mode, selectedReturnGroup, merchandise]);
+
+  const cartItems: CartLine[] = useMemo(
+    () =>
+      catalogLines
         .map((item) => ({
-          ...item,
-          jumlah: qty[item.id_merch] ?? 0,
+          cartKey: item.cartKey,
+          nama_merch: item.nama_merch,
+          foto_path: item.foto_path,
+          jumlah: qty[item.cartKey] ?? 0,
+          maxQty: item.maxQty,
+          id_merch: item.id_merch,
+          id_keluar: item.id_keluar,
         }))
         .filter((item) => item.jumlah > 0),
-    [merchandise, qty]
+    [catalogLines, qty]
   );
 
   const cartCount = cartItems.reduce((sum, item) => sum + item.jumlah, 0);
@@ -108,17 +167,14 @@ export default function QuickAccessClient({
     return cartItems.length > 2 ? `${preview}, dll` : preview;
   }, [cartItems]);
 
-  function setItemQty(id: number, next: number, maxStock: number) {
-    const capped =
-      setup.mode === "OUT"
-        ? Math.max(0, Math.min(next, maxStock))
-        : Math.max(0, next);
+  function setItemQty(cartKey: number, next: number, maxQty: number) {
+    const capped = Math.max(0, Math.min(next, maxQty));
     setQty((prev) => {
       if (capped <= 0) {
-        const { [id]: _, ...rest } = prev;
+        const { [cartKey]: _, ...rest } = prev;
         return rest;
       }
-      return { ...prev, [id]: capped };
+      return { ...prev, [cartKey]: capped };
     });
   }
 
@@ -132,6 +188,7 @@ export default function QuickAccessClient({
       id_unit: "",
       detail_teks: "",
     });
+    setSelectedReturnKey(null);
     setStep("mode");
     setError(null);
     setShowSheet(false);
@@ -144,22 +201,28 @@ export default function QuickAccessClient({
     setShowResetConfirm(true);
   }
 
-  function requestRemoveItem(item: { id_merch: number; nama_merch: string }) {
+  function requestRemoveItem(item: { cartKey: number; nama_merch: string }) {
     setRemoveTarget(item);
   }
 
   function confirmRemoveItem() {
     if (!removeTarget) return;
     setQty((prev) => {
-      const { [removeTarget.id_merch]: _, ...rest } = prev;
+      const { [removeTarget.cartKey]: _, ...rest } = prev;
       return rest;
     });
     setRemoveTarget(null);
   }
 
-  function backToPetugas() {
+  function backFromCatalog() {
     setError(null);
     setShowSheet(false);
+    setQty({});
+    if (setup.mode === "RETURN") {
+      setSelectedReturnKey(null);
+      setStep("pilih-transaksi");
+      return;
+    }
     setStep("petugas");
   }
 
@@ -182,7 +245,19 @@ export default function QuickAccessClient({
         setError(selectedTujuan.label_detail ?? "Unit wajib dipilih");
         return;
       }
+      setStep("catalog");
+      return;
     }
+
+    setSelectedReturnKey(null);
+    setQty({});
+    setStep("pilih-transaksi");
+  }
+
+  function selectReturnGroup(group: QuickReturnGroup) {
+    setSelectedReturnKey(group.group_key);
+    setQty({});
+    setError(null);
     setStep("catalog");
   }
 
@@ -194,11 +269,6 @@ export default function QuickAccessClient({
     }
 
     startTransition(async () => {
-      const items = cartItems.map((item) => ({
-        id_merch: item.id_merch,
-        jumlah: item.jumlah,
-      }));
-
       const result =
         setup.mode === "OUT"
           ? await confirmQuickOutAction({
@@ -207,11 +277,18 @@ export default function QuickAccessClient({
               id_stasiun: setup.id_stasiun || null,
               id_unit: setup.id_unit || null,
               detail_teks: setup.detail_teks || null,
-              items,
+              items: cartItems.map((item) => ({
+                id_merch: item.id_merch!,
+                jumlah: item.jumlah,
+              })),
             })
           : await confirmQuickReturnAction({
-              nama_petugas: setup.nama_petugas,
-              items,
+              pengembali: setup.nama_petugas,
+              asal: selectedReturnGroup?.asal ?? "Akses cepat",
+              items: cartItems.map((item) => ({
+                id_keluar: item.id_keluar!,
+                jumlah_kembali: item.jumlah,
+              })),
             });
 
       if (!result.ok) {
@@ -230,16 +307,102 @@ export default function QuickAccessClient({
   const title =
     setup.mode === "OUT" ? "Merchandise - OUT" : "Merchandise - RETURN";
 
+  const subtitleExtra =
+    setup.mode === "OUT" && selectedTujuan
+      ? ` · ${selectedTujuan.nama_tujuan}`
+      : setup.mode === "RETURN" && selectedReturnGroup
+        ? ` · ${selectedReturnGroup.tujuan}`
+        : "";
+
   return (
     <div className="relative mx-auto flex h-dvh min-h-dvh w-full max-w-[1340px] flex-col overflow-hidden bg-linear-to-br from-[#8A000B] via-[#550101] to-[#240003] xl:max-w-[1440px]">
+      {step === "pilih-transaksi" && (
+        <>
+          <header className="relative shrink-0 px-4 pb-1.5 pt-4 sm:px-5 sm:pt-5 md:px-6 lg:px-8 lg:pt-6">
+            <button
+              type="button"
+              onClick={() => {
+                setError(null);
+                setStep("petugas");
+              }}
+              className="absolute left-3 top-4 flex size-9 items-center justify-center rounded-full border border-white/25 bg-white/10 text-white transition hover:bg-white/20 sm:left-4 sm:top-5 sm:size-10"
+              aria-label="Kembali"
+            >
+              <ArrowLeft className="size-5" strokeWidth={2.5} />
+            </button>
+            <h1 className="text-center text-lg font-bold tracking-tight text-white sm:text-xl md:text-[22px]">
+              Pilih transaksi
+            </h1>
+            <p className="mt-1 text-center text-[11px] text-white/70 sm:text-xs">
+              {setup.nama_petugas}
+              {" · "}
+              <button
+                type="button"
+                onClick={requestResetSession}
+                className="font-semibold text-[#FEE9E9] underline-offset-2 hover:underline"
+              >
+                Ganti mode
+              </button>
+            </p>
+          </header>
+
+          <main className="min-h-0 flex-1 overflow-y-auto px-4 pb-6 pt-3 sm:px-6 lg:px-8">
+            {returnGroups.length === 0 ? (
+              <div className="rounded-2xl border border-white/15 bg-black/30 px-5 py-10 text-center">
+                <p className="text-sm font-medium text-white">
+                  Tidak ada transaksi yang bisa dikembalikan
+                </p>
+                <p className="mt-2 text-xs text-white/65">
+                  Hanya transaksi dengan tujuan yang mengizinkan return dan
+                  masih memiliki sisa barang.
+                </p>
+              </div>
+            ) : (
+              <ul className="space-y-3">
+                {returnGroups.map((group) => (
+                  <li key={group.group_key}>
+                    <button
+                      type="button"
+                      onClick={() => selectReturnGroup(group)}
+                      className="w-full rounded-2xl border border-white/15 bg-black/40 px-4 py-4 text-left transition hover:border-white/30 hover:bg-black/55 sm:px-5"
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <p className="text-sm font-semibold text-white sm:text-base">
+                            #{group.id_keluar} · {group.tujuan}
+                          </p>
+                          <p className="mt-1 truncate text-xs text-white/70 sm:text-sm">
+                            {group.merchandise_label}
+                          </p>
+                          <p className="mt-1 text-[11px] text-white/55 sm:text-xs">
+                            {formatTanggalShort(group.tanggal_keluar)}
+                            {group.detail_tujuan &&
+                            group.detail_tujuan !== "-"
+                              ? ` · ${group.detail_tujuan}`
+                              : ""}
+                          </p>
+                        </div>
+                        <span className="shrink-0 rounded-full bg-white/15 px-3 py-1 text-xs font-bold tabular-nums text-white">
+                          {group.total_sisa} pcs
+                        </span>
+                      </div>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </main>
+        </>
+      )}
+
       {step === "catalog" && (
         <>
           <header className="relative shrink-0 px-4 pb-1.5 pt-4 sm:px-5 sm:pt-5 md:px-6 lg:px-8 lg:pt-6 max-[850px]:pt-3.5">
             <button
               type="button"
-              onClick={backToPetugas}
+              onClick={backFromCatalog}
               className="absolute left-3 top-4 flex size-9 items-center justify-center rounded-full border border-white/25 bg-white/10 text-white transition hover:bg-white/20 sm:left-4 sm:top-5 sm:size-10 md:left-5 lg:left-6 lg:size-11 max-[850px]:top-3.5"
-              aria-label="Kembali ke data petugas"
+              aria-label="Kembali"
             >
               <ArrowLeft className="size-5 lg:size-6" strokeWidth={2.5} />
             </button>
@@ -248,32 +411,37 @@ export default function QuickAccessClient({
             </h1>
             <p className="mt-1 text-center text-[11px] text-white/70 sm:mt-1.5 sm:text-xs lg:text-sm">
               {setup.nama_petugas}
-              {setup.mode === "OUT" && selectedTujuan
-                ? ` · ${selectedTujuan.nama_tujuan}`
-                : ""}
+              {subtitleExtra}
               {" · "}
               <button
                 type="button"
                 onClick={requestResetSession}
                 className="font-semibold text-[#FEE9E9] underline-offset-2 hover:underline"
               >
-                Ganti Tujuan
+                Ganti mode
               </button>
             </p>
           </header>
 
           <main className="min-h-0 flex-1 overflow-y-auto px-3 pb-24 pt-2 sm:px-5 sm:pt-3 md:px-6 lg:px-8 lg:pb-28 lg:pt-4 max-[850px]:pb-20">
-            {/* 4 kolom di tablet landscape (target 1340×800); 2 kolom di layar sempit */}
+            {setup.mode === "RETURN" && selectedReturnGroup && (
+              <div className="mb-3 rounded-xl border border-white/15 bg-black/35 px-3 py-2.5 text-xs text-white/75 sm:mb-4 sm:px-4 sm:text-sm">
+                Transaksi #{selectedReturnGroup.id_keluar} ·{" "}
+                {selectedReturnGroup.tujuan}
+                {selectedReturnGroup.detail_tujuan !== "-"
+                  ? ` · ${selectedReturnGroup.detail_tujuan}`
+                  : ""}
+              </div>
+            )}
+
             <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4 sm:gap-3 md:gap-3.5 lg:gap-x-4 lg:gap-y-4 max-[850px]:gap-2.5">
-              {merchandise.map((item) => {
-                const value = qty[item.id_merch] ?? 0;
-                const disabledOut =
-                  setup.mode === "OUT" && item.jumlah_stok <= 0;
-                const canAdd =
-                  setup.mode === "RETURN" || value < item.jumlah_stok;
+              {catalogLines.map((item) => {
+                const value = qty[item.cartKey] ?? 0;
+                const canAdd = value < item.maxQty;
+                const disabledOut = setup.mode === "OUT" && item.maxQty <= 0;
                 return (
                   <article
-                    key={item.id_merch}
+                    key={item.cartKey}
                     className="flex flex-col rounded-[10px] bg-black/50 px-[9%] pb-2 pt-[6%] shadow-[0_5px_14px_rgba(255,255,255,0.22)] sm:aspect-[158/178] lg:rounded-xl lg:aspect-[158/185] lg:px-[10%] lg:pb-2.5 lg:pt-[7%] max-[850px]:aspect-[158/168] max-[850px]:px-[8%] max-[850px]:pb-1.5 max-[850px]:pt-[5%]"
                   >
                     <div className="mx-auto aspect-square w-full overflow-hidden rounded-[8px] bg-[#989898] lg:rounded-[10px]">
@@ -295,17 +463,16 @@ export default function QuickAccessClient({
                     <h2 className="mt-1.5 line-clamp-2 min-h-8 text-center text-[10px] font-medium leading-snug text-white sm:mt-2 sm:min-h-9 sm:text-[11px] lg:text-xs max-[850px]:mt-1 max-[850px]:min-h-7 max-[850px]:text-[10px]">
                       {item.nama_merch}
                     </h2>
+                    <p className="text-center text-[9px] text-white/55 sm:text-[10px]">
+                      {item.meta}
+                    </p>
 
                     <div className="mt-auto flex items-center justify-center gap-1.5 pt-1 sm:gap-2 md:gap-2.5 lg:gap-3">
                       <button
                         type="button"
                         disabled={value <= 0 || pending}
                         onClick={() =>
-                          setItemQty(
-                            item.id_merch,
-                            value - 1,
-                            item.jumlah_stok
-                          )
+                          setItemQty(item.cartKey, value - 1, item.maxQty)
                         }
                         className="flex size-7 items-center justify-center rounded-full text-white disabled:opacity-30 lg:size-8"
                         aria-label="Kurangi"
@@ -324,11 +491,7 @@ export default function QuickAccessClient({
                         type="button"
                         disabled={disabledOut || !canAdd || pending}
                         onClick={() =>
-                          setItemQty(
-                            item.id_merch,
-                            value + 1,
-                            item.jumlah_stok
-                          )
+                          setItemQty(item.cartKey, value + 1, item.maxQty)
                         }
                         className="flex size-7 items-center justify-center rounded-full text-white disabled:opacity-30 lg:size-8"
                         aria-label="Tambah"
@@ -348,7 +511,6 @@ export default function QuickAccessClient({
             )}
           </main>
 
-          {/* Bottom sheet — menempel di bawah layar (bukan modal) */}
           <div className="fixed inset-x-0 bottom-0 z-40">
             {showSheet && (
               <button
@@ -426,12 +588,10 @@ export default function QuickAccessClient({
                     ) : (
                       <ul className="divide-y divide-white/15">
                         {cartItems.map((item) => {
-                          const canAdd =
-                            setup.mode === "RETURN" ||
-                            item.jumlah < item.jumlah_stok;
+                          const canAdd = item.jumlah < item.maxQty;
                           return (
                             <li
-                              key={item.id_merch}
+                              key={item.cartKey}
                               className="flex items-center gap-2.5 py-3 sm:gap-3"
                             >
                               <div className="h-11 w-11 shrink-0 overflow-hidden rounded-lg bg-[#989898] sm:h-12 sm:w-12 lg:h-14 lg:w-14">
@@ -452,7 +612,9 @@ export default function QuickAccessClient({
                                 <p className="truncate text-sm font-semibold text-white lg:text-base">
                                   {item.nama_merch}
                                 </p>
-                                <p className="text-xs text-white/60">Quantity</p>
+                                <p className="text-xs text-white/60">
+                                  Quantity · max {item.maxQty}
+                                </p>
                               </div>
 
                               <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
@@ -461,9 +623,9 @@ export default function QuickAccessClient({
                                   disabled={pending || item.jumlah <= 1}
                                   onClick={() =>
                                     setItemQty(
-                                      item.id_merch,
+                                      item.cartKey,
                                       item.jumlah - 1,
-                                      item.jumlah_stok
+                                      item.maxQty
                                     )
                                   }
                                   className="flex size-8 items-center justify-center rounded-full bg-white/10 text-white transition hover:bg-white/20 disabled:opacity-30"
@@ -479,9 +641,9 @@ export default function QuickAccessClient({
                                   disabled={pending || !canAdd}
                                   onClick={() =>
                                     setItemQty(
-                                      item.id_merch,
+                                      item.cartKey,
                                       item.jumlah + 1,
-                                      item.jumlah_stok
+                                      item.maxQty
                                     )
                                   }
                                   className="flex size-8 items-center justify-center rounded-full bg-white/10 text-white transition hover:bg-white/20 disabled:opacity-30"
@@ -494,7 +656,7 @@ export default function QuickAccessClient({
                                   disabled={pending}
                                   onClick={() =>
                                     requestRemoveItem({
-                                      id_merch: item.id_merch,
+                                      cartKey: item.cartKey,
                                       nama_merch: item.nama_merch,
                                     })
                                   }
@@ -532,7 +694,6 @@ export default function QuickAccessClient({
         </>
       )}
 
-      {/* Success alert */}
       {showSuccess && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4">
           <div className="w-full max-w-sm rounded-2xl bg-white p-6 text-center shadow-2xl">
@@ -543,7 +704,7 @@ export default function QuickAccessClient({
             <p className="mt-2 text-sm leading-relaxed text-[#4B5563]">
               {setup.mode === "OUT"
                 ? "Pengambilan barang berhasil. Transaksi tercatat sebagai barang keluar."
-                : "Pengembalian stok berhasil. Stok gudang sudah diperbarui."}
+                : "Pengembalian berhasil tercatat ke transaksi keluar yang dipilih. Stok gudang sudah diperbarui."}
             </p>
             <button
               type="button"
@@ -567,7 +728,7 @@ export default function QuickAccessClient({
             />
             <ModeButton
               label="RETURN"
-              description="Kembalikan stok ke gudang"
+              description="Kembalikan dari transaksi keluar"
               active={setup.mode === "RETURN"}
               onClick={() => setSetup((s) => ({ ...s, mode: "RETURN" }))}
             />
@@ -643,14 +804,14 @@ export default function QuickAccessClient({
                   }
                 >
                   <option value="">Pilih tujuan</option>
-                  {quickTujuanList.map((t) => (
+                  {tujuanList.map((t) => (
                     <option key={t.id_tujuan} value={t.id_tujuan}>
                       {t.nama_tujuan}
                     </option>
                   ))}
                 </select>
               </label>
-              {quickTujuanList.length === 0 && (
+              {tujuanList.length === 0 && (
                 <p className="mb-3 text-xs text-[#B01B1C]">
                   Belum ada data tujuan. Tambahkan tujuan di halaman admin
                   terlebih dahulu.
@@ -724,7 +885,6 @@ export default function QuickAccessClient({
                 setStep("mode");
               }}
             >
-
               Back
             </button>
             <button
@@ -740,9 +900,9 @@ export default function QuickAccessClient({
 
       <ConfirmDialog
         open={showResetConfirm}
-        title="Ganti Tujuan?"
-        message="Semua pilihan merchandise dan data input akan hilang. Lanjutkan ganti tujuan?"
-        confirmLabel="Ya, ganti tujuan"
+        title="Ganti mode?"
+        message="Semua pilihan merchandise dan data input akan hilang. Lanjutkan ganti mode?"
+        confirmLabel="Ya, ganti mode"
         onConfirm={resetSession}
         onCancel={() => setShowResetConfirm(false)}
       />

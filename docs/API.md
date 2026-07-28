@@ -270,8 +270,10 @@ Halaman akses cepat `/` (login `/login`) responsif untuk **tablet** dan **deskto
 | Mode | Aksi UI | Domain yang dipakai |
 |------|---------|---------------------|
 | OUT | Keranjang multi-merch + confirm | `createBarangKeluarBatch` (sama `POST /api/barang-keluar` batch) |
-| RETURN | Keranjang multi-merch + confirm | `restockMerchandise` per item (sama `POST /api/merchandise/:id/restock`) |
+| RETURN | Pilih transaksi keluar (yang `boleh_return` & masih ada sisa) → qty per item → confirm | `createBarangKembaliBatch` (sama `POST /api/barang-keluar/:id/return` batch) |
 
 **Tujuan `TEKS` (Event / Lainnya):** tetap bisa dipilih di akses cepat. Field detail teks **tidak** ditampilkan di tablet — `detail_teks` boleh kosong saat create, lalu dilengkapi lewat form admin barang keluar. Schema DB tidak berubah (`detail_teks` tetap nullable).
+
+**RETURN akses cepat:** tidak lagi memakai restock bebas. User memilih grup transaksi keluar, lalu mengembalikan qty (maks. sisa). `pengembali` = nama petugas; `asal` diisi otomatis dari detail/tujuan transaksi.
 
 Admin panel: `/admin` (login `/admin/login`).

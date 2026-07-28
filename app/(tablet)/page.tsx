@@ -10,23 +10,21 @@ import { getCurrentUser } from "@/lib/auth";
 export const dynamic = "force-dynamic";
 
 export default async function TabletHomePage() {
-  const [
-    user,
-    merchandise,
-    petugasOptions,
-    tujuanList,
-    stasiunList,
-    unitList,
-    returnGroups,
-  ] = await Promise.all([
-    getCurrentUser(),
-    getMerchandiseCatalog(),
-    getPetugasNameOptions(),
-    getAllTujuan(),
-    getAllStasiun(),
-    getAllUnit(),
-    listQuickReturnGroups(),
-  ]);
+  const user = await getCurrentUser();
+  const [merchandise, petugasOptions, tujuanList, stasiunList, unitList, returnGroups] =
+    await Promise.all([
+      getMerchandiseCatalog(),
+      getPetugasNameOptions(),
+      getAllTujuan(),
+      getAllStasiun(),
+      getAllUnit(),
+      listQuickReturnGroups(),
+    ]);
+
+  const visibleReturnGroups =
+    !user || user.role === "ADMIN"
+      ? returnGroups
+      : returnGroups.filter((group) => group.id_user === user.id_user);
 
   return (
     <QuickAccessClient
@@ -36,7 +34,7 @@ export default async function TabletHomePage() {
       tujuanList={tujuanList}
       stasiunList={stasiunList}
       unitList={unitList}
-      returnGroups={returnGroups}
+      returnGroups={visibleReturnGroups}
     />
   );
 }
