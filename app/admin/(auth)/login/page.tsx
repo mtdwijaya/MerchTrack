@@ -206,9 +206,9 @@ export default function LoginPage() {
         </form>
 
         <p className="mt-5 text-center text-xs text-[#9CA3AF]">
-          Akses cepat tablet?{" "}
+          Akses cepat?{" "}
           <a href="/login" className="font-semibold text-[#D71920] hover:underline">
-            Login tablet
+            Login akses cepat
           </a>
         </p>
       </div>

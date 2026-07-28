@@ -18,15 +18,15 @@ if (!databaseUrl) {
   process.exit(1);
 }
 
-const child = spawn(
-  "npx",
-  ["-y", "@modelcontextprotocol/server-postgres", databaseUrl],
-  {
-    cwd: root,
-    stdio: "inherit",
-    shell: true,
-  }
-);
+const child = spawn("npx", ["-y", "@yawlabs/postgres-mcp@latest"], {
+  cwd: root,
+  stdio: "inherit",
+  shell: true,
+  env: {
+    ...process.env,
+    DATABASE_URL: databaseUrl,
+  },
+});
 
 child.on("exit", (code) => {
   process.exit(code ?? 0);

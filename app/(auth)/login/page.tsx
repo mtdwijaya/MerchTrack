@@ -74,7 +74,7 @@ export default function LoginPage() {
         </div>
 
         <p className="text-center text-[#7A7A7A] text-sm mb-8">
-          Login akses cepat merchandise (tablet)
+          Login akses cepat merchandise
         </p>
 
         <form action={formAction} autoComplete="on" suppressHydrationWarning>

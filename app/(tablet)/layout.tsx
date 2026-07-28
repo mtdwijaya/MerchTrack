@@ -12,6 +12,6 @@ export default async function TabletLayout({
   }
 
   return (
-    <div className="min-h-dvh bg-[#F3F4F6] text-[#1A1A1A]">{children}</div>
+    <div className="min-h-dvh bg-[#240003] text-[#1A1A1A]">{children}</div>
   );
 }

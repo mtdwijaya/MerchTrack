@@ -23,12 +23,16 @@ interface SidebarProps {
 }
 
 function isMenuActive(pathname: string, href: string) {
-  if (pathname === href) return true;
-  // /tujuan jangan aktif saat di /tujuan/unit atau /tujuan/stasiun
-  if (href === "/tujuan") {
-    return pathname === "/tujuan";
+  const normalized = pathname.replace(/\/$/, "") || "/";
+  if (normalized === href) return true;
+
+  // /admin (dashboard) & /admin/tujuan hanya exact match —
+  // jangan ikut aktif di /admin/barang-keluar, /admin/tujuan/unit, dll.
+  if (href === "/admin" || href === "/admin/tujuan") {
+    return false;
   }
-  return pathname.startsWith(`${href}/`) || pathname.startsWith(href);
+
+  return normalized.startsWith(`${href}/`);
 }
 
 export default function Sidebar({

@@ -263,13 +263,15 @@ curl http://localhost:3000/api/barang-keluar \
 
 ---
 
-## 4. Gap UI akses cepat (tablet)
+## 4. Gap UI akses cepat (tablet & desktop)
 
-Halaman tablet `/` (login `/login`) memakai **Server Actions**, belum punya endpoint REST khusus:
+Halaman akses cepat `/` (login `/login`) responsif untuk **tablet** dan **desktop**, memakai **Server Actions**, belum punya endpoint REST khusus:
 
 | Mode | Aksi UI | Domain yang dipakai |
 |------|---------|---------------------|
 | OUT | Keranjang multi-merch + confirm | `createBarangKeluarBatch` (sama `POST /api/barang-keluar` batch) |
 | RETURN | Keranjang multi-merch + confirm | `restockMerchandise` per item (sama `POST /api/merchandise/:id/restock`) |
+
+**Tujuan `TEKS` (Event / Lainnya):** tetap bisa dipilih di akses cepat. Field detail teks **tidak** ditampilkan di tablet — `detail_teks` boleh kosong saat create, lalu dilengkapi lewat form admin barang keluar. Schema DB tidak berubah (`detail_teks` tetap nullable).
 
 Admin panel: `/admin` (login `/admin/login`).

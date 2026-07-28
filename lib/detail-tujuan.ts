@@ -29,9 +29,8 @@ export function validateDetailTujuan(
       }
       return null;
     case "TEKS":
-      if (!data.detail_teks?.trim()) {
-        return tujuan.label_detail ?? "Detail tujuan wajib diisi";
-      }
+      // Detail teks boleh kosong saat create (mis. akses cepat tablet);
+      // bisa dilengkapi kemudian lewat form admin.
       return null;
     case "TIDAK_ADA":
       return null;

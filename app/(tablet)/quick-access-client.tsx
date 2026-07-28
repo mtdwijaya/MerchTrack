@@ -1,20 +1,23 @@
-"use client";
+  "use client";
 
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import {
+  ArrowLeft,
+  CheckCircle2,
+  ChevronUp,
   Minus,
   Package,
   Plus,
-  ShoppingCart,
-  UserRound,
+  Trash2,
+  X,
 } from "lucide-react";
 
 import type { TujuanOption } from "@/components/barang-keluar/status-badge";
+import ConfirmDialog from "@/components/ui/confirm-dialog";
 import {
   confirmQuickOutAction,
   confirmQuickReturnAction,
-  logoutTabletAction,
 } from "./actions";
 
 export type CatalogItem = {
@@ -48,7 +51,6 @@ type Props = {
 };
 
 export default function QuickAccessClient({
-  userName,
   merchandise,
   petugasOptions,
   tujuanList,
@@ -67,18 +69,26 @@ export default function QuickAccessClient({
   });
   const [qty, setQty] = useState<Record<number, number>>({});
   const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
+  const [showSheet, setShowSheet] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
+  const [showResetConfirm, setShowResetConfirm] = useState(false);
+  const [removeTarget, setRemoveTarget] = useState<{
+    id_merch: number;
+    nama_merch: string;
+  } | null>(null);
   const [pending, startTransition] = useTransition();
-  const [showCart, setShowCart] = useState(false);
+
+  const quickTujuanList = tujuanList;
 
   const selectedTujuan = useMemo(
-    () => tujuanList.find((t) => t.id_tujuan === setup.id_tujuan) ?? null,
-    [tujuanList, setup.id_tujuan]
+    () =>
+      quickTujuanList.find((t) => t.id_tujuan === setup.id_tujuan) ?? null,
+    [quickTujuanList, setup.id_tujuan]
   );
 
   const cartItems = useMemo(
     () =>
-      merchandise
+      merchandise   
         .map((item) => ({
           ...item,
           jumlah: qty[item.id_merch] ?? 0,
@@ -88,6 +98,15 @@ export default function QuickAccessClient({
   );
 
   const cartCount = cartItems.reduce((sum, item) => sum + item.jumlah, 0);
+
+  const cartSummaryLabel = useMemo(() => {
+    if (cartItems.length === 0) return "Belum ada pilihan";
+    const preview = cartItems
+      .slice(0, 2)
+      .map((item) => `${item.nama_merch} : ${item.jumlah} pcs`)
+      .join(", ");
+    return cartItems.length > 2 ? `${preview}, dll` : preview;
+  }, [cartItems]);
 
   function setItemQty(id: number, next: number, maxStock: number) {
     const capped =
@@ -115,8 +134,33 @@ export default function QuickAccessClient({
     });
     setStep("mode");
     setError(null);
-    setSuccess(null);
-    setShowCart(false);
+    setShowSheet(false);
+    setShowSuccess(false);
+    setShowResetConfirm(false);
+    setRemoveTarget(null);
+  }
+
+  function requestResetSession() {
+    setShowResetConfirm(true);
+  }
+
+  function requestRemoveItem(item: { id_merch: number; nama_merch: string }) {
+    setRemoveTarget(item);
+  }
+
+  function confirmRemoveItem() {
+    if (!removeTarget) return;
+    setQty((prev) => {
+      const { [removeTarget.id_merch]: _, ...rest } = prev;
+      return rest;
+    });
+    setRemoveTarget(null);
+  }
+
+  function backToPetugas() {
+    setError(null);
+    setShowSheet(false);
+    setStep("petugas");
   }
 
   function continueFromPetugas() {
@@ -138,20 +182,12 @@ export default function QuickAccessClient({
         setError(selectedTujuan.label_detail ?? "Unit wajib dipilih");
         return;
       }
-      if (
-        selectedTujuan?.jenis_detail === "TEKS" &&
-        !setup.detail_teks.trim()
-      ) {
-        setError(selectedTujuan.label_detail ?? "Detail tujuan wajib diisi");
-        return;
-      }
     }
     setStep("catalog");
   }
 
   function handleConfirm() {
     setError(null);
-    setSuccess(null);
     if (cartItems.length === 0) {
       setError("Pilih minimal 1 merchandise");
       return;
@@ -180,96 +216,67 @@ export default function QuickAccessClient({
 
       if (!result.ok) {
         setError(result.message);
+        setShowSheet(false);
         return;
       }
 
-      setSuccess(
-        setup.mode === "OUT"
-          ? "Barang keluar berhasil dicatat"
-          : "Pengembalian stok berhasil dicatat"
-      );
       setQty({});
-      setShowCart(false);
+      setShowSheet(false);
+      setShowSuccess(true);
       router.refresh();
-      setTimeout(() => resetSession(), 1200);
     });
   }
 
   const title =
-    setup.mode === "OUT" ? "Merchandise - Out" : "Merchandise - Return";
+    setup.mode === "OUT" ? "Merchandise - OUT" : "Merchandise - RETURN";
 
   return (
-    <div className="mx-auto flex min-h-dvh w-full max-w-6xl flex-col">
-      <header className="sticky top-0 z-30 flex items-center justify-between border-b border-[#E5E7EB] bg-white px-5 py-3 shadow-sm">
-        <div className="w-16" />
-        <h1 className="text-center text-lg font-semibold tracking-tight text-[#1A1A1A] sm:text-xl">
-          {step === "catalog" ? title : "MerchTrack"}
-        </h1>
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={() => setShowCart((v) => !v)}
-            className="relative flex h-10 w-10 items-center justify-center rounded-full border border-[#E5E7EB] bg-white text-[#374151]"
-            aria-label="Keranjang"
-          >
-            <ShoppingCart size={20} />
-            {cartCount > 0 && (
-              <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-[#D71920] px-1 text-[10px] font-bold text-white">
-                {cartCount}
-              </span>
-            )}
-          </button>
-          <button
-            type="button"
-            onClick={() => startTransition(() => logoutTabletAction())}
-            className="flex h-10 w-10 items-center justify-center rounded-full border border-[#E5E7EB] bg-white text-[#374151]"
-            aria-label={`Akun ${userName}`}
-            title={userName}
-          >
-            <UserRound size={20} />
-          </button>
-        </div>
-      </header>
-
-      <main className="flex-1 px-4 py-4 sm:px-6">
-        {step === "catalog" && (
-          <>
-            <div className="mb-4 flex flex-wrap items-center justify-between gap-2 text-sm text-[#6B7280]">
-              <p>
-                Petugas:{" "}
-                <span className="font-semibold text-[#1A1A1A]">
-                  {setup.nama_petugas}
-                </span>
-                {setup.mode === "OUT" && selectedTujuan && (
-                  <>
-                    {" · "}
-                    Tujuan:{" "}
-                    <span className="font-semibold text-[#1A1A1A]">
-                      {selectedTujuan.nama_tujuan}
-                    </span>
-                  </>
-                )}
-              </p>
+    <div className="relative mx-auto flex h-dvh min-h-dvh w-full max-w-[1340px] flex-col overflow-hidden bg-linear-to-br from-[#8A000B] via-[#550101] to-[#240003] xl:max-w-[1440px]">
+      {step === "catalog" && (
+        <>
+          <header className="relative shrink-0 px-4 pb-1.5 pt-4 sm:px-5 sm:pt-5 md:px-6 lg:px-8 lg:pt-6 max-[850px]:pt-3.5">
+            <button
+              type="button"
+              onClick={backToPetugas}
+              className="absolute left-3 top-4 flex size-9 items-center justify-center rounded-full border border-white/25 bg-white/10 text-white transition hover:bg-white/20 sm:left-4 sm:top-5 sm:size-10 md:left-5 lg:left-6 lg:size-11 max-[850px]:top-3.5"
+              aria-label="Kembali ke data petugas"
+            >
+              <ArrowLeft className="size-5 lg:size-6" strokeWidth={2.5} />
+            </button>
+            <h1 className="text-center text-lg font-bold tracking-tight text-white sm:text-xl md:text-[22px] lg:text-[26px] max-[850px]:text-[20px]">
+              {title}
+            </h1>
+            <p className="mt-1 text-center text-[11px] text-white/70 sm:mt-1.5 sm:text-xs lg:text-sm">
+              {setup.nama_petugas}
+              {setup.mode === "OUT" && selectedTujuan
+                ? ` · ${selectedTujuan.nama_tujuan}`
+                : ""}
+              {" · "}
               <button
                 type="button"
-                onClick={resetSession}
-                className="text-xs font-semibold text-[#D71920] hover:underline"
+                onClick={requestResetSession}
+                className="font-semibold text-[#FEE9E9] underline-offset-2 hover:underline"
               >
-                Ganti mode
+                Ganti Tujuan
               </button>
-            </div>
+            </p>
+          </header>
 
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 md:gap-4">
+          <main className="min-h-0 flex-1 overflow-y-auto px-3 pb-24 pt-2 sm:px-5 sm:pt-3 md:px-6 lg:px-8 lg:pb-28 lg:pt-4 max-[850px]:pb-20">
+            {/* 4 kolom di tablet landscape (target 1340×800); 2 kolom di layar sempit */}
+            <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4 sm:gap-3 md:gap-3.5 lg:gap-x-4 lg:gap-y-4 max-[850px]:gap-2.5">
               {merchandise.map((item) => {
                 const value = qty[item.id_merch] ?? 0;
                 const disabledOut =
                   setup.mode === "OUT" && item.jumlah_stok <= 0;
+                const canAdd =
+                  setup.mode === "RETURN" || value < item.jumlah_stok;
                 return (
                   <article
                     key={item.id_merch}
-                    className="flex flex-col overflow-hidden rounded-2xl border border-[#E8E4DF] bg-white shadow-sm"
+                    className="flex flex-col rounded-[10px] bg-black/50 px-[9%] pb-2 pt-[6%] shadow-[0_5px_14px_rgba(255,255,255,0.22)] sm:aspect-[158/178] lg:rounded-xl lg:aspect-[158/185] lg:px-[10%] lg:pb-2.5 lg:pt-[7%] max-[850px]:aspect-[158/168] max-[850px]:px-[8%] max-[850px]:pb-1.5 max-[850px]:pt-[5%]"
                   >
-                    <div className="relative aspect-4/3 bg-[#F3F4F6]">
+                    <div className="mx-auto aspect-square w-full overflow-hidden rounded-[8px] bg-[#989898] lg:rounded-[10px]">
                       {item.foto_path ? (
                         // eslint-disable-next-line @next/next/no-img-element
                         <img
@@ -279,129 +286,272 @@ export default function QuickAccessClient({
                           loading="lazy"
                         />
                       ) : (
-                        <div className="flex h-full items-center justify-center text-[#C4C4C4]">
-                          <Package size={36} />
+                        <div className="flex h-full items-center justify-center text-white/50">
+                          <Package className="size-6 sm:size-7 lg:size-8" />
                         </div>
                       )}
                     </div>
-                    <div className="flex flex-1 flex-col gap-2 p-3">
-                      <div>
-                        <h2 className="line-clamp-2 text-sm font-semibold leading-snug text-[#1A1A1A]">
-                          {item.nama_merch}
-                        </h2>
-                        <p className="mt-1 text-xs text-[#6B7280]">
-                          Stok:{" "}
-                          <span className="font-semibold text-[#1A1A1A]">
-                            {item.jumlah_stok}
-                          </span>
-                        </p>
+
+                    <h2 className="mt-1.5 line-clamp-2 min-h-8 text-center text-[10px] font-medium leading-snug text-white sm:mt-2 sm:min-h-9 sm:text-[11px] lg:text-xs max-[850px]:mt-1 max-[850px]:min-h-7 max-[850px]:text-[10px]">
+                      {item.nama_merch}
+                    </h2>
+
+                    <div className="mt-auto flex items-center justify-center gap-1.5 pt-1 sm:gap-2 md:gap-2.5 lg:gap-3">
+                      <button
+                        type="button"
+                        disabled={value <= 0 || pending}
+                        onClick={() =>
+                          setItemQty(
+                            item.id_merch,
+                            value - 1,
+                            item.jumlah_stok
+                          )
+                        }
+                        className="flex size-7 items-center justify-center rounded-full text-white disabled:opacity-30 lg:size-8"
+                        aria-label="Kurangi"
+                      >
+                        <Minus
+                          className="size-5 lg:size-6"
+                          strokeWidth={2.5}
+                        />
+                      </button>
+
+                      <div className="flex h-6 min-w-9 items-center justify-center rounded-full bg-[#9C9B9B] px-2 text-[11px] font-semibold tabular-nums text-white sm:min-w-10 md:min-w-11 lg:h-7 lg:min-w-12 lg:text-xs">
+                        {value}
                       </div>
-                      <div className="mt-auto flex items-center justify-between gap-2">
-                        <button
-                          type="button"
-                          disabled={value <= 0 || pending}
-                          onClick={() =>
-                            setItemQty(
-                              item.id_merch,
-                              value - 1,
-                              item.jumlah_stok
-                            )
-                          }
-                          className="flex h-9 w-9 items-center justify-center rounded-full border border-[#E5E7EB] text-[#374151] disabled:opacity-40"
-                          aria-label="Kurangi"
-                        >
-                          <Minus size={16} />
-                        </button>
-                        <span className="min-w-8 text-center text-base font-bold tabular-nums">
-                          {value}
-                        </span>
-                        <button
-                          type="button"
-                          disabled={disabledOut || pending}
-                          onClick={() =>
-                            setItemQty(
-                              item.id_merch,
-                              value + 1,
-                              item.jumlah_stok
-                            )
-                          }
-                          className="flex h-9 w-9 items-center justify-center rounded-full bg-[#D71920] text-white disabled:opacity-40"
-                          aria-label="Tambah"
-                        >
-                          <Plus size={16} />
-                        </button>
-                      </div>
+
+                      <button
+                        type="button"
+                        disabled={disabledOut || !canAdd || pending}
+                        onClick={() =>
+                          setItemQty(
+                            item.id_merch,
+                            value + 1,
+                            item.jumlah_stok
+                          )
+                        }
+                        className="flex size-7 items-center justify-center rounded-full text-white disabled:opacity-30 lg:size-8"
+                        aria-label="Tambah"
+                      >
+                        <Plus className="size-5 lg:size-6" strokeWidth={2.5} />
+                      </button>
                     </div>
                   </article>
                 );
               })}
             </div>
-          </>
-        )}
-      </main>
 
-      {step === "catalog" && (
-        <div className="sticky bottom-0 z-20 border-t border-[#E5E7EB] bg-white/95 px-4 py-3 backdrop-blur sm:px-6">
-          <div className="mx-auto flex max-w-6xl items-center justify-between gap-3">
-            <p className="text-sm text-[#6B7280]">
-              {cartCount > 0
-                ? `${cartCount} pcs dipilih`
-                : "Belum ada item dipilih"}
+            {error && (
+              <p className="mt-4 text-center text-sm font-medium text-[#FEE9E9]">
+                {error}
+              </p>
+            )}
+          </main>
+
+          {/* Bottom sheet — menempel di bawah layar (bukan modal) */}
+          <div className="fixed inset-x-0 bottom-0 z-40">
+            {showSheet && (
+              <button
+                type="button"
+                className="absolute inset-x-0 bottom-full h-screen bg-black/45"
+                aria-label="Tutup sheet"
+                onClick={() => setShowSheet(false)}
+              />
+            )}
+
+            <div
+              className={`relative w-full border-t border-black/20 bg-linear-to-b from-[#88000A] to-[#240003] shadow-[0_-8px_28px_rgba(0,0,0,0.35)] ${
+                showSheet ? "rounded-t-3xl" : ""
+              }`}
+            >
+              {!showSheet ? (
+                <div className="relative mx-auto w-full max-w-[1340px] xl:max-w-[1440px]">
+                  <button
+                    type="button"
+                    onClick={() => setShowSheet(true)}
+                    className="absolute left-5 top-0 z-10 flex h-8 w-12 -translate-y-full items-center justify-center rounded-t-[22px] border border-b-0 border-black/25 bg-linear-to-b from-[#88000A] to-[#6E0008] text-[#FEE9E9] sm:left-6 md:left-8 md:h-[33px] md:w-14"
+                    aria-label="Lihat detail pilihan"
+                  >
+                    <ChevronUp
+                      className="size-5 lg:size-6"
+                      strokeWidth={2.75}
+                    />
+                  </button>
+                  <div className="flex h-12 items-center justify-between gap-3 px-4 sm:h-14 sm:px-5 md:px-6 lg:h-14 lg:px-8 max-[850px]:h-12">
+                    <p className="min-w-0 flex-1 truncate text-sm font-medium text-white/80 lg:text-base">
+                      {cartSummaryLabel}
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => setShowSheet(true)}
+                      className="rounded-[8px] border border-[#FEE9E9]/70 px-4 py-2 text-[11px] font-semibold text-[#FEE9E9] transition hover:bg-white/10 lg:px-5 lg:text-sm"
+                    >
+                      Detail
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="mx-auto flex w-full max-w-[1340px] max-h-[min(62dvh,520px)] flex-col max-[850px]:max-h-[min(58dvh,460px)]">
+                  <div className="flex shrink-0 justify-center pt-2">
+                    <button
+                      type="button"
+                      onClick={() => setShowSheet(false)}
+                      className="flex flex-col items-center gap-1.5 px-6"
+                      aria-label="Tutup sheet"
+                    >
+                      <div className="h-1.5 w-12 rounded-full bg-white/35" />
+                      <ChevronUp className="size-5 rotate-180 text-white/70" />
+                    </button>
+                  </div>
+
+                  <div className="flex items-center justify-between px-4 pb-2 pt-1 sm:px-5 md:px-6 lg:px-8">
+                    <h3 className="text-base font-semibold text-white lg:text-lg">
+                      Detail pilihan
+                    </h3>
+                    <button
+                      type="button"
+                      onClick={() => setShowSheet(false)}
+                      className="rounded-full p-1.5 text-white/80 hover:bg-white/10"
+                      aria-label="Tutup"
+                    >
+                      <X size={18} />
+                    </button>
+                  </div>
+
+                  <div className="min-h-0 flex-1 overflow-y-auto px-4 sm:px-5 md:px-6 lg:px-8">
+                    {cartItems.length === 0 ? (
+                      <p className="py-8 text-center text-sm text-white/65">
+                        Belum ada merchandise dipilih
+                      </p>
+                    ) : (
+                      <ul className="divide-y divide-white/15">
+                        {cartItems.map((item) => {
+                          const canAdd =
+                            setup.mode === "RETURN" ||
+                            item.jumlah < item.jumlah_stok;
+                          return (
+                            <li
+                              key={item.id_merch}
+                              className="flex items-center gap-2.5 py-3 sm:gap-3"
+                            >
+                              <div className="h-11 w-11 shrink-0 overflow-hidden rounded-lg bg-[#989898] sm:h-12 sm:w-12 lg:h-14 lg:w-14">
+                                {item.foto_path ? (
+                                  // eslint-disable-next-line @next/next/no-img-element
+                                  <img
+                                    src={item.foto_path}
+                                    alt=""
+                                    className="h-full w-full object-cover"
+                                  />
+                                ) : (
+                                  <div className="flex h-full items-center justify-center text-white/50">
+                                    <Package size={20} />
+                                  </div>
+                                )}
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                <p className="truncate text-sm font-semibold text-white lg:text-base">
+                                  {item.nama_merch}
+                                </p>
+                                <p className="text-xs text-white/60">Quantity</p>
+                              </div>
+
+                              <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
+                                <button
+                                  type="button"
+                                  disabled={pending || item.jumlah <= 1}
+                                  onClick={() =>
+                                    setItemQty(
+                                      item.id_merch,
+                                      item.jumlah - 1,
+                                      item.jumlah_stok
+                                    )
+                                  }
+                                  className="flex size-8 items-center justify-center rounded-full bg-white/10 text-white transition hover:bg-white/20 disabled:opacity-30"
+                                  aria-label="Kurangi quantity"
+                                >
+                                  <Minus size={16} strokeWidth={2.5} />
+                                </button>
+                                <span className="min-w-8 text-center text-sm font-bold tabular-nums text-white">
+                                  {item.jumlah}
+                                </span>
+                                <button
+                                  type="button"
+                                  disabled={pending || !canAdd}
+                                  onClick={() =>
+                                    setItemQty(
+                                      item.id_merch,
+                                      item.jumlah + 1,
+                                      item.jumlah_stok
+                                    )
+                                  }
+                                  className="flex size-8 items-center justify-center rounded-full bg-white/10 text-white transition hover:bg-white/20 disabled:opacity-30"
+                                  aria-label="Tambah quantity"
+                                >
+                                  <Plus size={16} strokeWidth={2.5} />
+                                </button>
+                                <button
+                                  type="button"
+                                  disabled={pending}
+                                  onClick={() =>
+                                    requestRemoveItem({
+                                      id_merch: item.id_merch,
+                                      nama_merch: item.nama_merch,
+                                    })
+                                  }
+                                  className="ml-0.5 flex size-8 items-center justify-center rounded-full bg-white/10 text-[#FEE9E9] transition hover:bg-white/20 disabled:opacity-30"
+                                  aria-label={`Hapus ${item.nama_merch}`}
+                                >
+                                  <Trash2 size={15} strokeWidth={2.25} />
+                                </button>
+                              </div>
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    )}
+                  </div>
+
+                  <div className="mx-auto w-full max-w-[1340px] shrink-0 border-t border-white/15 px-4 py-3.5 sm:px-5 sm:py-4 md:px-6 lg:px-8">
+                    <div className="mb-3 flex items-center justify-between text-sm font-semibold text-white lg:text-base">
+                      <span>Total</span>
+                      <span>{cartCount} pcs</span>
+                    </div>
+                    <button
+                      type="button"
+                      disabled={pending || cartCount === 0}
+                      onClick={handleConfirm}
+                      className="w-full rounded-[10px] bg-[#FEE9E9] py-3 text-sm font-bold tracking-wide text-[#8A000B] shadow-[0_2px_10px_rgba(0,0,0,0.35)] transition hover:bg-white disabled:bg-[#FEE9E9]/40 disabled:text-[#8A000B]/50 disabled:shadow-none sm:py-3.5 lg:py-4 lg:text-base"
+                    >
+                      {pending ? "Menyimpan..." : "Confirm"}
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* Success alert */}
+      {showSuccess && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4">
+          <div className="w-full max-w-sm rounded-2xl bg-white p-6 text-center shadow-2xl">
+            <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-full bg-[#ECFDF5] text-[#059669]">
+              <CheckCircle2 size={32} />
+            </div>
+            <h3 className="text-lg font-semibold text-[#1A1A1A]">Berhasil</h3>
+            <p className="mt-2 text-sm leading-relaxed text-[#4B5563]">
+              {setup.mode === "OUT"
+                ? "Pengambilan barang berhasil. Transaksi tercatat sebagai barang keluar."
+                : "Pengembalian stok berhasil. Stok gudang sudah diperbarui."}
             </p>
             <button
               type="button"
-              disabled={pending || cartCount === 0}
-              onClick={handleConfirm}
-              className="rounded-xl bg-linear-to-r from-[#D71920] to-[#550101] px-6 py-3 text-sm font-semibold text-white shadow disabled:opacity-50"
+              className="mt-5 w-full rounded-xl bg-linear-to-r from-[#D71920] to-[#550101] py-3 text-sm font-semibold text-white"
+              onClick={resetSession}
             >
-              {pending ? "Menyimpan..." : "Confirm"}
+              Selesai
             </button>
-          </div>
-          {error && (
-            <p className="mx-auto mt-2 max-w-6xl text-sm text-[#B01B1C]">
-              {error}
-            </p>
-          )}
-          {success && (
-            <p className="mx-auto mt-2 max-w-6xl text-sm text-[#059669]">
-              {success}
-            </p>
-          )}
-        </div>
-      )}
-
-      {showCart && step === "catalog" && (
-        <div className="fixed inset-0 z-40 flex items-end justify-center bg-black/40 p-4 sm:items-center">
-          <div className="w-full max-w-md rounded-2xl bg-white p-4 shadow-xl">
-            <div className="mb-3 flex items-center justify-between">
-              <h3 className="font-semibold">Keranjang</h3>
-              <button
-                type="button"
-                className="text-sm text-[#6B7280]"
-                onClick={() => setShowCart(false)}
-              >
-                Tutup
-              </button>
-            </div>
-            {cartItems.length === 0 ? (
-              <p className="text-sm text-[#6B7280]">Keranjang kosong</p>
-            ) : (
-              <ul className="max-h-72 space-y-2 overflow-auto">
-                {cartItems.map((item) => (
-                  <li
-                    key={item.id_merch}
-                    className="flex items-center justify-between gap-2 rounded-lg border border-[#EFEAE5] px-3 py-2 text-sm"
-                  >
-                    <span className="min-w-0 truncate font-medium">
-                      {item.nama_merch}
-                    </span>
-                    <span className="shrink-0 tabular-nums text-[#6B7280]">
-                      {item.jumlah} pcs
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            )}
           </div>
         </div>
       )}
@@ -411,7 +561,7 @@ export default function QuickAccessClient({
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <ModeButton
               label="OUT"
-              description="Barang keluar dari gudang"
+              description="Catat barang keluar"
               active={setup.mode === "OUT"}
               onClick={() => setSetup((s) => ({ ...s, mode: "OUT" }))}
             />
@@ -493,13 +643,19 @@ export default function QuickAccessClient({
                   }
                 >
                   <option value="">Pilih tujuan</option>
-                  {tujuanList.map((t) => (
+                  {quickTujuanList.map((t) => (
                     <option key={t.id_tujuan} value={t.id_tujuan}>
                       {t.nama_tujuan}
                     </option>
                   ))}
                 </select>
               </label>
+              {quickTujuanList.length === 0 && (
+                <p className="mb-3 text-xs text-[#B01B1C]">
+                  Belum ada data tujuan. Tambahkan tujuan di halaman admin
+                  terlebih dahulu.
+                </p>
+              )}
 
               {selectedTujuan?.jenis_detail === "STASIUN" && (
                 <label className="mb-3 block text-sm">
@@ -554,42 +710,22 @@ export default function QuickAccessClient({
                   </select>
                 </label>
               )}
-
-              {selectedTujuan?.jenis_detail === "TEKS" && (
-                <label className="mb-3 block text-sm">
-                  <span className="mb-1.5 block font-medium text-[#374151]">
-                    {selectedTujuan.label_detail ?? "Detail"}
-                  </span>
-                  <input
-                    className="h-11 w-full rounded-lg border border-[#D9D9D9] px-3 text-sm outline-none focus:border-[#D71920]"
-                    value={setup.detail_teks}
-                    onChange={(e) =>
-                      setSetup((s) => ({
-                        ...s,
-                        detail_teks: e.target.value,
-                      }))
-                    }
-                    placeholder="Isi detail tujuan"
-                  />
-                </label>
-              )}
             </>
           )}
 
-          {error && (
-            <p className="mb-3 text-sm text-[#B01B1C]">{error}</p>
-          )}
+          {error && <p className="mb-3 text-sm text-[#B01B1C]">{error}</p>}
 
           <div className="mt-2 flex gap-2">
             <button
               type="button"
-              className="flex-1 rounded-xl border border-[#E5E7EB] py-3 text-sm font-semibold text-[#374151]"
+              className="flex flex-1 items-center justify-center gap-1.5 rounded-xl border border-[#E5E7EB] py-3 text-sm font-semibold text-[#374151]"
               onClick={() => {
                 setError(null);
                 setStep("mode");
               }}
             >
-              Kembali
+
+              Back
             </button>
             <button
               type="button"
@@ -601,6 +737,28 @@ export default function QuickAccessClient({
           </div>
         </ModalShell>
       )}
+
+      <ConfirmDialog
+        open={showResetConfirm}
+        title="Ganti Tujuan?"
+        message="Semua pilihan merchandise dan data input akan hilang. Lanjutkan ganti tujuan?"
+        confirmLabel="Ya, ganti tujuan"
+        onConfirm={resetSession}
+        onCancel={() => setShowResetConfirm(false)}
+      />
+
+      <ConfirmDialog
+        open={removeTarget !== null}
+        title="Hapus merchandise?"
+        message={
+          removeTarget
+            ? `"${removeTarget.nama_merch}" akan dihapus dari pilihan. Lanjutkan?`
+            : ""
+        }
+        confirmLabel="Ya, hapus"
+        onConfirm={confirmRemoveItem}
+        onCancel={() => setRemoveTarget(null)}
+      />
     </div>
   );
 }
@@ -608,14 +766,26 @@ export default function QuickAccessClient({
 function ModalShell({
   title,
   children,
+  onBack,
 }: {
   title: string;
   children: React.ReactNode;
+  onBack?: () => void;
 }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4">
-      <div className="w-full max-w-lg rounded-2xl bg-white p-5 shadow-2xl sm:p-6">
-        <h2 className="mb-4 text-center text-lg font-semibold text-[#1A1A1A]">
+    <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/35 p-4 sm:p-6">
+      <div className="relative w-full max-w-lg rounded-2xl bg-white p-5 shadow-2xl sm:p-6 lg:max-w-xl lg:p-7">
+        {onBack && (
+          <button
+            type="button"
+            onClick={onBack}
+            className="absolute left-4 top-4 flex size-9 items-center justify-center rounded-full border border-[#E5E7EB] text-[#374151] transition hover:bg-[#F3F4F6] sm:left-5 sm:top-5"
+            aria-label="Kembali"
+          >
+            <ArrowLeft size={18} strokeWidth={2.5} />
+          </button>
+        )}
+        <h2 className="mb-4 text-center text-lg font-semibold text-[#1A1A1A] lg:text-xl">
           {title}
         </h2>
         {children}

@@ -225,7 +225,7 @@ export const getAllMerchandiseNames = unstable_cache(
   { tags: [MERCHANDISE_LIST_CACHE_TAG] }
 );
 
-/** Katalog merch untuk akses cepat tablet (termasuk foto) */
+/** Katalog merch untuk akses cepat (tablet & desktop, termasuk foto) */
 async function fetchMerchandiseCatalog() {
   const items = await prisma.merchandise.findMany({
     select: {
