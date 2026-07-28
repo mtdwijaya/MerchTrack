@@ -5,12 +5,10 @@ import { useRouter } from "next/navigation";
 import {
   ArrowLeft,
   CheckCircle2,
-  ChevronUp,
   Minus,
   Package,
   Plus,
   Trash2,
-  X,
 } from "lucide-react";
 
 import type { TujuanOption } from "@/components/barang-keluar/status-badge";
@@ -528,17 +526,6 @@ export default function QuickAccessClient({
             >
               {!showSheet ? (
                 <div className="relative mx-auto w-full max-w-[1340px] xl:max-w-[1440px]">
-                  <button
-                    type="button"
-                    onClick={() => setShowSheet(true)}
-                    className="absolute left-5 top-0 z-10 flex h-8 w-12 -translate-y-full items-center justify-center rounded-t-[22px] border border-b-0 border-black/25 bg-linear-to-b from-[#88000A] to-[#6E0008] text-[#FEE9E9] sm:left-6 md:left-8 md:h-[33px] md:w-14"
-                    aria-label="Lihat detail pilihan"
-                  >
-                    <ChevronUp
-                      className="size-5 lg:size-6"
-                      strokeWidth={2.75}
-                    />
-                  </button>
                   <div className="flex h-12 items-center justify-between gap-3 px-4 sm:h-14 sm:px-5 md:px-6 lg:h-14 lg:px-8 max-[850px]:h-12">
                     <p className="min-w-0 flex-1 truncate text-sm font-medium text-white/80 lg:text-base">
                       {cartSummaryLabel}
@@ -554,29 +541,16 @@ export default function QuickAccessClient({
                 </div>
               ) : (
                 <div className="mx-auto flex w-full max-w-[1340px] max-h-[min(62dvh,520px)] flex-col max-[850px]:max-h-[min(58dvh,460px)]">
-                  <div className="flex shrink-0 justify-center pt-2">
-                    <button
-                      type="button"
-                      onClick={() => setShowSheet(false)}
-                      className="flex flex-col items-center gap-1.5 px-6"
-                      aria-label="Tutup sheet"
-                    >
-                      <div className="h-1.5 w-12 rounded-full bg-white/35" />
-                      <ChevronUp className="size-5 rotate-180 text-white/70" />
-                    </button>
-                  </div>
-
-                  <div className="flex items-center justify-between px-4 pb-2 pt-1 sm:px-5 md:px-6 lg:px-8">
+                  <div className="flex items-center justify-between px-4 pb-2 pt-4 sm:px-5 md:px-6 lg:px-8">
                     <h3 className="text-base font-semibold text-white lg:text-lg">
                       Detail pilihan
                     </h3>
                     <button
                       type="button"
                       onClick={() => setShowSheet(false)}
-                      className="rounded-full p-1.5 text-white/80 hover:bg-white/10"
-                      aria-label="Tutup"
+                      className="rounded-[8px] border border-[#FEE9E9]/70 px-4 py-2 text-[11px] font-semibold text-[#FEE9E9] transition hover:bg-white/10 lg:px-5 lg:text-sm"
                     >
-                      <X size={18} />
+                      Tutup
                     </button>
                   </div>
 
