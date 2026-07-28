@@ -5,10 +5,10 @@ import { redirect } from "next/navigation";
 
 import { clearAuthCookie, requireActionUser } from "@/lib/auth";
 import { createBarangKeluarBatch } from "@/lib/barang-keluar";
-import {
-  restockMerchandise,
-  revalidateMerchandiseListCache,
-} from "@/lib/merchandise";
+import { getBarangKeluarById } from "@/lib/barang-keluar";
+import { assertCanMutateBarangKeluar } from "@/lib/barang-keluar-access";
+import { createBarangKembaliBatch } from "@/lib/barang-kembali";
+import { revalidateMerchandiseListCache } from "@/lib/merchandise";
 import { revalidateAnalyticsPages } from "@/lib/revalidate-analytics";
 import { parseSchema } from "@/lib/validations";
 import { z } from "zod";
@@ -30,8 +30,17 @@ const outSchema = z.object({
 });
 
 const returnSchema = z.object({
-  nama_petugas: z.string().trim().min(1, "Nama petugas wajib dipilih"),
-  items: z.array(cartItemSchema).min(1, "Pilih minimal 1 merchandise"),
+  pengembali: z.string().trim().min(1, "Nama petugas wajib dipilih"),
+  asal: z.string().trim().min(1, "Asal pengembalian wajib diisi"),
+  keterangan: z.string().trim().max(500).optional().nullable(),
+  items: z
+    .array(
+      z.object({
+        id_keluar: z.coerce.number().int().positive(),
+        jumlah_kembali: z.coerce.number().int().positive("Jumlah minimal 1"),
+      })
+    )
+    .min(1, "Pilih minimal 1 merchandise untuk dikembalikan"),
 });
 
 export async function logoutTabletAction() {
@@ -84,16 +93,32 @@ export async function confirmQuickReturnAction(
 
   try {
     for (const item of parsed.data.items) {
-      await restockMerchandise(item.id_merch, auth.user.id_user, {
-        nama_petugas: parsed.data.nama_petugas,
-        jumlah: item.jumlah,
-        keterangan: "Pengembalian via akses cepat",
-      });
+      const keluar = await getBarangKeluarById(item.id_keluar);
+      if (!keluar) {
+        return {
+          ok: false,
+          message: `Transaksi #${item.id_keluar} tidak ditemukan`,
+        };
+      }
+      assertCanMutateBarangKeluar(auth.user, keluar);
     }
+
+    await createBarangKembaliBatch(
+      auth.user.id_user,
+      {
+        tanggal_kembali: new Date(),
+        pengembali: parsed.data.pengembali,
+        asal: parsed.data.asal,
+        keterangan:
+          parsed.data.keterangan?.trim() || "Pengembalian via akses cepat",
+      },
+      parsed.data.items
+    );
 
     revalidateMerchandiseListCache();
     revalidateAnalyticsPages();
     revalidatePath("/");
+    revalidatePath("/admin/barang-keluar");
     revalidatePath("/admin/monitoring");
     revalidatePath("/admin/riwayat-transaksi");
     return { ok: true };

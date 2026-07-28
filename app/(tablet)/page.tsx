@@ -1,4 +1,5 @@
 import QuickAccessClient from "./quick-access-client";
+import { listQuickReturnGroups } from "@/lib/barang-kembali";
 import { getMerchandiseCatalog } from "@/lib/merchandise";
 import { getPetugasNameOptions } from "@/lib/petugas-options";
 import { getAllStasiun } from "@/lib/stasiun";
@@ -9,15 +10,23 @@ import { getCurrentUser } from "@/lib/auth";
 export const dynamic = "force-dynamic";
 
 export default async function TabletHomePage() {
-  const [user, merchandise, petugasOptions, tujuanList, stasiunList, unitList] =
-    await Promise.all([
-      getCurrentUser(),
-      getMerchandiseCatalog(),
-      getPetugasNameOptions(),
-      getAllTujuan(),
-      getAllStasiun(),
-      getAllUnit(),
-    ]);
+  const [
+    user,
+    merchandise,
+    petugasOptions,
+    tujuanList,
+    stasiunList,
+    unitList,
+    returnGroups,
+  ] = await Promise.all([
+    getCurrentUser(),
+    getMerchandiseCatalog(),
+    getPetugasNameOptions(),
+    getAllTujuan(),
+    getAllStasiun(),
+    getAllUnit(),
+    listQuickReturnGroups(),
+  ]);
 
   return (
     <QuickAccessClient
@@ -27,6 +36,7 @@ export default async function TabletHomePage() {
       tujuanList={tujuanList}
       stasiunList={stasiunList}
       unitList={unitList}
+      returnGroups={returnGroups}
     />
   );
 }
