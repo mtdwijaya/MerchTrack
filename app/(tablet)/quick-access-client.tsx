@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import {
   ArrowLeft,
@@ -61,12 +61,62 @@ type Props = {
   returnGroups: QuickReturnGroup[];
 };
 
+type PersistedQuickAccessState = {
+  step: Step;
+  setup: Setup;
+  selectedReturnKey: string | null;
+};
+
+const QUICK_ACCESS_STATE_KEY = "quick-access-tablet-state";
+
 function formatTanggalShort(iso: string) {
   return new Date(iso).toLocaleDateString("id-ID", {
     day: "numeric",
     month: "short",
     year: "numeric",
   });
+}
+
+function getStockTone(stock: number) {
+  if (stock <= 0) {
+    return {
+      overlay:
+        "from-[#7F1D1D]/100 via-[#DC2626]/40 to-[#FCA5A5]/0",
+      glow: "bg-[#DC2626]/36",
+      label: "Stok habis",
+      labelClass: "text-[#FCA5A5]",
+      buttonClass:
+        "border-white/18 bg-white/6 text-white/45 disabled:opacity-100",
+    };
+  }
+
+  if (stock < 20) {
+    return {
+      overlay:
+        "from-[#B45309]/100 via-[#F59E0B]/42 to-[#FDE68A]/0",
+      glow: "bg-[#F59E0B]/34",
+      label: `Stok tersisa: ${stock}`,
+      labelClass: "text-[#FCD34D]",
+      buttonClass:
+        "border-white/60 bg-black/22 text-white hover:bg-white/10 disabled:opacity-35",
+    };
+  }
+
+  return {
+    overlay:
+      "from-[#15803D]/100 via-[#22C55E]/42 to-[#DCFCE7]/0",
+    glow: "bg-[#22C55E]/32",
+    label: `Stok tersedia: ${stock}`,
+    labelClass: "text-[#86EFAC]",
+    buttonClass:
+      "border-white/60 bg-black/22 text-white hover:bg-white/10 disabled:opacity-35",
+  };
+}
+
+function isEventOrLainnyaTujuan(tujuan: TujuanOption | null) {
+  if (!tujuan) return false;
+  const name = tujuan.nama_tujuan.trim().toLowerCase();
+  return name === "event" || name === "lainnya";
 }
 
 export default function QuickAccessClient({
@@ -94,12 +144,77 @@ export default function QuickAccessClient({
   const [error, setError] = useState<string | null>(null);
   const [showSheet, setShowSheet] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
+  const [showSubmitConfirm, setShowSubmitConfirm] = useState(false);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
   const [removeTarget, setRemoveTarget] = useState<{
     cartKey: number;
     nama_merch: string;
   } | null>(null);
   const [pending, startTransition] = useTransition();
+
+  useEffect(() => {
+    try {
+      const raw = window.sessionStorage.getItem(QUICK_ACCESS_STATE_KEY);
+      if (!raw) return;
+
+      const saved = JSON.parse(raw) as Partial<PersistedQuickAccessState>;
+      if (!saved.setup || !saved.step) return;
+
+      setSetup({
+        mode: saved.setup.mode === "RETURN" ? "RETURN" : "OUT",
+        nama_petugas: saved.setup.nama_petugas ?? "",
+        id_tujuan: saved.setup.id_tujuan ?? "",
+        id_stasiun: saved.setup.id_stasiun ?? "",
+        id_unit: saved.setup.id_unit ?? "",
+        detail_teks: saved.setup.detail_teks ?? "",
+      });
+
+      setSelectedReturnKey(saved.selectedReturnKey ?? null);
+
+      if (saved.step === "catalog") {
+        setStep("catalog");
+        setError(
+          "Halaman dimuat ulang. Pilihan merchandise sebelumnya dikosongkan, silakan pilih ulang."
+        );
+        return;
+      }
+
+      if (saved.step === "pilih-transaksi") {
+        setStep("pilih-transaksi");
+        return;
+      }
+
+      if (saved.step === "petugas") {
+        setStep("petugas");
+      }
+    } catch {
+      window.sessionStorage.removeItem(QUICK_ACCESS_STATE_KEY);
+    }
+  }, []);
+
+  useEffect(() => {
+    const payload: PersistedQuickAccessState = {
+      step,
+      setup,
+      selectedReturnKey,
+    };
+    window.sessionStorage.setItem(
+      QUICK_ACCESS_STATE_KEY,
+      JSON.stringify(payload)
+    );
+  }, [selectedReturnKey, setup, step]);
+
+  useEffect(() => {
+    if (step !== "catalog") return;
+
+    const onBeforeUnload = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+      event.returnValue = "";
+    };
+
+    window.addEventListener("beforeunload", onBeforeUnload);
+    return () => window.removeEventListener("beforeunload", onBeforeUnload);
+  }, [step]);
 
   const selectedTujuan = useMemo(
     () => tujuanList.find((t) => t.id_tujuan === setup.id_tujuan) ?? null,
@@ -191,8 +306,10 @@ export default function QuickAccessClient({
     setError(null);
     setShowSheet(false);
     setShowSuccess(false);
+    setShowSubmitConfirm(false);
     setShowResetConfirm(false);
     setRemoveTarget(null);
+    window.sessionStorage.removeItem(QUICK_ACCESS_STATE_KEY);
   }
 
   function requestResetSession() {
@@ -259,7 +376,17 @@ export default function QuickAccessClient({
     setStep("catalog");
   }
 
+  function requestSubmitConfirm() {
+    setError(null);
+    if (cartItems.length === 0) {
+      setError("Pilih minimal 1 merchandise");
+      return;
+    }
+    setShowSubmitConfirm(true);
+  }
+
   function handleConfirm() {
+    setShowSubmitConfirm(false);
     setError(null);
     if (cartItems.length === 0) {
       setError("Pilih minimal 1 merchandise");
@@ -298,6 +425,7 @@ export default function QuickAccessClient({
       setQty({});
       setShowSheet(false);
       setShowSuccess(true);
+      window.sessionStorage.removeItem(QUICK_ACCESS_STATE_KEY);
       router.refresh();
     });
   }
@@ -437,12 +565,24 @@ export default function QuickAccessClient({
                 const value = qty[item.cartKey] ?? 0;
                 const canAdd = value < item.maxQty;
                 const disabledOut = setup.mode === "OUT" && item.maxQty <= 0;
+                const stockTone =
+                  setup.mode === "OUT"
+                    ? getStockTone(item.maxQty)
+                    : {
+                        overlay:
+                          "from-[#1D4ED8]/100 via-[#60A5FA]/36 to-[#E0F2FE]/0",
+                        glow: "bg-[#60A5FA]/24",
+                        label: item.meta,
+                        labelClass: "text-[#BFDBFE]",
+                        buttonClass:
+                          "border-white/60 bg-black/22 text-white hover:bg-white/10 disabled:opacity-35",
+                      };
                 return (
                   <article
                     key={item.cartKey}
-                    className="flex flex-col rounded-[10px] bg-black/50 px-[9%] pb-2 pt-[6%] shadow-[0_5px_14px_rgba(255,255,255,0.22)] sm:aspect-[158/178] lg:rounded-xl lg:aspect-[158/185] lg:px-[10%] lg:pb-2.5 lg:pt-[7%] max-[850px]:aspect-[158/168] max-[850px]:px-[8%] max-[850px]:pb-1.5 max-[850px]:pt-[5%]"
+                    className="flex flex-col rounded-[18px] border border-white/12 bg-linear-to-b from-[#6E0008] via-[#3B0004] to-[#150001] px-[7%] pb-3 pt-[6%] shadow-[0_10px_28px_rgba(0,0,0,0.42)] sm:aspect-[158/178] lg:rounded-[22px] lg:aspect-[158/185] lg:px-[8%] lg:pb-3.5 lg:pt-[7%] max-[850px]:aspect-[158/168] max-[850px]:px-[7%] max-[850px]:pb-2 max-[850px]:pt-[5%]"
                   >
-                    <div className="mx-auto aspect-square w-full overflow-hidden rounded-[8px] bg-[#989898] lg:rounded-[10px]">
+                    <div className="relative mx-auto aspect-square w-full overflow-hidden rounded-[14px] bg-white lg:rounded-[16px]">
                       {item.foto_path ? (
                         // eslint-disable-next-line @next/next/no-img-element
                         <img
@@ -456,23 +596,33 @@ export default function QuickAccessClient({
                           <Package className="size-6 sm:size-7 lg:size-8" />
                         </div>
                       )}
+                      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-[42%] overflow-hidden rounded-b-[14px] lg:rounded-b-[16px]">
+                        <div
+                          className={`absolute inset-x-0 bottom-[-22%] h-[92%] blur-2xl ${stockTone.glow}`}
+                        />
+                        <div
+                          className={`absolute inset-x-0 bottom-0 h-full bg-linear-to-t ${stockTone.overlay}`}
+                        />
+                      </div>
                     </div>
 
-                    <h2 className="mt-1.5 line-clamp-2 min-h-8 text-center text-[10px] font-medium leading-snug text-white sm:mt-2 sm:min-h-9 sm:text-[11px] lg:text-xs max-[850px]:mt-1 max-[850px]:min-h-7 max-[850px]:text-[10px]">
+                    <h2 className="mt-2 line-clamp-2 min-h-8 text-center text-[15px] font-medium leading-snug text-white sm:mt-2.5 sm:min-h-9 sm:text-[17px] lg:text-[18px] max-[850px]:mt-1.5 max-[850px]:min-h-7 max-[850px]:text-[13px]">
                       {item.nama_merch}
                     </h2>
-                    <p className="text-center text-[9px] text-white/55 sm:text-[10px]">
-                      {item.meta}
+                    <p
+                      className={`text-center text-[11px] font-semibold sm:text-[14px] ${stockTone.labelClass}`}
+                    >
+                      {stockTone.label}
                     </p>
 
-                    <div className="mt-auto flex items-center justify-center gap-1.5 pt-1 sm:gap-2 md:gap-2.5 lg:gap-3">
+                    <div className="mt-auto flex items-center justify-center gap-2 pt-2 sm:gap-2.5 md:gap-3 lg:gap-3.5">
                       <button
                         type="button"
-                        disabled={value <= 0 || pending}
+                        disabled={value <= 0 || pending || disabledOut}
                         onClick={() =>
                           setItemQty(item.cartKey, value - 1, item.maxQty)
                         }
-                        className="flex size-7 items-center justify-center rounded-full text-white disabled:opacity-30 lg:size-8"
+                        className={`flex size-9 items-center justify-center rounded-full border transition lg:size-10 ${stockTone.buttonClass}`}
                         aria-label="Kurangi"
                       >
                         <Minus
@@ -481,7 +631,7 @@ export default function QuickAccessClient({
                         />
                       </button>
 
-                      <div className="flex h-6 min-w-9 items-center justify-center rounded-full bg-[#9C9B9B] px-2 text-[11px] font-semibold tabular-nums text-white sm:min-w-10 md:min-w-11 lg:h-7 lg:min-w-12 lg:text-xs">
+                      <div className="flex h-11 min-w-14 items-center justify-center rounded-[14px] bg-[#2B090B] px-3 text-[22px] font-bold tabular-nums text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] sm:min-w-16 sm:text-[24px] lg:h-12 lg:min-w-[68px] lg:text-[26px] max-[850px]:h-10 max-[850px]:min-w-12 max-[850px]:text-[18px]">
                         {value}
                       </div>
 
@@ -491,7 +641,7 @@ export default function QuickAccessClient({
                         onClick={() =>
                           setItemQty(item.cartKey, value + 1, item.maxQty)
                         }
-                        className="flex size-7 items-center justify-center rounded-full text-white disabled:opacity-30 lg:size-8"
+                        className={`flex size-9 items-center justify-center rounded-full border transition lg:size-10 ${stockTone.buttonClass}`}
                         aria-label="Tambah"
                       >
                         <Plus className="size-5 lg:size-6" strokeWidth={2.5} />
@@ -655,7 +805,7 @@ export default function QuickAccessClient({
                     <button
                       type="button"
                       disabled={pending || cartCount === 0}
-                      onClick={handleConfirm}
+                      onClick={requestSubmitConfirm}
                       className="w-full rounded-[10px] bg-[#FEE9E9] py-3 text-sm font-bold tracking-wide text-[#8A000B] shadow-[0_2px_10px_rgba(0,0,0,0.35)] transition hover:bg-white disabled:bg-[#FEE9E9]/40 disabled:text-[#8A000B]/50 disabled:shadow-none sm:py-3.5 lg:py-4 lg:text-base"
                     >
                       {pending ? "Menyimpan..." : "Confirm"}
@@ -674,18 +824,30 @@ export default function QuickAccessClient({
             <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-full bg-[#ECFDF5] text-[#059669]">
               <CheckCircle2 size={32} />
             </div>
-            <h3 className="text-lg font-semibold text-[#1A1A1A]">Berhasil</h3>
+            <h3 className="text-lg font-semibold text-[#1A1A1A]">Transaksi Selesai</h3>
             <p className="mt-2 text-sm leading-relaxed text-[#4B5563]">
-              {setup.mode === "OUT"
-                ? "Pengambilan barang berhasil. Transaksi tercatat sebagai barang keluar."
-                : "Pengembalian berhasil tercatat ke transaksi keluar yang dipilih. Stok gudang sudah diperbarui."}
+              {setup.mode === "OUT" ? (
+                isEventOrLainnyaTujuan(selectedTujuan) ? (
+                  <>
+                    Pengambilan barang berhasil. Transaksi tercatat sebagai
+                    barang keluar.{" "}
+                    <span className="font-bold">
+                      Silakan temui admin untuk detail tujuan.
+                    </span>
+                  </>
+                ) : (
+                  "Pengambilan barang berhasil. Transaksi tercatat sebagai barang keluar."
+                )
+              ) : (
+                "Pengembalian berhasil tercatat ke transaksi keluar yang dipilih. Stok gudang sudah diperbarui."
+              )}
             </p>
             <button
               type="button"
               className="mt-5 w-full rounded-xl bg-linear-to-r from-[#D71920] to-[#550101] py-3 text-sm font-semibold text-white"
               onClick={resetSession}
             >
-              Selesai
+              Menu Transaksi
             </button>
           </div>
         </div>
@@ -870,6 +1032,34 @@ export default function QuickAccessClient({
             </button>
           </div>
         </ModalShell>
+      )}
+
+      {showSubmitConfirm && (
+        <div className="fixed inset-0 z-200 flex items-center justify-center bg-black/45 p-4">
+          <div className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-2xl sm:p-7">
+            <h3 className="text-center text-lg font-semibold text-[#1A1A1A] lg:text-xl">
+              Apakah pilihan kamu sudah sesuai?
+            </h3>
+            <div className="mt-6 flex gap-2">
+              <button
+                type="button"
+                className="flex flex-1 items-center justify-center rounded-xl border border-[#E5E7EB] py-3 text-sm font-semibold text-[#374151] transition hover:bg-[#F3F4F6]"
+                onClick={() => setShowSubmitConfirm(false)}
+                disabled={pending}
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                className="flex-1 rounded-xl bg-linear-to-r from-[#D71920] to-[#550101] py-3 text-sm font-semibold text-white disabled:opacity-60"
+                onClick={handleConfirm}
+                disabled={pending}
+              >
+                {pending ? "Menyimpan..." : "Konfirmasi"}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       <ConfirmDialog

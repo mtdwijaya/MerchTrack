@@ -1,10 +1,24 @@
 ﻿import type { NextConfig } from "next";
 
+/** Host LAN untuk uji di tablet (next dev). Tambah IP PC Anda bila berubah. */
+const lanDevHosts = [
+  "localhost",
+  "127.0.0.1",
+  "10.45.4.175",
+  "192.168.45.3",
+];
+
 const nextConfig: NextConfig = {
-  allowedDevOrigins: ["192.168.45.3", "192.168.*.*"],
+  // Izinkan HMR / resource dev dari akses via IP (bukan hanya localhost)
+  allowedDevOrigins: lanDevHosts,
   experimental: {
     serverActions: {
       bodySizeLimit: "6mb",
+      // Izinkan Server Action dari Origin tablet/LAN
+      allowedOrigins: lanDevHosts.flatMap((host) => [
+        host,
+        `${host}:3000`,
+      ]),
     },
   },
   async redirects() {
