@@ -120,14 +120,12 @@ function PillLabel({
   y,
   name,
   value,
-  color,
   align,
 }: {
   x: number;
   y: number;
   name: string;
   value: number;
-  color: string;
   align: "left" | "right";
 }) {
   const valueText = `${formatPcs(value)} pcs`;
@@ -158,7 +156,7 @@ function PillLabel({
         dominantBaseline="middle"
         fontSize={10}
         fontWeight={700}
-        fill={color}
+        fill="#FFFFFF"
       >
         {name}
       </text>
@@ -168,7 +166,7 @@ function PillLabel({
         dominantBaseline="middle"
         fontSize={10}
         fontWeight={500}
-        fill="#F3F4F6"
+        fill="#FFFFFF"
       >
         {valueText}
       </text>
@@ -225,9 +223,9 @@ function SankeyNode(props: {
         height={Math.max(height, 4)}
         fill={payload.color}
         fillOpacity={fillOpacity}
-        stroke={payload.color}
+        stroke="#FFFFFF"
         strokeOpacity={strokeOpacity}
-        strokeWidth={1}
+        strokeWidth={0.9}
         radius={2}
         style={{ cursor: "pointer", transition: "fill-opacity 140ms ease" }}
         onMouseEnter={() =>
@@ -240,7 +238,6 @@ function SankeyNode(props: {
         y={y + Math.max(height, 4) / 2}
         name={payload.name}
         value={total}
-        color={payload.color}
         align={pillAlign}
       />
     </Layer>
@@ -257,6 +254,7 @@ function SankeyLink(props: {
   linkWidth?: number;
   payload?: SankeyLinkRenderPayload;
   maxValue: number;
+  maxTotalBySide: { merch: number; tujuan: number };
   hovered: HoverTarget;
   onHover: (target: HoverTarget) => void;
 }) {
@@ -270,6 +268,7 @@ function SankeyLink(props: {
     linkWidth = 0,
     payload,
     maxValue,
+    maxTotalBySide,
     hovered,
     onHover,
   } = props;
@@ -278,10 +277,15 @@ function SankeyLink(props: {
 
   const { sourceName, targetName, color } = resolveLinkEnds(payload);
   const active = isLinkActive(hovered, sourceName, targetName);
-  const baseOpacity = opacityForValue(payload.value, maxValue);
-  // Default: hanya link terbesar terang; hover: path aktif terang
-  const strokeOpacity =
-    hovered == null ? baseOpacity : active ? 0.95 : 0.16;
+  const sourceTotal = payload.source.total ?? 0;
+
+  // Default: terang mengikuti merchandise dengan total terbesar (global),
+  // bukan hanya pasangan merch-tujuan dengan nilai link terbesar.
+  const defaultStrokeOpacity =
+    maxTotalBySide.merch > 0 && sourceTotal >= maxTotalBySide.merch ? 0.92 : 0.16;
+
+  // Hover: path aktif terang; lainnya redup.
+  const strokeOpacity = hovered == null ? defaultStrokeOpacity : active ? 0.95 : 0.16;
 
   return (
     <Layer>
@@ -456,6 +460,7 @@ export default function MerchTujuanSankeyChart({
           link={
             <SankeyLink
               maxValue={maxValue}
+              maxTotalBySide={maxTotalBySide}
               hovered={hovered}
               onHover={setHovered}
             />

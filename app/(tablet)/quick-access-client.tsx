@@ -683,7 +683,7 @@ export default function QuickAccessClient({
                     <button
                       type="button"
                       onClick={() => setShowSheet(true)}
-                      className="rounded-[8px] border border-[#FEE9E9]/70 px-4 py-2 text-[11px] font-semibold text-[#FEE9E9] transition hover:bg-white/10 lg:px-5 lg:text-sm"
+                      className="rounded-[14px] border border-[#FEE9E9]/90 bg-white/10 px-6 py-3.5 text-[13px] font-semibold text-[#FFFFFF] shadow-[0_10px_22px_rgba(0,0,0,0.18)] transition hover:bg-white/15 hover:border-[#FEE9E9]/95 mr-2 lg:text-sm"
                     >
                       Detail
                     </button>
@@ -698,7 +698,7 @@ export default function QuickAccessClient({
                     <button
                       type="button"
                       onClick={() => setShowSheet(false)}
-                      className="rounded-[8px] border border-[#FEE9E9]/70 px-4 py-2 text-[11px] font-semibold text-[#FEE9E9] transition hover:bg-white/10 lg:px-5 lg:text-sm"
+                      className="rounded-[12px] border border-[#FEE9E9]/25 bg-linear-to-r from-[#D71920] to-[#550101] px-5 py-3 text-[12px] font-semibold text-white shadow-[0_10px_22px_rgba(0,0,0,0.25)] transition hover:brightness-110 lg:text-sm"
                     >
                       Tutup
                     </button>
